@@ -20,7 +20,7 @@
 
 <template>
   <div>
-    <p>Number of organizations: {{ organizations.length }}</p>
+    <p class="p">Number of organizations: {{ organizations.length }}</p>
     <router-link to="/organization/new">
       <button>Create an organization</button>
     </router-link>
