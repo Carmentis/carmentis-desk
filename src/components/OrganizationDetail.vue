@@ -225,7 +225,7 @@ async function importNewNodes() {
 <template>
   <div style="padding: 2rem;">
     <div v-if="organization">
-      <h1>{{ organization.name }}</h1>
+      <h1 class="hover:underline bg-amber-700">{{ organization.name }}</h1>
       <p><strong>ID:</strong> {{ organization.id }}</p>
       <p><strong>Seed:</strong> {{ organization.seed }}</p>
       <p><strong>Node Endpoint:</strong> {{ organization.nodeEndpoint }}</p>

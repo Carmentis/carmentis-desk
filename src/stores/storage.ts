@@ -93,7 +93,9 @@ export const useStorageStore = defineStore('storage', () => {
 			return false;
 		};
 		console.log("node in input:", nodeId)
-		const nodesIds = organization.nodes.map(node => node.vbId.trim().toLowerCase());
+		const nodesIds = organization.nodes
+			.filter(node => node.vbId !== undefined)
+			.map(node => node.vbId?.trim().toLowerCase());
 		console.log("nodesIds:", nodesIds)
 		return nodesIds.includes(formattedNodeId);
 	}
