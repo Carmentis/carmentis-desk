@@ -10,10 +10,18 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@cmts-dev/carmentis-sdk": "^1.18.4",
+    "@primeuix/themes": "^2.0.3",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-store": "~2",
     "@tauri-apps/plugin-updater": "~2",
-    "vue": "^3.5.13"
+    "@vueuse/core": "^14.2.0",
+    "pinia": "^3.0.4",
+    "primevue": "^4.5.4",
+    "valibot": "^1.2.0",
+    "vue": "^3.5.13",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
