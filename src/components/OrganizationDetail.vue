@@ -116,13 +116,14 @@ const storedVbId = computed(() => organization.value?.vbId);
 const providedVbId = ref("");
 async function importOrganizationByVbId() {
   if (!providedVbId.value) return;
+  if (!organization.value) return;
   const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(organization.value.nodeEndpoint);
   try {
     const orgVb = await provider.loadOrganizationVirtualBlockchain(Hash.from(providedVbId.value));
     await storageStore.addVbIdToOrganization(organizationId.value, Hash.from(orgVb.getId()).encode())
     toast.add({ severity: 'success', summary: 'Organization imported', detail: 'Organization imported successfully', life: 3000 });
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error importing organization', detail: 'Error importing organization: ' + e.message, life: 3000 });
+    toast.add({ severity: 'error', summary: 'Error importing organization', detail: 'Error importing organization', life: 3000 });
   } finally {
     providedVbId.value = "";
   }
@@ -165,7 +166,7 @@ async function submitManualNodeImport() {
 
 // organization nodes to claim
 const showImportDialog = ref(false);
-const nodesToImport = ref<Hash[]>([]);
+const nodesToImport = ref<string[]>([]);
 
 async function fetchNodesOnChain() {
   const accountState = organizationAccountState.value;
@@ -182,10 +183,9 @@ async function fetchNodesOnChain() {
     const isAlreadyDeclared = await storageStore.isNodeDeclared(organizationId.value, nodeId.encode());
     if (isAlreadyDeclared) {
     } else {
-      newNodesIds.push(nodeId);
+      newNodesIds.push(nodeId.encode());
     }
   }
-  console.log(newNodesIds);
   if (newNodesIds.length === 0) {
     toast.add({ severity: 'info', summary: 'No nodes', detail: 'No node to import', life: 3000 });
     return;
@@ -202,12 +202,12 @@ async function importNewNodes() {
   const newNodes: NodeEntity[] = [];
   const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(organization.value.nodeEndpoint);
   for (const newNodeId of nodesToImport.value) {
-    const vb = await provider.loadValidatorNodeVirtualBlockchain(newNodeId);
+    const vb = await provider.loadValidatorNodeVirtualBlockchain(Hash.from(newNodeId));
     const rpcEndpoint = await vb.getRpcEndpointDeclaration();
     const nodeStatus = await provider.getNodeStatus(rpcEndpoint);
     const moniker = nodeStatus.result.node_info.moniker;
     newNodes.push({
-      vbId: newNodeId.encode(),
+      vbId: newNodeId,
       rpcEndpoint: rpcEndpoint,
       name: moniker
     });
@@ -272,8 +272,8 @@ async function importNewNodes() {
       <Dialog v-model:visible="showImportDialog" header="Import Nodes" modal style="width: 50rem;">
         <p>The following nodes were detected and can be imported:</p>
         <ul>
-          <li v-for="node in nodesToImport" :key="node.encode()">
-            {{ node.encode() }}
+          <li v-for="node in nodesToImport" :key="node">
+            {{ node }}
           </li>
         </ul>
         <template #footer>
