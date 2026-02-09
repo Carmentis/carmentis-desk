@@ -23,6 +23,6 @@ app.use(PrimeVue, {
 
 // application setup
 const storage = useStorageStore();
-await storage.initStorage();
+storage.initStorage();
 
 app.mount("#app");
