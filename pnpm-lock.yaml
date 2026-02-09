@@ -15,7 +15,7 @@ importers:
         specifier: ^2
         version: 2.5.3
       '@tauri-apps/plugin-updater':
-        specifier: ~2.10.0
+        specifier: ~2
         version: 2.10.0
       vue:
         specifier: ^3.5.13
