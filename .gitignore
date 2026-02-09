@@ -1,4 +1,5 @@
 
+.tauri/myappkey.key
 .vscode
 # Logs
 logs
