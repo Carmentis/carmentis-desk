@@ -6,12 +6,8 @@ import Card from 'primevue/card';
 import { useStorageStore } from '../stores/storage';
 import { computedAsync } from "@vueuse/core";
 import {
-  CryptoEncoderFactory,
   Hash,
   ProviderFactory,
-  SeedEncoder,
-  SignatureSchemeId,
-  WalletCrypto
 } from "@cmts-dev/carmentis-sdk/client";
 
 const route = useRoute();
@@ -54,6 +50,7 @@ const isNodePublished = computed(() => {
 const nodeOwnerAccountId = computedAsync(async () => {
   if (!nodeAccountId.value) return undefined;
   if (!wallet.value) return undefined;
+  if (!node.value?.vbId) return undefined;
 
   try {
     const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
@@ -68,6 +65,7 @@ const nodeOwnerAccountId = computedAsync(async () => {
 
 const nodeOwnerName = computedAsync(async () => {
   if (!nodeOwnerAccountId.value) return undefined;
+  if (!wallet.value) return undefined;
   const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
   const orgVb = await provider.loadOrganizationVirtualBlockchain(nodeOwnerAccountId.value);
   const orgDesc = await orgVb.getDescription();
