@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, ref, watch} from 'vue';
+import {computed, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useToast} from 'primevue/usetoast';
 import Button from 'primevue/button';
@@ -8,6 +8,7 @@ import Breadcrumb from 'primevue/breadcrumb';
 import Dialog from 'primevue/dialog';
 import InputNumber from 'primevue/inputnumber';
 import {useStorageStore} from '../stores/storage';
+import {useOnChainStore} from '../stores/onchain';
 import {computedAsync} from "@vueuse/core";
 import {
   CMTSToken, EncoderFactory,
@@ -24,6 +25,7 @@ const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 const storageStore = useStorageStore();
+const onchainStore = useOnChainStore();
 await storageStore.initStorage();
 
 const walletId = computed(() => Number(route.params.walletId));
@@ -86,7 +88,7 @@ const nodePublicKey = computedAsync(async () => {
 
 const nodeVbId = computedAsync(async () => {
   console.log("Node:", node.value, wallet.value, nodePublicKey.value)
-  if (!node.value) return undefined;
+  if (!node.value || !node.value.vbId) return undefined;
   if (!wallet.value) return undefined;
   if (!nodePublicKey.value) return undefined;
 
@@ -253,6 +255,39 @@ const showUnstakeDialog = ref(false);
 const unstakeAmount = ref<number | null>(null);
 const isUnstaking = ref(false);
 
+// Claim Node Dialog
+const showClaimDialog = ref(false);
+const isClaiming = ref(false);
+
+const openClaimDialog = () => {
+  showClaimDialog.value = true;
+};
+
+const closeClaimDialog = () => {
+  showClaimDialog.value = false;
+};
+
+const submitClaim = async () => {
+  if (!wallet.value || !node.value || nodeVbId.value || !organization.value?.vbId) {
+    closeClaimDialog();
+    return;
+  }
+
+  isClaiming.value = true;
+  try {
+    await onchainStore.claimNode({
+      walletId: walletId.value,
+      orgId: orgId.value,
+      nodeId: nodeId.value
+    });
+    closeClaimDialog();
+  } catch (error) {
+    console.error('Error claiming node:', error);
+  } finally {
+    isClaiming.value = false;
+  }
+};
+
 const maxUnstakeAmount = computed(() => {
   if (nodeStakeInformation.value === undefined) return 0;
   return CMTSToken.createAtomic(nodeStakeInformation.value.lockedAmountInAtomics).getAmountAsAtomic();
@@ -347,9 +382,19 @@ watch(nodeVbId, async (newNodeVbId) => {
         <!-- Node Information Card -->
         <Card>
           <template #title>
-            <div class="flex items-center gap-2">
-              <i class="pi pi-sitemap text-xl"></i>
-              <span>Node Information</span>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-sitemap text-xl"></i>
+                <span>Node Information</span>
+              </div>
+              <Button
+                v-if="!node.vbId && !isNodePublished && !isNodeClaimed"
+                @click="openClaimDialog"
+                label="Claim Node"
+                icon="pi pi-lock"
+                size="small"
+                outlined
+              />
             </div>
           </template>
           <template #content>
@@ -631,6 +676,35 @@ watch(nodeVbId, async (newNodeVbId) => {
             :loading="isUnstaking"
             icon="pi pi-check"
             severity="secondary"
+          />
+        </div>
+      </template>
+    </Dialog>
+
+    <!-- Claim Node Dialog -->
+    <Dialog v-model:visible="showClaimDialog" modal header="Claim Node" :style="{ width: '30rem' }">
+      <div class="space-y-4">
+        <p class="text-gray-700">
+          Are you sure you want to claim this node for organization <strong>{{ organization?.name }}</strong>?
+        </p>
+        <div v-if="nodeVbId" class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Node VB ID</label>
+          <code class="text-xs block overflow-x-auto">{{ nodeVbId.encode() }}</code>
+        </div>
+        <p class="text-sm text-gray-500">
+          This action will associate the node with your organization on the blockchain.
+        </p>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <Button label="Cancel" @click="closeClaimDialog" text />
+          <Button
+            label="Claim Node"
+            @click="submitClaim"
+            :loading="isClaiming"
+            :disabled="isClaiming"
+            icon="pi pi-lock"
           />
         </div>
       </template>
