@@ -2,3 +2,5 @@ onlyBuiltDependencies:
   - cbor-extract
   - esbuild
   - vue-demi
+packages:
+  - 'packages/*'
