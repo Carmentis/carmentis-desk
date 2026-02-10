@@ -23,7 +23,6 @@ import {Tendermint37Client} from "@cosmjs/tendermint-rpc";
 
 const route = useRoute();
 const router = useRouter();
-const toast = useToast();
 const storageStore = useStorageStore();
 const onchainStore = useOnChainStore();
 await storageStore.initStorage();
@@ -156,15 +155,35 @@ const nodeStakeInformation = computedAsync(async () => {
   if (wallet === undefined) return undefined;
   if (node.value === undefined) return undefined;
   if (node.value.vbId === undefined) return undefined;
+
   const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
+
+  // fetch the account id from the node's public key
+  /*
+
+
+
+   */
+
+  /*
   const seed = new SeedEncoder().decode(wallet.seed);
   const crypto = WalletCrypto.fromSeed(seed);
   const account = crypto.getDefaultAccountCrypto();
   const sk = await account.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
   const pk = await sk.getPublicKey();
   const accountId = await provider.getAccountIdByPublicKey(pk);
+   */
+  const pk = nodePublicKey.value?.pk;
+  if (pk === undefined) return undefined;
+  const validatorNodeVbId = await provider.getValidatorNodeIdByCometbftPublicKey(pk);
+  const validatorNodeVb = await provider.loadValidatorNodeVirtualBlockchain(Hash.from(validatorNodeVbId));
+  const orgVbId = await validatorNodeVb.getOrganizationId();
+  const orgVb = await provider.loadOrganizationVirtualBlockchain(orgVbId);
+  const nodeOwnerAccountVbId = orgVb.getAccountId();
+  const accountId = nodeOwnerAccountVbId.toBytes();
   const accountState = await provider.getAccountState(accountId);
   const nodeVbId = Hash.from(node.value.vbId);
+  console.log("Node account state:", accountState)
   const stakingForThisNode = accountState.locks.filter(
       lock => lock.type === LockType.NodeStaking && Utils.binaryIsEqual(
           lock.parameters.validatorNodeAccountId,
@@ -236,12 +255,16 @@ const closeStakeDialog = () => {
 };
 
 const submitStake = async () => {
-  if (!canStake.value || !wallet.value || !node.value?.vbId) return;
+  if (!canStake.value || !wallet.value || !node.value?.vbId || stakeAmount.value === null) return;
 
   isStaking.value = true;
   try {
-    // TODO: Implement staking transaction
-    console.log('Staking', stakeAmount.value, 'CMTS for node', node.value.vbId);
+    await onchainStore.stakeOnNode({
+      walletId: walletId.value,
+      orgId: orgId.value,
+      nodeId: nodeId.value,
+      amount: CMTSToken.createAtomic(stakeAmount.value)
+    });
     closeStakeDialog();
   } catch (error) {
     console.error('Error staking:', error);
@@ -319,12 +342,16 @@ const closeUnstakeDialog = () => {
 };
 
 const submitUnstake = async () => {
-  if (!canUnstake.value || !wallet.value || !node.value?.vbId) return;
+  if (!canUnstake.value || !wallet.value || !node.value?.vbId || unstakeAmount.value === null) return;
 
   isUnstaking.value = true;
   try {
-    // TODO: Implement unstaking transaction
-    console.log('Unstaking', unstakeAmount.value, 'CMTS from node', node.value.vbId);
+    await onchainStore.unstakeFromNode({
+      walletId: walletId.value,
+      orgId: orgId.value,
+      nodeId: nodeId.value,
+      amount: CMTSToken.createAtomic(unstakeAmount.value)
+    });
     closeUnstakeDialog();
   } catch (error) {
     console.error('Error unstaking:', error);
@@ -560,7 +587,7 @@ watch(nodeVbId, async (newNodeVbId) => {
               </div>
 
               <!-- Action Buttons -->
-              <div class="flex gap-2 pt-2">
+              <div class="flex gap-2 pt-2" v-if="isOwnedByWallet">
                 <Button
                   @click="openStakeDialog"
                   label="Stake More"
@@ -580,7 +607,7 @@ watch(nodeVbId, async (newNodeVbId) => {
             </div>
 
             <!-- Action Buttons (No Staking) -->
-            <div v-if="nodeStakeInformation === undefined" class="mt-4">
+            <div v-if="nodeStakeInformation === undefined && isOwnedByWallet" class="mt-4">
               <Button
                 @click="openStakeDialog"
                 label="Stake Tokens"

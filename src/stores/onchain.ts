@@ -8,7 +8,9 @@ import {
 	WalletCrypto,
 	ValidatorNodeCreationSection,
 	ValidatorNodeRpcEndpointSection,
-	ValidatorNodeCometbftPublicKeyDeclarationSection
+	ValidatorNodeCometbftPublicKeyDeclarationSection,
+	CMTSToken,
+	VirtualBlockchainType, Provider
 } from "@cmts-dev/carmentis-sdk/client";
 import {useStorageStore} from "./storage";
 import {ref} from "vue";
@@ -29,6 +31,20 @@ export interface ClaimNodeParams {
 	nodeId: number;
 }
 
+export interface StakeOnNodeParams {
+	walletId: number;
+	orgId: number;
+	nodeId: number;
+	amount: CMTSToken;
+}
+
+export interface UnstakeFromNodeParams {
+	walletId: number;
+	orgId: number;
+	nodeId: number;
+	amount: CMTSToken;
+}
+
 export const useOnChainStore = defineStore('onchain', () => {
 	const storageStore = useStorageStore();
 	const toast = useToast();
@@ -36,6 +52,8 @@ export const useOnChainStore = defineStore('onchain', () => {
 
 	const isPublishingOrganization = ref(false);
 	const isClaimingNode = ref(false);
+	const isStakingOnNode = ref(false);
+	const isUnstakingFromNode = ref(false);
 
 	/**
 	 * Publishes an organization on-chain
@@ -233,6 +251,198 @@ export const useOnChainStore = defineStore('onchain', () => {
 		}
 	}
 
+	/**
+	 * Stakes tokens on a node
+	 * Creates a microblock with an ACCOUNT_STAKE section to lock tokens for the node
+	 */
+	async function stakeOnNode(params: StakeOnNodeParams) {
+		isStakingOnNode.value = true;
+		try {
+			const {walletId, orgId, nodeId, amount} = params;
+
+			// Get wallet from storage
+			const wallet = await storageStore.getWalletById(walletId);
+			if (!wallet) {
+				throw new Error(`Wallet with id ${walletId} not found`);
+			}
+
+			// Get organization from wallet
+			const organization = wallet.organizations.find(org => org.id === orgId);
+			if (!organization) {
+				throw new Error(`Organization with id ${orgId} not found in wallet ${walletId}`);
+			}
+
+			// Check if organization is published
+			if (!organization.vbId) {
+				throw new Error(`Organization must be published before staking on nodes`);
+			}
+
+			// Get node from organization
+			const node = organization.nodes.find(n => n.id === nodeId);
+			if (!node) {
+				throw new Error(`Node with id ${nodeId} not found in organization ${orgId}`);
+			}
+
+			// Initialize wallet crypto from seed
+			const seedEncoder = new SeedEncoder();
+			const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
+			const accountCrypto = walletSeed.getDefaultAccountCrypto();
+
+			// Create provider
+			const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
+
+			// Get signing keys
+			const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
+			const pk = await sk.getPublicKey();
+
+			// Get the account id
+			const accountId = await provider.getAccountIdByPublicKey(pk);
+			if (accountId === undefined) throw new Error('Error getting account id');
+			const organisationPrivateKey = sk;
+
+			// Get node status to retrieve CometBFT public key
+			const nodeStatus = await provider.getNodeStatus(node.rpcEndpoint);
+			const cometbftPublicKey = nodeStatus.result.validator_info.pub_key.value;
+
+			// Check if the node is declared
+			const isDeclared = await isDeclaredValidatorNodeByCometbftPublicKey(provider, cometbftPublicKey);
+			if (!isDeclared) {
+				throw new Error('The node must be declared before staking');
+			}
+
+			// Get validator node id from CometBFT public key
+			const nodeAddress = await provider.getValidatorNodeIdByCometbftPublicKey(cometbftPublicKey);
+
+			console.log(`Creating staking request for node: validator node address=${Hash.from(nodeAddress).encode()}, amount=${amount.toString()}`);
+
+			// Create the staking request
+			const accountVb = await provider.loadAccountVirtualBlockchain(Hash.from(accountId));
+			const mb = await accountVb.createMicroblock();
+
+			mb.addSection({
+				type: SectionType.ACCOUNT_STAKE,
+				amount: amount.getAmountAsAtomic(),
+				objectType: VirtualBlockchainType.NODE_VIRTUAL_BLOCKCHAIN,
+				objectIdentifier: nodeAddress
+			});
+
+			await updateGasInMicroblock(provider, mb, organisationPrivateKey.getSignatureSchemeId());
+			await mb.seal(organisationPrivateKey, { feesPayerAccount: accountId });
+
+			const microblockHash = await provider.publishMicroblock(mb);
+
+			console.log(`Staked ${amount.toString()} successfully on node`);
+			toast.add({severity: 'success', summary: 'Staking successful', detail: `Staked ${amount.toString()} on node "${node.name}"`, life: 3000});
+
+			return microblockHash;
+		} catch (e) {
+			console.error('Error staking on node:', e);
+			toast.add({severity: 'error', summary: 'Error staking', detail: e instanceof Error ? e.message : 'Unknown error', life: 5000});
+			throw e;
+		} finally {
+			isStakingOnNode.value = false;
+		}
+	}
+
+	/**
+	 * Unstakes tokens from a node
+	 * Creates a microblock with an ACCOUNT_UNSTAKE section to unlock tokens from the node
+	 */
+	async function unstakeFromNode(params: UnstakeFromNodeParams) {
+		isUnstakingFromNode.value = true;
+		try {
+			const {walletId, orgId, nodeId, amount} = params;
+
+			// Get wallet from storage
+			const wallet = await storageStore.getWalletById(walletId);
+			if (!wallet) {
+				throw new Error(`Wallet with id ${walletId} not found`);
+			}
+
+			// Get organization from wallet
+			const organization = wallet.organizations.find(org => org.id === orgId);
+			if (!organization) {
+				throw new Error(`Organization with id ${orgId} not found in wallet ${walletId}`);
+			}
+
+			// Check if organization is published
+			if (!organization.vbId) {
+				throw new Error(`Organization must be published before unstaking from nodes`);
+			}
+
+			// Get node from organization
+			const node = organization.nodes.find(n => n.id === nodeId);
+			if (!node) {
+				throw new Error(`Node with id ${nodeId} not found in organization ${orgId}`);
+			}
+
+			// Initialize wallet crypto from seed
+			const seedEncoder = new SeedEncoder();
+			const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
+			const accountCrypto = walletSeed.getDefaultAccountCrypto();
+
+			// Create provider
+			const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
+
+			// Get signing keys
+			const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
+			const pk = await sk.getPublicKey();
+
+			// Get the account id
+			const accountId = await provider.getAccountIdByPublicKey(pk);
+			const organisationPrivateKey = sk;
+
+			// Get node status to retrieve CometBFT public key
+			const nodeStatus = await provider.getNodeStatus(node.rpcEndpoint);
+			const cometbftPublicKey = nodeStatus.result.validator_info.pub_key.value;
+
+			// Get validator node id from CometBFT public key
+			const nodeAddress = await provider.getValidatorNodeIdByCometbftPublicKey(cometbftPublicKey);
+
+			console.log(`Creating unstaking request for ${amount.toString()} node: validator node id=${Hash.from(nodeAddress).encode()}`);
+
+			// Create the unstaking request
+			const accountVb = await provider.loadAccountVirtualBlockchain(accountId);
+			const mb = await accountVb.createMicroblock();
+
+			mb.addSection({
+				type: SectionType.ACCOUNT_UNSTAKE,
+				amount: amount.getAmountAsAtomic(),
+				objectType: VirtualBlockchainType.NODE_VIRTUAL_BLOCKCHAIN,
+				objectIdentifier: nodeAddress
+			});
+
+			await updateGasInMicroblock(provider, mb, organisationPrivateKey.getSignatureSchemeId());
+			await mb.seal(organisationPrivateKey, { feesPayerAccount: accountId });
+
+			const microblockHash = await provider.publishMicroblock(mb);
+
+			console.log(`Unstaked ${amount.toString()} successfully from node`);
+			toast.add({severity: 'success', summary: 'Unstaking successful', detail: `Unstaked ${amount.toString()} from node "${node.name}"`, life: 3000});
+
+			return microblockHash;
+		} catch (e) {
+			console.error('Error unstaking from node:', e);
+			toast.add({severity: 'error', summary: 'Error unstaking', detail: e instanceof Error ? e.message : 'Unknown error', life: 5000});
+			throw e;
+		} finally {
+			isUnstakingFromNode.value = false;
+		}
+	}
+
+	/**
+	 * Helper function to check if a validator node is declared by CometBFT public key
+	 */
+	async function isDeclaredValidatorNodeByCometbftPublicKey(provider: Provider, cometbftPublicKey: string): Promise<boolean> {
+		try {
+			await provider.getValidatorNodeIdByCometbftPublicKey(cometbftPublicKey);
+			return true;
+		} catch (e) {
+			console.error("Error checking if validator node is declared: ", e);
+			return false;
+		}
+	}
+
 	async function updateGasInMicroblock(provider: IProvider, mb: Microblock, usedSigSchemeId: SignatureSchemeId) {
 		const protocolVariables = await provider.getProtocolState();
 		const feesCalculationFormulaVersion = protocolVariables.getFeesCalculationVersion();
@@ -243,7 +453,11 @@ export const useOnChainStore = defineStore('onchain', () => {
 	return {
 		isPublishingOrganization,
 		isClaimingNode,
+		isStakingOnNode,
+		isUnstakingFromNode,
 		publishOrganization,
-		claimNode
+		claimNode,
+		stakeOnNode,
+		unstakeFromNode
 	};
 });
