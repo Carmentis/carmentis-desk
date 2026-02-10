@@ -5,6 +5,7 @@ import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
+import Breadcrumb from 'primevue/breadcrumb';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
@@ -45,6 +46,25 @@ const organization = computed(() =>
 const goBack = () => {
   router.push(`/wallet/${walletId.value}`);
 };
+
+// Breadcrumb
+const breadcrumbHome = ref({
+  icon: 'pi pi-home',
+  command: () => router.push('/')
+});
+
+const breadcrumbItems = computed(() => {
+  if (!wallet.value || !organization.value) return [];
+  return [
+    {
+      label: wallet.value.name,
+      command: () => router.push(`/wallet/${walletId.value}`)
+    },
+    {
+      label: organization.value.name
+    }
+  ];
+});
 
 // wallet key pair (needed for account state)
 const walletKeyPair = computedAsync(async () => {
@@ -188,11 +208,13 @@ async function importNewNodes() {
 <template>
   <div class="space-y-6">
     <div v-if="wallet && organization">
+      <!-- Breadcrumb -->
+      <Breadcrumb :home="breadcrumbHome" :model="breadcrumbItems" class="mb-4" />
+
       <!-- Header -->
       <div class="flex justify-between items-start mb-6">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900">Organization #{{ organization.id }}</h1>
-          <p class="text-sm text-gray-500 mt-1">Wallet: {{ wallet.name }} (ID: {{ wallet.id }})</p>
+          <h1 class="text-3xl font-bold text-gray-900">{{ organization.name }}</h1>
         </div>
         <div class="flex gap-2">
           <Button @click="goBack" label="Back to Wallet" icon="pi pi-arrow-left" text />

@@ -113,6 +113,7 @@ async function submitOrgDialog() {
       return;
     }
     const newOrg: Omit<OrganizationEntity, 'id'> = {
+      name: orgName.value,
       nodes: [],
       applications: []
     };
@@ -123,7 +124,12 @@ async function submitOrgDialog() {
       toast.add({ severity: 'error', summary: 'Validation error', detail: 'VB ID is required for import', life: 3000 });
       return;
     }
+    if (!orgName.value) {
+      toast.add({ severity: 'error', summary: 'Validation error', detail: 'Organization name is required for import', life: 3000 });
+      return;
+    }
     const newOrg: Omit<OrganizationEntity, 'id'> = {
+      name: orgName.value,
       vbId: orgVbId.value,
       nodes: [],
       applications: []
@@ -245,7 +251,7 @@ function visitOrganization(orgId: number) {
               <div class="flex items-start justify-between">
                 <div class="space-y-2 flex-1">
                   <div class="flex items-center gap-3">
-                    <div class="font-medium text-gray-900">Organization #{{ org.id }}</div>
+                    <div class="font-medium text-gray-900">{{ org.name }}</div>
                     <div v-if="org.vbId" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
                       <i class="pi pi-tag"></i> Imported
                     </div>
@@ -277,13 +283,13 @@ function visitOrganization(orgId: number) {
       <!-- Organization Dialog -->
       <Dialog v-model:visible="showOrgDialog" :header="orgDialogMode === 'create' ? 'Create Organization' : 'Import Organization'" modal class="w-full max-w-md">
         <div class="space-y-4">
-          <div v-if="orgDialogMode === 'create'">
+          <div>
             <label for="org-name" class="block text-sm font-medium text-gray-700 mb-2">
               Organization Name <span class="text-red-500">*</span>
             </label>
             <InputText id="org-name" v-model="orgName" placeholder="Enter organization name" class="w-full" />
           </div>
-          <div v-else>
+          <div v-if="orgDialogMode === 'import'">
             <label for="org-vbid" class="block text-sm font-medium text-gray-700 mb-2">
               Virtual Blockchain ID <span class="text-red-500">*</span>
             </label>

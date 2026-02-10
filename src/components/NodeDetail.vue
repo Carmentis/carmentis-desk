@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
+import Breadcrumb from 'primevue/breadcrumb';
 import { useStorageStore } from '../stores/storage';
 import { computedAsync } from "@vueuse/core";
 import {
@@ -33,6 +34,29 @@ const node = computed(() =>
 const goBack = () => {
   router.push(`/wallet/${walletId.value}/organization/${orgId.value}`);
 };
+
+// Breadcrumb
+const breadcrumbHome = ref({
+  icon: 'pi pi-home',
+  command: () => router.push('/')
+});
+
+const breadcrumbItems = computed(() => {
+  if (!wallet.value || !organization.value || !node.value) return [];
+  return [
+    {
+      label: wallet.value.name,
+      command: () => router.push(`/wallet/${walletId.value}`)
+    },
+    {
+      label: organization.value.name,
+      command: () => router.push(`/wallet/${walletId.value}/organization/${orgId.value}`)
+    },
+    {
+      label: node.value.name
+    }
+  ];
+});
 
 // Node publication status
 const nodeAccountId = computedAsync(async () => {
@@ -93,14 +117,17 @@ const isOwnedByWallet = computedAsync(async () => {
 <template>
   <div class="space-y-6">
     <div v-if="node && wallet && organization">
+      <!-- Breadcrumb -->
+      <Breadcrumb :home="breadcrumbHome" :model="breadcrumbItems" class="mb-4" />
+
       <!-- Header -->
       <div class="flex justify-between items-start mb-6">
         <div>
           <h1 class="text-3xl font-bold text-gray-900">{{ node.name }}</h1>
-          <p class="text-sm text-gray-500 mt-1">Node ID: {{ node.id }} • Organization: #{{ organization.id }} • Wallet: {{ wallet.name }}</p>
+          <p class="text-sm text-gray-500 mt-1">Node ID: {{ node.id }}</p>
         </div>
         <div class="flex gap-2">
-          <Button @click="goBack" label="Back to Organization" icon="pi pi-arrow-left" outlined />
+          <Button @click="goBack" label="Back to Organization" icon="pi pi-arrow-left" text />
         </div>
       </div>
 

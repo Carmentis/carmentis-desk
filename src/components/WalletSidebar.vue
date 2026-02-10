@@ -77,9 +77,9 @@ function isNodeActive(nodeId: number) {
             class="flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors"
             :class="isOrganizationActive(org.id) ? 'bg-blue-100 text-blue-900 font-semibold' : 'hover:bg-gray-100 text-gray-700'"
           >
-            <div @click="navigateToOrganization(org.id)" class="flex items-center gap-2 flex-1">
-              <i class="pi pi-building text-sm"></i>
-              <span class="text-sm">Organization #{{ org.id }}</span>
+            <div @click="navigateToOrganization(org.id)" class="flex items-center gap-2 flex-1 min-w-0">
+              <i class="pi pi-building text-sm flex-shrink-0"></i>
+              <span class="text-sm truncate">{{ org.name }}</span>
             </div>
             <button
               @click.stop="toggleOrg(org.id)"

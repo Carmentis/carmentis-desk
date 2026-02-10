@@ -17,6 +17,7 @@ export interface NodeEntity {
 
 export interface OrganizationEntity {
 	id: number,
+	name: string,
 	vbId?: string,
 	nodes: NodeEntity[],
 	applications: ApplicationEntity[]
