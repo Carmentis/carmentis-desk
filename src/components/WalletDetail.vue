@@ -254,14 +254,10 @@ function visitOrganization(orgId: number) {
                     <div class="flex items-center gap-3">
                       <div class="font-medium text-gray-900">{{ org.name }}</div>
                       <div v-if="org.vbId" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                        <i class="pi pi-tag"></i> Imported
+                        <i class="pi pi-tag"></i> {{ org.vbId }}
                       </div>
                     </div>
                     <div class="text-sm text-gray-600 space-y-1">
-                      <div v-if="org.vbId" class="flex items-center gap-2">
-                        <i class="pi pi-link text-gray-400"></i>
-                        <code class="text-xs bg-gray-100 px-2 py-0.5 rounded">{{ org.vbId }}</code>
-                      </div>
                       <div class="flex items-center gap-4">
                       <span class="flex items-center gap-1">
                         <i class="pi pi-sitemap text-gray-400"></i>
