@@ -9,7 +9,7 @@ import InputNumber from 'primevue/inputnumber';
 import {useStorageStore} from '../stores/storage';
 import {computedAsync} from "@vueuse/core";
 import {
-  CMTSToken,
+  CMTSToken, EncoderFactory,
   Hash,
   LockType,
   ProviderFactory,
@@ -17,6 +17,7 @@ import {
   SignatureSchemeId, Utils,
   WalletCrypto,
 } from "@cmts-dev/carmentis-sdk/client";
+import {Tendermint37Client} from "@cosmjs/tendermint-rpc";
 
 const route = useRoute();
 const router = useRouter();
@@ -67,20 +68,43 @@ const breadcrumbItems = computed(() => {
 });
 
 // Node publication status
-const nodeAccountId = computedAsync(async () => {
+const nodePublicKey = computedAsync(async () => {
+  if (!node.value) return undefined;
+  const endpoint = node.value.rpcEndpoint;
+  const client = await Tendermint37Client.connect(endpoint);
+  const status = await client.status();
+  const pk = status.validatorInfo.pubkey;
+  if (!pk) return undefined;
+  const { data, algorithm } = pk;
+  const base64 = EncoderFactory.bytesToBase64Encoder();
+  return { pk: base64.encode(data), pkType: algorithm };
+})
+
+
+
+const nodeVbId = computedAsync(async () => {
   if (!node.value?.vbId) return undefined;
   if (!wallet.value) return undefined;
+  if (!nodePublicKey.value) return undefined;
 
-  return Hash.from(node.value.vbId);
+  console.log("Node id:", node.value.vbId)
+  console.log("node pk:", nodePublicKey.value.pk)
+  if (node.value.vbId) {
+    return Hash.from(node.value.vbId);
+  } else {
+    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
+    const vbId = await provider.getValidatorNodeIdByCometbftPublicKey(nodePublicKey.value.pk);
+    return Hash.from(vbId);
+  }
 });
 
 const isNodePublished = computed(() => {
-  return nodeAccountId.value !== undefined;
+  return nodeVbId.value !== undefined;
 });
 
 // Check if node is claimed and by whom
 const nodeOwnerAccountId = computedAsync(async () => {
-  if (!nodeAccountId.value) return undefined;
+  if (!nodeVbId.value) return undefined;
   if (!wallet.value) return undefined;
   if (!node.value?.vbId) return undefined;
 
@@ -312,6 +336,14 @@ console.log(unstakingAmountInProgress, unstakingAtTimestamp)
               <div v-if="node.vbId">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Virtual Blockchain ID</label>
                 <code class="bg-gray-100 px-3 py-2 rounded text-sm block overflow-x-auto">{{ node.vbId }}</code>
+              </div>
+
+              <div v-if="nodePublicKey">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Node Public Key</label>
+                <div class="flex items-center gap-2 text-gray-600">
+                  <i class="pi pi-key"></i>
+                  <span class="text-sm">{{ nodePublicKey.pk }} ({{nodePublicKey.pkType}})</span>
+                </div>
               </div>
 
               <div>

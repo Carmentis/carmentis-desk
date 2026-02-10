@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@cmts-dev/carmentis-sdk": "^1.18.4",
+    "@cosmjs/tendermint-rpc": "^0.38.1",
     "@primeuix/themes": "^2.0.3",
     "@primevue/forms": "^4.5.4",
     "@tailwindcss/postcss": "^4.1.18",
