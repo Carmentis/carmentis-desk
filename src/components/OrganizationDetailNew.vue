@@ -26,6 +26,8 @@ import {
 } from "@cmts-dev/carmentis-sdk/client";
 import {useToast} from 'primevue/usetoast';
 import { useQuery } from '@tanstack/vue-query'
+import {useOnChainStore} from "../stores/onchain.ts";
+import {storeToRefs} from "pinia";
 
 
 
@@ -33,6 +35,8 @@ const toast = useToast();
 const route = useRoute();
 const router = useRouter();
 const storageStore = useStorageStore();
+const onChainStore = useOnChainStore();
+const {isPublishingOrganization} = storeToRefs(onChainStore);
 
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
