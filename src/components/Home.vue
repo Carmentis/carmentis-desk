@@ -4,6 +4,7 @@
   import Button from "primevue/button";
   import Card from "primevue/card";
   import router from "../router";
+  import {useConfirm} from "primevue/useconfirm";
 
 
 
@@ -11,13 +12,25 @@
   await store.initStorage();
 
   const {organizations} = storeToRefs(store);
+  const confirm = useConfirm();
 
   function visitWallet(orgId: number) {
     router.push(`/wallet/${orgId}`);
   }
 
-  function clearAllOrganizations() {
-    store.clearOrganizations();
+  function confirmClearAllOrganizations() {
+    confirm.require({
+      message: 'Are you sure you want to clear all wallets? This action cannot be undone.',
+      header: 'Clear All Wallets',
+      icon: 'pi pi-exclamation-triangle',
+      rejectClass: 'p-button-secondary p-button-outlined',
+      rejectLabel: 'Cancel',
+      acceptLabel: 'Clear All',
+      acceptClass: 'p-button-danger',
+      accept: () => {
+        store.clearOrganizations();
+      }
+    });
   }
 </script>
 
@@ -29,9 +42,12 @@
         <h2 class="text-3xl font-bold text-gray-900">Wallets</h2>
         <p class="mt-1 text-sm text-gray-500">Manage your wallets</p>
       </div>
-      <router-link to="/wallet/new">
-        <Button label="Create Wallet" icon="pi pi-plus" class="p-button-rounded" />
-      </router-link>
+      <div class="flex gap-2">
+        <Button v-if="organizations.length > 0" label="Clear All Wallets" icon="pi pi-trash" severity="danger" outlined @click="confirmClearAllOrganizations" />
+        <router-link to="/wallet/new">
+          <Button label="Create Wallet" icon="pi pi-plus"  />
+        </router-link>
+      </div>
     </div>
 
     <!-- Empty State -->
@@ -78,9 +94,5 @@
       </Card>
     </div>
 
-    <!-- Clear All Button (only show when there are wallets) -->
-    <div v-if="organizations.length > 0" class="flex justify-center pt-6">
-      <Button label="Clear All Wallets" icon="pi pi-trash" severity="danger" text @click="clearAllOrganizations" />
-    </div>
   </div>
 </template>

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import Toast from 'primevue/toast';
 import {Suspense} from 'vue';
+import ConfirmDialog from 'primevue/confirmdialog';
 </script>
 
 <template>
   <div class="min-h-screen bg-gray-50">
+    <ConfirmDialog/>
     <Toast />
 
     <!-- Main Content -->
