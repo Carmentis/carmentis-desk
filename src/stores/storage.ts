@@ -197,10 +197,23 @@ export const useStorageStore = defineStore('storage', () => {
 		organizations.value = updatedWallets;
 	}
 
+	async function deleteOrganizationById(walletId: number, orgId: number) {
+		const currentWallets = await loadOrganizations();
+		const wallet = currentWallets.find(w => w.id === walletId);
+		if (!wallet) return;
+		const updatedOrganizations = wallet.organizations.filter(org => org.id !== orgId);
+		const updatedWallet = { ...wallet, organizations: updatedOrganizations };
+		const updatedWallets = currentWallets.map(w => w.id === walletId ? updatedWallet : w);
+		const storage = getStorage();
+		await storage.set("organizations", updatedWallets);
+		organizations.value = updatedWallets;
+	}
+
 	return {
 		initStorage,
 		organizations,
 		addOrganization,
+		deleteOrganizationById,
 		removeOrganizationById,
 		clearOrganizations,
 		addOrganizationToWallet,

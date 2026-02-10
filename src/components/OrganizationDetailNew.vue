@@ -221,6 +221,16 @@ const orgWebsite = ref('');
 // Publish confirmation dialog
 const showPublishConfirmDialog = ref(false);
 
+// Delete confirmation dialog
+const showDeleteConfirmDialog = ref(false);
+
+async function confirmDeleteOrganization() {
+  showDeleteConfirmDialog.value = false;
+  await storageStore.deleteOrganizationById(walletId.value, orgId.value);
+  toast.add({ severity: 'success', summary: 'Organization deleted', detail: 'Organization deleted successfully', life: 3000 });
+  goBack();
+}
+
 // Initialize form values when organization loads
 function initializeForm() {
   if (organization.value) {
@@ -281,6 +291,7 @@ async function confirmPublishOrganization() {
         </div>
         <div class="flex gap-2">
           <Button @click="goBack" label="Back to Wallet" icon="pi pi-arrow-left" text />
+          <Button @click="showDeleteConfirmDialog = true" icon="pi pi-trash" severity="danger" text />
         </div>
       </div>
 
@@ -514,6 +525,25 @@ async function confirmPublishOrganization() {
           <div class="flex justify-end gap-2">
             <Button label="Cancel" @click="showPublishConfirmDialog = false" severity="secondary" outlined />
             <Button label="Confirm Publish" @click="confirmPublishOrganization" icon="pi pi-cloud-upload" :loading="isPublishingOrganization" />
+          </div>
+        </template>
+      </Dialog>
+
+      <!-- Delete Confirmation Dialog -->
+      <Dialog v-model:visible="showDeleteConfirmDialog" header="Delete Organization" modal class="w-full max-w-md">
+        <div class="space-y-4">
+          <p class="text-gray-600">Are you sure you want to delete the organization "{{ organization.name }}"?</p>
+          <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+            <div class="flex gap-2">
+              <i class="pi pi-exclamation-triangle text-red-600 mt-0.5"></i>
+              <p class="text-sm text-red-800">This action will delete the organization and all its nodes. This cannot be undone.</p>
+            </div>
+          </div>
+        </div>
+        <template #footer>
+          <div class="flex justify-end gap-2">
+            <Button label="Cancel" @click="showDeleteConfirmDialog = false" severity="secondary" outlined />
+            <Button label="Delete" @click="confirmDeleteOrganization" icon="pi pi-trash" severity="danger" />
           </div>
         </template>
       </Dialog>
