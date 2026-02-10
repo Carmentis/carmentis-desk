@@ -161,125 +161,132 @@ function visitOrganization(orgId: number) {
         </div>
       </div>
 
-      <!-- Wallet Keys Card -->
-      <Card>
-        <template #title>
-          <div class="flex items-center gap-2">
-            <i class="pi pi-key text-xl"></i>
-            <span>Wallet Keys</span>
-          </div>
-        </template>
-        <template #content>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Private Key</label>
-              <Password v-model="sk" :feedback="false" toggleMask class="w-full" />
+      <div class="space-y-4">
+        <!-- Wallet Keys Card -->
+        <Card>
+          <template #title>
+            <div class="flex items-center gap-2">
+              <i class="pi pi-key text-xl"></i>
+              <span>Wallet Keys</span>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Public Key</label>
-              <InputText v-model="pk" :disabled="true" class="w-full" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Node Endpoint</label>
-              <div class="flex items-center gap-2 text-gray-600">
-                <i class="pi pi-server"></i>
-                <span class="text-sm">{{ wallet.nodeEndpoint }}</span>
+          </template>
+          <template #content>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Public Key</label>
+                <InputText v-model="pk" :disabled="true" class="w-full" />
+              </div>
+              <div class="w-full">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Private Key</label>
+                <Password v-model="sk" :feedback="false" toggleMask class="w-full" width="100%" />
+              </div>
+              <div class="w-full">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Private seed</label>
+                <Password v-model="wallet.seed" :feedback="false" toggleMask class="w-full" width="100%" />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Node Endpoint</label>
+                <div class="flex items-center gap-2 text-gray-600">
+                  <i class="pi pi-server"></i>
+                  <span class="text-sm">{{ wallet.nodeEndpoint }}</span>
+                </div>
               </div>
             </div>
-          </div>
-        </template>
-      </Card>
+          </template>
+        </Card>
 
-      <!-- Balance Card -->
-      <Card v-if="walletBreakdown">
-        <template #title>
-          <div class="flex items-center gap-2">
-            <i class="pi pi-wallet text-xl"></i>
-            <span>Balance</span>
-          </div>
-        </template>
-        <template #content>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="bg-green-50 rounded-lg p-4">
-              <div class="text-sm text-green-600 font-medium mb-1">Spendable</div>
-              <div class="text-2xl font-bold text-green-900">{{ walletBreakdown.getSpendable() }}</div>
-            </div>
-            <div class="bg-blue-50 rounded-lg p-4">
-              <div class="text-sm text-blue-600 font-medium mb-1">Vested</div>
-              <div class="text-2xl font-bold text-blue-900">{{ walletBreakdown.getVested() }}</div>
-            </div>
-            <div class="bg-purple-50 rounded-lg p-4">
-              <div class="text-sm text-purple-600 font-medium mb-1">Staked</div>
-              <div class="text-2xl font-bold text-purple-900">{{ walletBreakdown.getStaked() }}</div>
-            </div>
-          </div>
-        </template>
-      </Card>
-
-      <!-- Organizations Card -->
-      <Card>
-        <template #title>
-          <div class="flex items-center justify-between">
+        <!-- Balance Card -->
+        <Card v-if="walletBreakdown">
+          <template #title>
             <div class="flex items-center gap-2">
-              <i class="pi pi-building text-xl"></i>
-              <span>Organizations ({{ wallet.organizations.length }})</span>
+              <i class="pi pi-wallet text-xl"></i>
+              <span>Balance</span>
             </div>
-            <div class="flex gap-2">
-              <Button @click="openCreateOrgDialog" label="Create Org" icon="pi pi-plus" size="small" />
-              <Button @click="openImportOrgDialog" label="Import Org" icon="pi pi-download" size="small" outlined />
+          </template>
+          <template #content>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="bg-green-50 rounded-lg p-4">
+                <div class="text-sm text-green-600 font-medium mb-1">Spendable</div>
+                <div class="text-2xl font-bold text-green-900">{{ walletBreakdown.getSpendable() }}</div>
+              </div>
+              <div class="bg-blue-50 rounded-lg p-4">
+                <div class="text-sm text-blue-600 font-medium mb-1">Vested</div>
+                <div class="text-2xl font-bold text-blue-900">{{ walletBreakdown.getVested() }}</div>
+              </div>
+              <div class="bg-purple-50 rounded-lg p-4">
+                <div class="text-sm text-purple-600 font-medium mb-1">Staked</div>
+                <div class="text-2xl font-bold text-purple-900">{{ walletBreakdown.getStaked() }}</div>
+              </div>
             </div>
-          </div>
-        </template>
-        <template #content>
-          <div v-if="wallet.organizations.length === 0" class="text-center py-8">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
-              <i class="pi pi-building text-2xl text-gray-400"></i>
+          </template>
+        </Card>
+
+        <!-- Organizations Card -->
+        <Card>
+          <template #title>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-building text-xl"></i>
+                <span>Organizations ({{ wallet.organizations.length }})</span>
+              </div>
+              <div class="flex gap-2">
+                <Button @click="openCreateOrgDialog" label="Create Org" icon="pi pi-plus" size="small" />
+                <Button @click="openImportOrgDialog" label="Import Org" icon="pi pi-download" size="small" outlined />
+              </div>
             </div>
-            <p class="text-gray-500 text-sm mb-4">No organizations yet</p>
-            <div class="flex gap-2 justify-center">
-              <Button @click="openCreateOrgDialog" label="Create Organization" icon="pi pi-plus" size="small" />
-              <Button @click="openImportOrgDialog" label="Import Organization" icon="pi pi-download" size="small" outlined />
+          </template>
+          <template #content>
+            <div v-if="wallet.organizations.length === 0" class="text-center py-8">
+              <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
+                <i class="pi pi-building text-2xl text-gray-400"></i>
+              </div>
+              <p class="text-gray-500 text-sm mb-4">No organizations yet</p>
+              <div class="flex gap-2 justify-center">
+                <Button @click="openCreateOrgDialog" label="Create Organization" icon="pi pi-plus" size="small" />
+                <Button @click="openImportOrgDialog" label="Import Organization" icon="pi pi-download" size="small" outlined />
+              </div>
             </div>
-          </div>
-          <div v-else class="space-y-3">
-            <div
-              v-for="org in wallet.organizations"
-              :key="org.id"
-              class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-              @click="visitOrganization(org.id)"
-            >
-              <div class="flex items-start justify-between">
-                <div class="space-y-2 flex-1">
-                  <div class="flex items-center gap-3">
-                    <div class="font-medium text-gray-900">{{ org.name }}</div>
-                    <div v-if="org.vbId" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                      <i class="pi pi-tag"></i> Imported
+            <div v-else class="space-y-3">
+              <div
+                  v-for="org in wallet.organizations"
+                  :key="org.id"
+                  class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                  @click="visitOrganization(org.id)"
+              >
+                <div class="flex items-start justify-between">
+                  <div class="space-y-2 flex-1">
+                    <div class="flex items-center gap-3">
+                      <div class="font-medium text-gray-900">{{ org.name }}</div>
+                      <div v-if="org.vbId" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                        <i class="pi pi-tag"></i> Imported
+                      </div>
                     </div>
-                  </div>
-                  <div class="text-sm text-gray-600 space-y-1">
-                    <div v-if="org.vbId" class="flex items-center gap-2">
-                      <i class="pi pi-link text-gray-400"></i>
-                      <code class="text-xs bg-gray-100 px-2 py-0.5 rounded">{{ org.vbId }}</code>
-                    </div>
-                    <div class="flex items-center gap-4">
+                    <div class="text-sm text-gray-600 space-y-1">
+                      <div v-if="org.vbId" class="flex items-center gap-2">
+                        <i class="pi pi-link text-gray-400"></i>
+                        <code class="text-xs bg-gray-100 px-2 py-0.5 rounded">{{ org.vbId }}</code>
+                      </div>
+                      <div class="flex items-center gap-4">
                       <span class="flex items-center gap-1">
                         <i class="pi pi-sitemap text-gray-400"></i>
                         {{ org.nodes.length }} node(s)
                       </span>
-                      <span class="flex items-center gap-1">
+                        <span class="flex items-center gap-1">
                         <i class="pi pi-box text-gray-400"></i>
                         {{ org.applications.length }} app(s)
                       </span>
+                      </div>
                     </div>
                   </div>
+                  <i class="pi pi-chevron-right text-gray-400"></i>
                 </div>
-                <i class="pi pi-chevron-right text-gray-400"></i>
               </div>
             </div>
-          </div>
-        </template>
-      </Card>
+          </template>
+        </Card>
 
+      </div>
       <!-- Organization Dialog -->
       <Dialog v-model:visible="showOrgDialog" :header="orgDialogMode === 'create' ? 'Create Organization' : 'Import Organization'" modal class="w-full max-w-md">
         <div class="space-y-4">

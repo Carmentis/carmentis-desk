@@ -174,6 +174,11 @@ export const useStorageStore = defineStore('storage', () => {
 		organizations.value = updatedWallets;
 	}
 
+	async function getWalletById(walletId: number) {
+		const currentWallets = await loadOrganizations();
+		return currentWallets.find(w => w.id === walletId);
+	}
+
 	return {
 		initStorage,
 		organizations,
@@ -184,6 +189,7 @@ export const useStorageStore = defineStore('storage', () => {
 		addVbIdToOrganization,
 		isNodeDeclared,
 		importExistingNodes,
-		deleteNodeById
+		deleteNodeById,
+		getWalletById
 	}
 })

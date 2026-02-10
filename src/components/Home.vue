@@ -5,7 +5,11 @@
   import Card from "primevue/card";
   import router from "../router";
 
+
+
   const store = useStorageStore();
+  await store.initStorage();
+
   const {organizations} = storeToRefs(store);
 
   function visitWallet(orgId: number) {
