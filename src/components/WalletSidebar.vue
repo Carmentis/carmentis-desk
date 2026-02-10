@@ -2,6 +2,7 @@
 import {computed, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useStorageStore} from '../stores/storage';
+import Card from 'primevue/card';
 
 const props = defineProps<{
   walletId: number;
@@ -14,6 +15,8 @@ const storageStore = useStorageStore();
 const wallet = computed(() =>
   storageStore.organizations.find(w => w.id === props.walletId)
 );
+
+const chainEndpoint = computed(() => wallet.value?.nodeEndpoint || 'Not connected');
 
 // Track which organizations are expanded
 const expandedOrgs = ref<Set<number>>(new Set());
@@ -57,8 +60,29 @@ function isNodeActive(nodeId: number) {
 </script>
 
 <template>
-  <div v-if="wallet" class="h-full bg-gray-50 border-r border-gray-200 overflow-y-auto">
-    <div class="p-4">
+  <div v-if="wallet" class="h-full bg-gray-50 border-r border-gray-200 overflow-y-auto flex flex-col">
+    <div class="flex-1 p-4">
+      <!-- Chain Connection Card at Top -->
+      <div class="mb-4">
+        <Card class="shadow-sm">
+          <template #content>
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0">
+                <i class="pi pi-link text-blue-600 text-lg"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                  Connected Chain
+                </div>
+                <div class="text-xs text-gray-700 break-all">
+                  {{ chainEndpoint }}
+                </div>
+              </div>
+            </div>
+          </template>
+        </Card>
+      </div>
+
       <!-- Wallet Item -->
       <div
         @click="navigateToWallet"

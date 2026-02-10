@@ -115,7 +115,10 @@ async function submitOrgDialog() {
     const newOrg: Omit<OrganizationEntity, 'id'> = {
       name: orgName.value,
       nodes: [],
-      applications: []
+      applications: [],
+      city: "",
+      countryCode: "",
+      website: "",
     };
     await storageStore.addOrganizationToWallet(walletId.value, newOrg);
     toast.add({ severity: 'success', summary: 'Organization created', detail: `Organization "${orgName.value}" created successfully`, life: 3000 });
