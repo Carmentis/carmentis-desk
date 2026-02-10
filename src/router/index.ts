@@ -12,12 +12,12 @@ const router = createRouter({
       component: Home
     },
     {
-      path: '/organization/new',
+      path: '/wallet/new',
       name: 'create-organization',
       component: CreateOrganization
     },
     {
-      path: '/organization/:id',
+      path: '/wallet/:id',
       name: 'organization-detail',
       component: OrganizationDetail
     }

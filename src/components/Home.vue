@@ -9,7 +9,7 @@
 
 
   function visitOrg(orgId: number) {
-    router.push(`/organization/${orgId}`);
+    router.push(`/wallet/${orgId}`);
   }
 
   function clearAllOrganizations() {
@@ -20,8 +20,8 @@
 
 <template>
   <div>
-    <p class="p">Number of organizations: {{ organizations.length }}</p>
-    <router-link to="/organization/new">
+    <p class="p">Number of wallets: {{ organizations.length }}</p>
+    <router-link to="/wallet/new">
       <button>Create an organization</button>
     </router-link>
   </div>

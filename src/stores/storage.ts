@@ -8,7 +8,7 @@ export interface NodeEntity {
 	rpcEndpoint: string,
 }
 
-export interface OrganizationEntity {
+export interface WalletEntity {
 	id: number,
 	name: string,
 	seed: string,
@@ -17,17 +17,11 @@ export interface OrganizationEntity {
 	nodes: NodeEntity[]
 }
 
-
-
-export interface StorageState {
-	organizations: OrganizationEntity[]
-}
-
 export const useStorageStore = defineStore('storage', () => {
 
 	let store: Store | undefined = undefined;
 	const initialized = ref(false);
-	const organizations = ref<OrganizationEntity[]>([]);
+	const organizations = ref<WalletEntity[]>([]);
 
 
 
@@ -46,10 +40,10 @@ export const useStorageStore = defineStore('storage', () => {
 
 	async function loadOrganizations() {
 		const storage = getStorage();
-		return await storage.get<OrganizationEntity[]>('organizations') || [];
+		return await storage.get<WalletEntity[]>('organizations') || [];
 	}
 
-	async function addOrganization(organization: Omit<OrganizationEntity, 'id'>) {
+	async function addOrganization(organization: Omit<WalletEntity, 'id'>) {
 		const currentOrganizations = await loadOrganizations();
 		const nextId = currentOrganizations.length > 0
 			? Math.max(...currentOrganizations.map(org => org.id)) + 1
