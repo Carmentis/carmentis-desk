@@ -20,14 +20,13 @@
 
 <template>
   <div>
-    <p class="p">Number of wallets: {{ organizations.length }}</p>
     <router-link to="/wallet/new">
       <button>Create an organization</button>
     </router-link>
   </div>
 
   <div v-for="org in organizations">
-      Organization: {{ org.name }} (ID: {{org.id}})
+      Wallet: {{ org.name }} (ID: {{org.id}})
     <Button @click="visitOrg(org.id)">Visit</Button>
   </div>
 
