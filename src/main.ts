@@ -7,6 +7,8 @@ import PrimeVue from 'primevue/config';
 import Aura from '@primeuix/themes/aura';
 import ToastService from 'primevue/toastservice';
 import ConfirmationService from "primevue/confirmationservice";
+import { VueQueryPlugin } from '@tanstack/vue-query'
+
 
 import './style.css';
 
@@ -16,6 +18,7 @@ app.use(createPinia())
 app.use(router)
 app.use(ToastService);
 app.use(ConfirmationService);
+app.use(VueQueryPlugin)
 app.use(PrimeVue, {
 	theme: {
 		preset: Aura

@@ -19,6 +19,9 @@ export interface OrganizationEntity {
 	id: number,
 	name: string,
 	vbId?: string,
+	countryCode?: string,
+	city?: string,
+	website?: string,
 	nodes: NodeEntity[],
 	applications: ApplicationEntity[]
 }
@@ -179,6 +182,21 @@ export const useStorageStore = defineStore('storage', () => {
 		return currentWallets.find(w => w.id === walletId);
 	}
 
+	async function updateOrganizationDetails(walletId: number, orgId: number, details: { name: string, countryCode?: string, city?: string, website?: string }) {
+		const currentWallets = await loadOrganizations();
+		const wallet = currentWallets.find(w => w.id === walletId);
+		if (!wallet) return;
+
+		const updatedOrganizations = wallet.organizations.map(org =>
+			org.id === orgId ? {...org, ...details} : org
+		);
+		const updatedWallet = { ...wallet, organizations: updatedOrganizations };
+		const updatedWallets = currentWallets.map(w => w.id === walletId ? updatedWallet : w);
+		const storage = getStorage();
+		await storage.set("organizations", updatedWallets);
+		organizations.value = updatedWallets;
+	}
+
 	return {
 		initStorage,
 		organizations,
@@ -190,6 +208,7 @@ export const useStorageStore = defineStore('storage', () => {
 		isNodeDeclared,
 		importExistingNodes,
 		deleteNodeById,
-		getWalletById
+		getWalletById,
+		updateOrganizationDetails
 	}
 })

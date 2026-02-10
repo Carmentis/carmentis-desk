@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, ref} from 'vue';
+import {computed, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
@@ -25,6 +25,9 @@ import {
   WalletCrypto
 } from "@cmts-dev/carmentis-sdk/client";
 import {useToast} from 'primevue/usetoast';
+import { useQuery } from '@tanstack/vue-query'
+
+
 
 const toast = useToast();
 const route = useRoute();
@@ -34,7 +37,6 @@ const storageStore = useStorageStore();
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 
-console.log(route.params)
 const wallet = computed(() =>
   storageStore.organizations.find(w => w.id === walletId.value)
 );
@@ -42,6 +44,8 @@ const wallet = computed(() =>
 const organization = computed(() =>
   wallet.value?.organizations.find(org => org.id === orgId.value)
 );
+
+
 
 const goBack = () => {
   router.push(`/wallet/${walletId.value}`);
@@ -203,6 +207,45 @@ async function importNewNodes() {
   showImportDialog.value = false;
   toast.add({ severity: 'success', summary: 'Nodes imported', detail: `${newNodes.length} node(s) imported successfully`, life: 3000 });
 }
+
+// Organization Details Form
+const orgName = ref('');
+const orgCountryCode = ref('');
+const orgCity = ref('');
+const orgWebsite = ref('');
+
+// Initialize form values when organization loads
+function initializeForm() {
+  if (organization.value) {
+    orgName.value = organization.value.name;
+    orgCountryCode.value = organization.value.countryCode || '';
+    orgCity.value = organization.value.city || '';
+    orgWebsite.value = organization.value.website || '';
+  }
+}
+
+// Watch for organization changes to initialize form
+watch(organization, () => {
+  if (organization.value) {
+    initializeForm();
+  }
+}, { immediate: true });
+
+async function updateOrganizationDetails() {
+  if (!orgName.value.trim()) {
+    toast.add({ severity: 'error', summary: 'Validation error', detail: 'Organization name is required', life: 3000 });
+    return;
+  }
+
+  await storageStore.updateOrganizationDetails(walletId.value, orgId.value, {
+    name: orgName.value.trim(),
+    countryCode: orgCountryCode.value.trim() || undefined,
+    city: orgCity.value.trim() || undefined,
+    website: orgWebsite.value.trim() || undefined,
+  });
+
+  toast.add({ severity: 'success', summary: 'Organization updated', detail: 'Organization details updated successfully', life: 3000 });
+}
 </script>
 
 <template>
@@ -221,21 +264,69 @@ async function importNewNodes() {
         </div>
       </div>
 
-      <!-- Organization Info Card -->
-      <Card v-if="organization.vbId">
-        <template #title>
-          <div class="flex items-center gap-2">
-            <i class="pi pi-info-circle text-xl"></i>
-            <span>Organization Info</span>
-          </div>
-        </template>
-        <template #content>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Virtual Blockchain ID</label>
-            <code class="bg-gray-100 px-3 py-2 rounded text-sm block">{{ organization.vbId }}</code>
-          </div>
-        </template>
-      </Card>
+      <!-- Organization Cards Side-by-Side -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
+        <!-- Organization Info Card -->
+        <Card>
+          <template #title>
+            <div class="flex items-center gap-2">
+              <i class="pi pi-info-circle text-xl"></i>
+              <span>Organization Info</span>
+            </div>
+          </template>
+          <template #content>
+            <div v-if="organization.vbId">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Virtual Blockchain ID</label>
+              <code class="bg-gray-100 px-3 py-2 rounded text-sm block">{{ organization.vbId }}</code>
+            </div>
+            <div v-else class="text-center py-4">
+              <i class="pi pi-exclamation-circle text-3xl text-amber-500 mb-2"></i>
+              <p class="text-gray-600 text-sm">Publish first your organization on-chain to show information.</p>
+            </div>
+          </template>
+        </Card>
+
+        <!-- Organization Details Form Card -->
+        <Card>
+          <template #title>
+            <div class="flex items-center gap-2">
+              <i class="pi pi-pencil text-xl"></i>
+              <span>Organization Details</span>
+            </div>
+          </template>
+          <template #content>
+            <form @submit.prevent="updateOrganizationDetails" class="space-y-4">
+              <div>
+                <label for="org-name" class="block text-sm font-medium text-gray-700 mb-2">
+                  Name <span class="text-red-500">*</span>
+                </label>
+                <InputText id="org-name" v-model="orgName" placeholder="Organization name" class="w-full" required />
+              </div>
+              <div>
+                <label for="org-country-code" class="block text-sm font-medium text-gray-700 mb-2">
+                  Country Code
+                </label>
+                <InputText id="org-country-code" v-model="orgCountryCode" placeholder="e.g., US, FR, DE" class="w-full" />
+              </div>
+              <div>
+                <label for="org-city" class="block text-sm font-medium text-gray-700 mb-2">
+                  City
+                </label>
+                <InputText id="org-city" v-model="orgCity" placeholder="City name" class="w-full" />
+              </div>
+              <div>
+                <label for="org-website" class="block text-sm font-medium text-gray-700 mb-2">
+                  Website
+                </label>
+                <InputText id="org-website" v-model="orgWebsite" placeholder="https://..." class="w-full" />
+              </div>
+              <div class="flex justify-end">
+                <Button type="submit" label="Update Details" icon="pi pi-check" />
+              </div>
+            </form>
+          </template>
+        </Card>
+      </div>
 
       <!-- Nodes & Applications Tabs -->
       <Card>
