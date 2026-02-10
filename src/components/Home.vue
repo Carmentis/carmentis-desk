@@ -63,8 +63,8 @@
               <span class="truncate">{{ org.nodeEndpoint }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <i class="pi pi-sitemap text-gray-400"></i>
-              <span>{{ org.nodes?.length || 0 }} node(s)</span>
+              <i class="pi pi-building text-gray-400"></i>
+              <span>{{ org.organizations?.length || 0 }} organization(s)</span>
             </div>
           </div>
         </template>

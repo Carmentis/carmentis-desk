@@ -9,33 +9,38 @@ const route = useRoute();
 const router = useRouter();
 const storageStore = useStorageStore();
 
-const walletId = computed(() => Number(route.params.id));
+const walletId = computed(() => Number(route.params.walletId));
+const orgId = computed(() => Number(route.params.orgId));
 const nodeId = computed(() => Number(route.params.nodeId));
 
 const wallet = computed(() =>
-  storageStore.organizations.find(org => org.id === walletId.value)
+  storageStore.organizations.find(w => w.id === walletId.value)
+);
+
+const organization = computed(() =>
+  wallet.value?.organizations.find(org => org.id === orgId.value)
 );
 
 const node = computed(() =>
-  wallet.value?.nodes.find(n => n.id === nodeId.value)
+  organization.value?.nodes.find(n => n.id === nodeId.value)
 );
 
 const goBack = () => {
-  router.push(`/wallet/${walletId.value}`);
+  router.push(`/wallet/${walletId.value}/organization/${orgId.value}`);
 };
 </script>
 
 <template>
   <div class="space-y-6">
-    <div v-if="node && wallet">
+    <div v-if="node && wallet && organization">
       <!-- Header -->
       <div class="flex justify-between items-start mb-6">
         <div>
           <h1 class="text-3xl font-bold text-gray-900">{{ node.name }}</h1>
-          <p class="text-sm text-gray-500 mt-1">Node ID: {{ node.id }} • Wallet: {{ wallet.name }}</p>
+          <p class="text-sm text-gray-500 mt-1">Node ID: {{ node.id }} • Organization: #{{ organization.id }} • Wallet: {{ wallet.name }}</p>
         </div>
         <div class="flex gap-2">
-          <Button @click="goBack" label="Back to Wallet" icon="pi pi-arrow-left" outlined />
+          <Button @click="goBack" label="Back to Organization" icon="pi pi-arrow-left" outlined />
         </div>
       </div>
 

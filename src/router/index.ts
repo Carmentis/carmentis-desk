@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../components/Home.vue'
 import CreateOrganization from '../components/CreateOrganization.vue'
-import OrganizationDetail from '../components/OrganizationDetail.vue'
+import WalletDetail from '../components/WalletDetail.vue'
+import OrganizationDetailNew from '../components/OrganizationDetailNew.vue'
 import NodeDetail from '../components/NodeDetail.vue'
 
 const router = createRouter({
@@ -19,11 +20,16 @@ const router = createRouter({
     },
     {
       path: '/wallet/:id',
-      name: 'organization-detail',
-      component: OrganizationDetail
+      name: 'wallet-detail',
+      component: WalletDetail
     },
     {
-      path: '/wallet/:id/node/:nodeId',
+      path: '/wallet/:walletId/organization/:orgId',
+      name: 'organization-detail',
+      component: OrganizationDetailNew
+    },
+    {
+      path: '/wallet/:walletId/organization/:orgId/node/:nodeId',
       name: 'node-detail',
       component: NodeDetail
     }

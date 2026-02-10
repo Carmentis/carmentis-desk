@@ -33,7 +33,7 @@ const createOrganization = async () => {
     name: organizationName.value,
     seed: seed.value,
     nodeEndpoint: nodeEndpoint.value,
-    nodes: [],
+    organizations: [],
   });
   await router.push('/');
 };
