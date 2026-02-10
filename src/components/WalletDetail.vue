@@ -187,14 +187,6 @@ function visitOrganization(orgId: number) {
                 <label class="block text-sm font-medium text-gray-700 mb-2">Private seed</label>
                 <Password v-model="wallet.seed" :feedback="false" toggleMask class="w-full" width="100%" />
               </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Node Endpoint</label>
-                <div class="flex items-center gap-2 text-gray-600">
-                  <i class="pi pi-server"></i>
-                  <span class="text-sm">{{ wallet.nodeEndpoint }}</span>
-                </div>
-              </div>
             </div>
           </template>
         </Card>
