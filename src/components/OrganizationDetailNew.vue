@@ -30,6 +30,7 @@ const storageStore = useStorageStore();
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 
+console.log(route.params)
 const wallet = computed(() =>
   storageStore.organizations.find(w => w.id === walletId.value)
 );

@@ -8,7 +8,7 @@
   const store = useStorageStore();
   const {organizations} = storeToRefs(store);
 
-  function visitOrg(orgId: number) {
+  function visitWallet(orgId: number) {
     router.push(`/wallet/${orgId}`);
   }
 
@@ -44,7 +44,7 @@
 
     <!-- Wallets Grid -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <Card v-for="org in organizations" :key="org.id" class="hover:shadow-lg transition-shadow cursor-pointer" @click="visitOrg(org.id)">
+      <Card v-for="org in organizations" :key="org.id" class="hover:shadow-lg transition-shadow cursor-pointer" @click="visitWallet(org.id)">
         <template #header>
           <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
             <div class="flex items-center justify-between text-white">
@@ -69,7 +69,7 @@
           </div>
         </template>
         <template #footer>
-          <Button label="View Details" icon="pi pi-arrow-right" class="w-full" text @click.stop="visitOrg(org.id)" />
+          <Button label="View Details" icon="pi pi-arrow-right" class="w-full" text @click.stop="visitWallet(org.id)" />
         </template>
       </Card>
     </div>

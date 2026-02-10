@@ -10,7 +10,6 @@ import {computedAsync} from "@vueuse/core";
 import {
   BalanceAvailability,
   CryptoEncoderFactory,
-  Hash,
   ProviderFactory,
   SeedEncoder,
   SignatureSchemeId,
@@ -33,7 +32,7 @@ const deleteWallet = async () => {
   await router.push('/');
 };
 
-const walletId = computed(() => Number(route.params.id));
+const walletId = computed(() => Number(route.params.walletId));
 const wallet = computed(() =>
   storageStore.organizations.find(w => w.id === walletId.value)
 );
