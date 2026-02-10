@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../components/Home.vue'
 import CreateOrganization from '../components/CreateOrganization.vue'
 import OrganizationDetail from '../components/OrganizationDetail.vue'
+import NodeDetail from '../components/NodeDetail.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -20,6 +21,11 @@ const router = createRouter({
       path: '/wallet/:id',
       name: 'organization-detail',
       component: OrganizationDetail
+    },
+    {
+      path: '/wallet/:id/node/:nodeId',
+      name: 'node-detail',
+      component: NodeDetail
     }
   ]
 })

@@ -3,8 +3,9 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
+import Card from 'primevue/card';
 import { useStorageStore } from '../stores/storage';
-import {SeedEncoder, WalletCrypto} from "@cmts-dev/carmentis-sdk/client";
+import { SeedEncoder, WalletCrypto } from "@cmts-dev/carmentis-sdk/client";
 
 const router = useRouter();
 const storageStore = useStorageStore();
@@ -12,7 +13,6 @@ const storageStore = useStorageStore();
 const organizationName = ref('');
 const seed = ref('');
 const nodeEndpoint = ref('https://ares.testnet.carmentis.io');
-
 
 const isGeneratingSeed = ref(false);
 const generateSeed = () => {
@@ -25,7 +25,6 @@ const generateSeed = () => {
     isGeneratingSeed.value = false;
   }
 }
-
 
 const createOrganization = async () => {
   if (!organizationName.value) return;
@@ -45,28 +44,91 @@ const goBack = () => {
 </script>
 
 <template>
-  <div style="padding: 2rem;">
-    <h1>Create your organization</h1>
-
-    <div style="margin-bottom: 1.5rem;">
-      <label for="org-name" style="display: block; margin-bottom: 0.5rem;">Organization Name</label>
-      <InputText id="org-name" v-model="organizationName" style="width: 100%; max-width: 400px;" />
+  <div class="max-w-2xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">Create a Wallet</h1>
+      <p class="mt-2 text-sm text-gray-600">Set up a new wallet for your organization</p>
     </div>
 
-    <div style="margin-bottom: 1.5rem;">
-      <label for="seed" style="display: block; margin-bottom: 0.5rem;">Seed</label>
-      <InputText id="seed" v-model="seed" style="width: 100%; max-width: 400px; margin-bottom: 0.5rem;" :disabled="isGeneratingSeed" />
-      <Button @click="generateSeed" label="Generate Seed" />
-    </div>
+    <!-- Form Card -->
+    <Card>
+      <template #content>
+        <div class="space-y-6">
+          <!-- Wallet Name -->
+          <div>
+            <label for="org-name" class="block text-sm font-medium text-gray-700 mb-2">
+              Wallet Name <span class="text-red-500">*</span>
+            </label>
+            <InputText
+              id="org-name"
+              v-model="organizationName"
+              placeholder="Enter wallet name"
+              class="w-full"
+            />
+          </div>
 
-    <div style="margin-bottom: 1.5rem;">
-      <label for="node-endpoint" style="display: block; margin-bottom: 0.5rem;">Node Endpoint</label>
-      <InputText id="node-endpoint" v-model="nodeEndpoint" style="width: 100%; max-width: 400px;" />
-    </div>
+          <!-- Seed -->
+          <div>
+            <label for="seed" class="block text-sm font-medium text-gray-700 mb-2">
+              Seed Phrase <span class="text-red-500">*</span>
+            </label>
+            <div class="space-y-2">
+              <InputText
+                id="seed"
+                v-model="seed"
+                placeholder="Enter or generate a seed phrase"
+                :disabled="isGeneratingSeed"
+                class="w-full"
+              />
+              <Button
+                @click="generateSeed"
+                label="Generate Seed"
+                icon="pi pi-refresh"
+                :loading="isGeneratingSeed"
+                outlined
+              />
+            </div>
+            <small class="text-gray-500 mt-1 block">
+              <i class="pi pi-info-circle"></i> Keep your seed phrase secure and never share it
+            </small>
+          </div>
 
-    <div style="display: flex; gap: 1rem;">
-      <Button @click="createOrganization" label="Create Organization" />
-      <Button @click="goBack" label="Back to Home" severity="secondary" />
-    </div>
+          <!-- Node Endpoint -->
+          <div>
+            <label for="node-endpoint" class="block text-sm font-medium text-gray-700 mb-2">
+              Node Endpoint
+            </label>
+            <InputText
+              id="node-endpoint"
+              v-model="nodeEndpoint"
+              placeholder="https://ares.testnet.carmentis.io"
+              class="w-full"
+            />
+            <small class="text-gray-500 mt-1 block">
+              Default: ares.testnet.carmentis.io
+            </small>
+          </div>
+        </div>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <Button
+            @click="goBack"
+            label="Cancel"
+            icon="pi pi-times"
+            severity="secondary"
+            outlined
+          />
+          <Button
+            @click="createOrganization"
+            label="Create Wallet"
+            icon="pi pi-check"
+            :disabled="!organizationName || !seed"
+          />
+        </div>
+      </template>
+    </Card>
   </div>
 </template>

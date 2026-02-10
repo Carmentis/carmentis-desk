@@ -2,6 +2,7 @@
 import {computed, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import Button from 'primevue/button';
+import Card from 'primevue/card';
 import Dialog from 'primevue/dialog';
 import {NodeEntity, useStorageStore} from '../stores/storage';
 import {computedAsync} from "@vueuse/core";
@@ -132,6 +133,11 @@ async function importOrganizationByVbId() {
 // organization nodes
 const organizationNodes = computed(() => organization.value?.nodes || []);
 
+async function deleteNode(nodeId: number) {
+  await storageStore.deleteNodeById(organizationId.value, nodeId);
+  toast.add({ severity: 'success', summary: 'Node deleted', detail: 'Node deleted successfully', life: 3000 });
+}
+
 // manual node import form
 const showManualImportForm = ref(false);
 const manualNodeName = ref('');
@@ -223,89 +229,221 @@ async function importNewNodes() {
 </script>
 
 <template>
-  <div style="padding: 2rem;">
+  <div class="space-y-6">
     <div v-if="organization">
-      <h1 class="font-bold text-2xl">{{ organization.name }}</h1>
-      <p><strong>ID:</strong> {{ organization.id }}</p>
-      <p><strong>Seed:</strong> {{ organization.seed }}</p>
-      <p><strong>Node Endpoint:</strong> {{ organization.nodeEndpoint }}</p>
-      <p>{{ organizationAccountPublicationMessage }}</p>
-      <Password v-model="sk" :feedback="false" toggleMask />
-      <InputText v-model="pk" :disabled="true" />
-
-
-
-
-      <div v-if="organizationAccountPublicationStatus">
-
-        <div v-if="organizationBreakdown">
-          <p>Spendable: {{organizationBreakdown.getSpendable()}}</p>
-          <p>Vested: {{organizationBreakdown.getVested()}}</p>
-          <p>Staked: {{organizationBreakdown.getStaked()}}</p>
+      <!-- Header -->
+      <div class="flex justify-between items-start mb-6">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">{{ organization.name }}</h1>
+          <p class="text-sm text-gray-500 mt-1">Wallet ID: {{ organization.id }}</p>
         </div>
+        <div class="flex gap-2">
+          <Button @click="goBack" label="Back" icon="pi pi-arrow-left" text />
+          <Button @click="refetch" label="Refresh" icon="pi pi-refresh" outlined />
+          <Button @click="deleteOrganization" label="Delete" icon="pi pi-trash" severity="danger" outlined />
+        </div>
+      </div>
 
-        <div v-if="storedVbId">
-          Organization ID: {{ Hash.from(storedVbId).encode() }}
+      <!-- Account Status Banner -->
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div class="flex items-center gap-2">
+          <i class="pi pi-info-circle text-blue-600"></i>
+          <span class="text-sm text-blue-900">{{ organizationAccountPublicationMessage }}</span>
+        </div>
+      </div>
 
-          Below the linked nodes:
-          <div v-for="node of organizationNodes" :key="node.vbId">
-            Node {{ node.vbId }}
+      <!-- Wallet Keys Card -->
+      <Card>
+        <template #title>
+          <div class="flex items-center gap-2">
+            <i class="pi pi-key text-xl"></i>
+            <span>Wallet Keys</span>
           </div>
+        </template>
+        <template #content>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Private Key</label>
+              <Password v-model="sk" :feedback="false" toggleMask class="w-full" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Public Key</label>
+              <InputText v-model="pk" :disabled="true" class="w-full" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Node Endpoint</label>
+              <div class="flex items-center gap-2 text-gray-600">
+                <i class="pi pi-server"></i>
+                <span class="text-sm">{{ organization.nodeEndpoint }}</span>
+              </div>
+            </div>
+          </div>
+        </template>
+      </Card>
 
+      <!-- Balance Card -->
+      <Card v-if="organizationAccountPublicationStatus && organizationBreakdown">
+        <template #title>
+          <div class="flex items-center gap-2">
+            <i class="pi pi-wallet text-xl"></i>
+            <span>Balance</span>
+          </div>
+        </template>
+        <template #content>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-green-50 rounded-lg p-4">
+              <div class="text-sm text-green-600 font-medium mb-1">Spendable</div>
+              <div class="text-2xl font-bold text-green-900">{{ organizationBreakdown.getSpendable() }}</div>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-4">
+              <div class="text-sm text-blue-600 font-medium mb-1">Vested</div>
+              <div class="text-2xl font-bold text-blue-900">{{ organizationBreakdown.getVested() }}</div>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-4">
+              <div class="text-sm text-purple-600 font-medium mb-1">Staked</div>
+              <div class="text-2xl font-bold text-purple-900">{{ organizationBreakdown.getStaked() }}</div>
+            </div>
+          </div>
+        </template>
+      </Card>
+
+      <!-- Organization Card -->
+      <Card v-if="organizationAccountPublicationStatus">
+        <template #title>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i class="pi pi-building text-xl"></i>
+              <span>Organization</span>
+            </div>
+          </div>
+        </template>
+        <template #content>
+          <div v-if="storedVbId" class="space-y-3">
+            <div class="flex items-center gap-2 text-sm">
+              <span class="font-medium text-gray-700">Organization ID:</span>
+              <code class="bg-gray-100 px-2 py-1 rounded text-xs">{{ Hash.from(storedVbId).encode() }}</code>
+            </div>
+          </div>
+          <div v-else class="space-y-4">
+            <p class="text-sm text-gray-600">Link this wallet to an organization by providing the virtual blockchain ID.</p>
+            <div class="flex gap-2">
+              <InputText v-model="providedVbId" placeholder="Enter organization VB ID" class="flex-1" />
+              <Button @click="importOrganizationByVbId" label="Link" icon="pi pi-link" />
+            </div>
+          </div>
+        </template>
+      </Card>
+
+      <!-- Nodes Card -->
+      <Card>
+        <template #title>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i class="pi pi-sitemap text-xl"></i>
+              <span>Nodes ({{ organizationNodes.length }})</span>
+            </div>
+            <div class="flex gap-2">
+              <Button @click="fetchNodesOnChain" label="Fetch On-Chain" icon="pi pi-cloud-download" size="small" outlined />
+              <Button @click="showManualImportForm = true" label="Add Node" icon="pi pi-plus" size="small" />
+            </div>
+          </div>
+        </template>
+        <template #content>
+          <div v-if="organizationNodes.length === 0" class="text-center py-8">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
+              <i class="pi pi-sitemap text-2xl text-gray-400"></i>
+            </div>
+            <p class="text-gray-500 text-sm">No nodes configured yet</p>
+          </div>
+          <div v-else class="space-y-3">
+            <div
+              v-for="node of organizationNodes"
+              :key="node.id"
+              class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+              @click="router.push(`/wallet/${organizationId}/node/${node.id}`)"
+            >
+              <div class="flex items-start justify-between">
+                <div class="space-y-2 flex-1">
+                  <div class="font-medium text-gray-900">{{ node.name }}</div>
+                  <div class="text-xs text-gray-500 space-y-1">
+                    <div v-if="node.vbId" class="flex items-center gap-2">
+                      <i class="pi pi-tag"></i>
+                      <code class="bg-gray-100 px-2 py-0.5 rounded">{{ node.vbId }}</code>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <i class="pi pi-globe"></i>
+                      <span>{{ node.rpcEndpoint }}</span>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  @click.stop="deleteNode(node.id)"
+                  icon="pi pi-trash"
+                  severity="danger"
+                  text
+                  rounded
+                  size="small"
+                />
+              </div>
+            </div>
+          </div>
+        </template>
+      </Card>
+
+      <!-- Dialogs -->
+      <Dialog v-model:visible="showImportDialog" header="Import Nodes from Chain" modal class="w-full max-w-2xl">
+        <p class="text-gray-600 mb-4">The following nodes were detected and can be imported:</p>
+        <div class="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
+          <div v-for="node in nodesToImport" :key="node" class="py-2 border-b border-gray-200 last:border-0">
+            <code class="text-sm">{{ node }}</code>
+          </div>
         </div>
-        <div v-else>
-          You have to provide an organization virtual blockchain id.
-          <InputText v-model="providedVbId" />
-          <Button @click="importOrganizationByVbId" label="Import your organization" severity="primary" />
-        </div>
-      </div>
-
-
-      <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-        <Button @click="goBack" label="Back to Home" severity="secondary" />
-        <Button @click="refetch" label="Refetch" severity="primary" />
-        <Button @click="fetchNodesOnChain" label="Fetch nodes on-chain" severity="primary" />
-        <Button @click="showManualImportForm = true" label="Import node manually" severity="primary" />
-        <Button @click="deleteOrganization" label="Delete Organization" severity="danger" />
-      </div>
-
-      <Dialog v-model:visible="showImportDialog" header="Import Nodes" modal style="width: 50rem;">
-        <p>The following nodes were detected and can be imported:</p>
-        <ul>
-          <li v-for="node in nodesToImport" :key="node">
-            {{ node }}
-          </li>
-        </ul>
         <template #footer>
-          <Button label="Cancel" @click="showImportDialog = false" severity="secondary" />
-          <Button label="Confirm Import" @click="importNewNodes" severity="primary" />
+          <div class="flex justify-end gap-2">
+            <Button label="Cancel" @click="showImportDialog = false" severity="secondary" outlined />
+            <Button label="Import All" @click="importNewNodes" icon="pi pi-check" />
+          </div>
         </template>
       </Dialog>
 
-      <Dialog v-model:visible="showManualImportForm" header="Import Node Manually" modal style="width: 50rem;">
-        <div style="display: flex; flex-direction: column; gap: 1rem;">
+      <Dialog v-model:visible="showManualImportForm" header="Add Node Manually" modal class="w-full max-w-2xl">
+        <div class="space-y-4">
           <div>
-            <label for="manual-node-name" style="display: block; margin-bottom: 0.5rem;">Name *</label>
-            <InputText id="manual-node-name" v-model="manualNodeName" style="width: 100%;" />
+            <label for="manual-node-name" class="block text-sm font-medium text-gray-700 mb-2">
+              Name <span class="text-red-500">*</span>
+            </label>
+            <InputText id="manual-node-name" v-model="manualNodeName" placeholder="Node name" class="w-full" />
           </div>
           <div>
-            <label for="manual-node-vbid" style="display: block; margin-bottom: 0.5rem;">Virtual Blockchain ID (optional)</label>
-            <InputText id="manual-node-vbid" v-model="manualNodeVbId" style="width: 100%;" />
+            <label for="manual-node-vbid" class="block text-sm font-medium text-gray-700 mb-2">
+              Virtual Blockchain ID <span class="text-gray-400">(optional)</span>
+            </label>
+            <InputText id="manual-node-vbid" v-model="manualNodeVbId" placeholder="VB ID" class="w-full" />
           </div>
           <div>
-            <label for="manual-node-rpc" style="display: block; margin-bottom: 0.5rem;">RPC Endpoint *</label>
-            <InputText id="manual-node-rpc" v-model="manualNodeRpcEndpoint" style="width: 100%;" />
+            <label for="manual-node-rpc" class="block text-sm font-medium text-gray-700 mb-2">
+              RPC Endpoint <span class="text-red-500">*</span>
+            </label>
+            <InputText id="manual-node-rpc" v-model="manualNodeRpcEndpoint" placeholder="https://..." class="w-full" />
           </div>
         </div>
         <template #footer>
-          <Button label="Cancel" @click="showManualImportForm = false" severity="secondary" />
-          <Button label="Import" @click="submitManualNodeImport" severity="primary" />
+          <div class="flex justify-end gap-2">
+            <Button label="Cancel" @click="showManualImportForm = false" severity="secondary" outlined />
+            <Button label="Add Node" @click="submitManualNodeImport" icon="pi pi-check" />
+          </div>
         </template>
       </Dialog>
     </div>
-    <div v-else>
-      <h1>Organization not found</h1>
-      <Button @click="goBack" label="Back to Home" />
+
+    <!-- Not Found State -->
+    <div v-else class="text-center py-12">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
+        <i class="pi pi-exclamation-triangle text-3xl text-red-600"></i>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">Wallet Not Found</h1>
+      <p class="text-gray-500 mb-6">The wallet you're looking for doesn't exist.</p>
+      <Button @click="goBack" label="Back to Home" icon="pi pi-home" />
     </div>
   </div>
 </template>

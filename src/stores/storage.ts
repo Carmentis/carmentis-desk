@@ -3,6 +3,7 @@ import {load, Store} from "@tauri-apps/plugin-store";
 import {ref} from "vue";
 
 export interface NodeEntity {
+	id: number,
 	vbId?: string,
 	name: string,
 	rpcEndpoint: string,
@@ -94,22 +95,31 @@ export const useStorageStore = defineStore('storage', () => {
 		return nodesIds.includes(formattedNodeId);
 	}
 
-	async function importExistingNodes(orgId: number, nodes: NodeEntity[]) {
+	async function importExistingNodes(orgId: number, nodes: Omit<NodeEntity, 'id'>[]) {
 		const currentOrganizations = await loadOrganizations();
 		const organization = currentOrganizations.find(org => org.id === orgId);
 		if (!organization) return;
-		const updatedOrganization = {...organization, nodes: [...organization.nodes, ...nodes]};
+
+		// Generate IDs for new nodes
+		const existingNodes = organization.nodes;
+		const maxId = existingNodes.length > 0 ? Math.max(...existingNodes.map(n => n.id)) : 0;
+		const nodesWithIds = nodes.map((node, index) => ({
+			...node,
+			id: maxId + index + 1
+		}));
+
+		const updatedOrganization = {...organization, nodes: [...organization.nodes, ...nodesWithIds]};
 		const updatedOrganizations = currentOrganizations.map(org => org.id === orgId ? updatedOrganization : org);
 		const storage = getStorage();
 		await storage.set("organizations", updatedOrganizations)
 		organizations.value = updatedOrganizations;
 	}
 
-	async function deleteNodeByVbId(orgId: number, nodeId: string) {
+	async function deleteNodeById(orgId: number, nodeId: number) {
 		const currentOrganizations = await loadOrganizations();
 		const organization = currentOrganizations.find(org => org.id === orgId);
 		if (!organization) return;
-		const updatedOrganization = {...organization, nodes: organization.nodes.filter(node => node.vbId !== nodeId)};
+		const updatedOrganization = {...organization, nodes: organization.nodes.filter(node => node.id !== nodeId)};
 		const updatedOrganizations = currentOrganizations.map(org => org.id === orgId ? updatedOrganization : org);
 		const storage = getStorage();
 		await storage.set("organizations", updatedOrganizations)
@@ -125,6 +135,6 @@ export const useStorageStore = defineStore('storage', () => {
 		addVbIdToOrganization,
 		isNodeDeclared,
 		importExistingNodes,
-		deleteNodeByVbId
+		deleteNodeById
 	}
 })
