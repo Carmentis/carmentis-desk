@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import {computed, ref} from 'vue';
+import {computed, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
+import {useToast} from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Breadcrumb from 'primevue/breadcrumb';
@@ -21,6 +22,7 @@ import {Tendermint37Client} from "@cosmjs/tendermint-rpc";
 
 const route = useRoute();
 const router = useRouter();
+const toast = useToast();
 const storageStore = useStorageStore();
 await storageStore.initStorage();
 
@@ -83,7 +85,8 @@ const nodePublicKey = computedAsync(async () => {
 
 
 const nodeVbId = computedAsync(async () => {
-  if (!node.value?.vbId) return undefined;
+  console.log("Node:", node.value, wallet.value, nodePublicKey.value)
+  if (!node.value) return undefined;
   if (!wallet.value) return undefined;
   if (!nodePublicKey.value) return undefined;
 
@@ -296,6 +299,29 @@ const submitUnstake = async () => {
 };
 
 console.log(unstakingAmountInProgress, unstakingAtTimestamp)
+
+// Watcher for node vb id
+/*
+watch(nodeVbId, async (newNodeVbId) => {
+  console.log("Watching:", newNodeVbId, node.value, node.value?.vbId)
+  if (node.value && !node.value.vbId && newNodeVbId) {
+    // Update node.value.vbId with the found nodeVbId
+    node.value.vbId = newNodeVbId.encode();
+    // Store it in storage store
+    await storageStore.updateNode(walletId.value, orgId.value, nodeId.value, {
+      vbId: newNodeVbId.encode()
+    });
+    // Show toast notification
+    toast.add({
+      severity: 'success',
+      summary: 'Node Updated',
+      detail: 'Node VB ID has been automatically updated',
+      life: 3000
+    });
+  }
+}, { immediate: true });
+
+ */
 
 </script>
 

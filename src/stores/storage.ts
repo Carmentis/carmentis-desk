@@ -209,6 +209,25 @@ export const useStorageStore = defineStore('storage', () => {
 		organizations.value = updatedWallets;
 	}
 
+	async function updateNode(walletId: number, orgId: number, nodeId: number, updates: Partial<NodeEntity>) {
+		const currentWallets = await loadOrganizations();
+		const wallet = currentWallets.find(w => w.id === walletId);
+		if (!wallet) return;
+		const organization = wallet.organizations.find(org => org.id === orgId);
+		if (!organization) return;
+
+		const updatedNodes = organization.nodes.map(node =>
+			node.id === nodeId ? {...node, ...updates} : node
+		);
+		const updatedOrganization = {...organization, nodes: updatedNodes};
+		const updatedOrganizations = wallet.organizations.map(org => org.id === orgId ? updatedOrganization : org);
+		const updatedWallet = { ...wallet, organizations: updatedOrganizations };
+		const updatedWallets = currentWallets.map(w => w.id === walletId ? updatedWallet : w);
+		const storage = getStorage();
+		await storage.set("organizations", updatedWallets);
+		organizations.value = updatedWallets;
+	}
+
 	return {
 		initStorage,
 		organizations,
@@ -222,6 +241,7 @@ export const useStorageStore = defineStore('storage', () => {
 		importExistingNodes,
 		deleteNodeById,
 		getWalletById,
-		updateOrganizationDetails
+		updateOrganizationDetails,
+		updateNode
 	}
 })

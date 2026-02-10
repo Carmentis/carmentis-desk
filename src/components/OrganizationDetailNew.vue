@@ -15,7 +15,7 @@ import {useStorageStore, NodeEntity} from '../stores/storage';
 import {computedAsync} from "@vueuse/core";
 import {
   CarmentisError,
-  CryptoEncoderFactory,
+  CryptoEncoderFactory, EncoderFactory,
   Hash,
   LockType,
   ProviderFactory,
@@ -25,9 +25,9 @@ import {
   WalletCrypto
 } from "@cmts-dev/carmentis-sdk/client";
 import {useToast} from 'primevue/usetoast';
-import { useQuery } from '@tanstack/vue-query'
 import {useOnChainStore} from "../stores/onchain.ts";
 import {storeToRefs} from "pinia";
+import {Tendermint37Client} from "@cosmjs/tendermint-rpc";
 
 
 
@@ -117,10 +117,38 @@ const walletAccountState = computedAsync(async () => {
 // Nodes management
 const organizationNodes = computed(() => organization.value?.nodes || []);
 
+const isSearchingForVbId = ref(false);
 const showManualImportForm = ref(false);
 const manualNodeName = ref('');
 const manualNodeVbId = ref('');
 const manualNodeRpcEndpoint = ref('');
+watch(manualNodeRpcEndpoint, async () => {
+  isSearchingForVbId.value = true;
+  try {
+    const endpoint = manualNodeRpcEndpoint.value;
+    if (endpoint.trim().length !== 0) {
+      const client = await Tendermint37Client.connect(endpoint);
+      const status = await client.status();
+      const pk = status.validatorInfo.pubkey;
+      if (pk) {
+        const b64 = EncoderFactory.bytesToBase64Encoder();
+        const hex = EncoderFactory.bytesToHexEncoder();
+        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value?.nodeEndpoint);
+        const vbId = await provider.getValidatorNodeIdByCometbftPublicKey(b64.encode(pk.data))
+        toast.add({ severity: 'success', summary: 'Node found', detail: `Node found with Virtual Blockchain ID`, life: 3000 });
+        manualNodeVbId.value = hex.encode(vbId)
+      }
+    } else {
+      manualNodeVbId.value = ""
+    }
+  } catch (e) {
+    manualNodeVbId.value = ""
+  } finally {
+    isSearchingForVbId.value = false;
+  }
+})
+
+
 
 async function submitManualNodeImport() {
   if (!manualNodeName.value || !manualNodeRpcEndpoint.value) {
@@ -489,7 +517,7 @@ async function confirmPublishOrganization() {
         <template #footer>
           <div class="flex justify-end gap-2">
             <Button label="Cancel" @click="showManualImportForm = false" severity="secondary" outlined />
-            <Button label="Add Node" @click="submitManualNodeImport" icon="pi pi-check" />
+            <Button label="Add Node" @click="submitManualNodeImport" icon="pi pi-check" :disabled="isSearchingForVbId" />
           </div>
         </template>
       </Dialog>
