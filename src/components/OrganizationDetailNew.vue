@@ -5,7 +5,10 @@ import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
-import TabView from 'primevue/tabview';
+import Tabs from 'primevue/tabs';
+import TabList from 'primevue/tablist';
+import Tab from 'primevue/tab';
+import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import {useStorageStore, NodeEntity} from '../stores/storage';
 import {computedAsync} from "@vueuse/core";
@@ -215,90 +218,96 @@ async function importNewNodes() {
       <!-- Nodes & Applications Tabs -->
       <Card>
         <template #content>
-          <TabView>
-            <TabPanel header="Nodes">
-              <div class="space-y-4">
-                <!-- Nodes Header Actions -->
-                <div class="flex justify-between items-center">
-                  <h3 class="text-lg font-semibold text-gray-900">Nodes ({{ organizationNodes.length }})</h3>
-                  <div class="flex gap-2">
-                    <Button @click="fetchNodesOnChain" label="Fetch On-Chain" icon="pi pi-cloud-download" size="small" outlined />
-                    <Button @click="showManualImportForm = true" label="Add Node" icon="pi pi-plus" size="small" />
+          <Tabs value="0">
+            <TabList>
+              <Tab value="0">Nodes</Tab>
+              <Tab value="1">Applications</Tab>
+            </TabList>
+            <TabPanels>
+              <TabPanel value="0">
+                <div class="space-y-4">
+                  <!-- Nodes Header Actions -->
+                  <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900">Nodes ({{ organizationNodes.length }})</h3>
+                    <div class="flex gap-2">
+                      <Button @click="fetchNodesOnChain" label="Fetch On-Chain" icon="pi pi-cloud-download" size="small" outlined />
+                      <Button @click="showManualImportForm = true" label="Add Node" icon="pi pi-plus" size="small" />
+                    </div>
                   </div>
-                </div>
 
-                <!-- Nodes Content -->
-                <div v-if="organizationNodes.length === 0" class="text-center py-8">
-                  <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
-                    <i class="pi pi-sitemap text-2xl text-gray-400"></i>
+                  <!-- Nodes Content -->
+                  <div v-if="organizationNodes.length === 0" class="text-center py-8">
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
+                      <i class="pi pi-sitemap text-2xl text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-500 text-sm">No nodes configured yet</p>
                   </div>
-                  <p class="text-gray-500 text-sm">No nodes configured yet</p>
-                </div>
-                <div v-else class="space-y-3">
-                  <div
-                    v-for="node of organizationNodes"
-                    :key="node.id"
-                    class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                    @click="visitNode(node.id)"
-                  >
-                    <div class="flex items-start justify-between">
-                      <div class="space-y-2 flex-1">
-                        <div class="font-medium text-gray-900">{{ node.name }}</div>
-                        <div class="text-xs text-gray-500 space-y-1">
-                          <div v-if="node.vbId" class="flex items-center gap-2">
-                            <i class="pi pi-tag"></i>
-                            <code class="bg-gray-100 px-2 py-0.5 rounded">{{ node.vbId }}</code>
-                          </div>
-                          <div class="flex items-center gap-2">
-                            <i class="pi pi-globe"></i>
-                            <span>{{ node.rpcEndpoint }}</span>
+                  <div v-else class="space-y-3">
+                    <div
+                      v-for="node of organizationNodes"
+                      :key="node.id"
+                      class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                      @click="visitNode(node.id)"
+                    >
+                      <div class="flex items-start justify-between">
+                        <div class="space-y-2 flex-1">
+                          <div class="font-medium text-gray-900">{{ node.name }}</div>
+                          <div class="text-xs text-gray-500 space-y-1">
+                            <div v-if="node.vbId" class="flex items-center gap-2">
+                              <i class="pi pi-tag"></i>
+                              <code class="bg-gray-100 px-2 py-0.5 rounded">{{ node.vbId }}</code>
+                            </div>
+                            <div class="flex items-center gap-2">
+                              <i class="pi pi-globe"></i>
+                              <span>{{ node.rpcEndpoint }}</span>
+                            </div>
                           </div>
                         </div>
+                        <Button
+                          @click.stop="deleteNode(node.id)"
+                          icon="pi pi-trash"
+                          severity="danger"
+                          text
+                          rounded
+                          size="small"
+                        />
                       </div>
-                      <Button
-                        @click.stop="deleteNode(node.id)"
-                        icon="pi pi-trash"
-                        severity="danger"
-                        text
-                        rounded
-                        size="small"
-                      />
                     </div>
                   </div>
                 </div>
-              </div>
-            </TabPanel>
+              </TabPanel>
 
-            <TabPanel header="Applications">
-              <div class="space-y-4">
-                <!-- Applications Header -->
-                <div class="flex justify-between items-center">
-                  <h3 class="text-lg font-semibold text-gray-900">Applications ({{ organization.applications.length }})</h3>
-                </div>
-
-                <!-- Applications Content -->
-                <div v-if="organization.applications.length === 0" class="text-center py-8">
-                  <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
-                    <i class="pi pi-box text-2xl text-gray-400"></i>
+              <TabPanel value="1">
+                <div class="space-y-4">
+                  <!-- Applications Header -->
+                  <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900">Applications ({{ organization.applications.length }})</h3>
                   </div>
-                  <p class="text-gray-500 text-sm">No applications configured yet</p>
-                </div>
-                <div v-else class="space-y-3">
-                  <div
-                    v-for="app in organization.applications"
-                    :key="app.id"
-                    class="border border-gray-200 rounded-lg p-4"
-                  >
-                    <div class="font-medium text-gray-900">{{ app.name }}</div>
-                    <div v-if="app.vbId" class="text-xs text-gray-500 mt-1 flex items-center gap-2">
-                      <i class="pi pi-tag"></i>
-                      <code class="bg-gray-100 px-2 py-0.5 rounded">{{ app.vbId }}</code>
+
+                  <!-- Applications Content -->
+                  <div v-if="organization.applications.length === 0" class="text-center py-8">
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
+                      <i class="pi pi-box text-2xl text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-500 text-sm">No applications configured yet</p>
+                  </div>
+                  <div v-else class="space-y-3">
+                    <div
+                      v-for="app in organization.applications"
+                      :key="app.id"
+                      class="border border-gray-200 rounded-lg p-4"
+                    >
+                      <div class="font-medium text-gray-900">{{ app.name }}</div>
+                      <div v-if="app.vbId" class="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                        <i class="pi pi-tag"></i>
+                        <code class="bg-gray-100 px-2 py-0.5 rounded">{{ app.vbId }}</code>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </TabPanel>
-          </TabView>
+              </TabPanel>
+            </TabPanels>
+          </Tabs>
         </template>
       </Card>
 
