@@ -123,6 +123,7 @@ const manualNodeName = ref('');
 const manualNodeVbId = ref('');
 const manualNodeRpcEndpoint = ref('');
 watch(manualNodeRpcEndpoint, async () => {
+  if (wallet.value === undefined) return;
   isSearchingForVbId.value = true;
   try {
     const endpoint = manualNodeRpcEndpoint.value;
@@ -133,7 +134,7 @@ watch(manualNodeRpcEndpoint, async () => {
       if (pk) {
         const b64 = EncoderFactory.bytesToBase64Encoder();
         const hex = EncoderFactory.bytesToHexEncoder();
-        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value?.nodeEndpoint);
+        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
         const vbId = await provider.getValidatorNodeIdByCometbftPublicKey(b64.encode(pk.data))
         toast.add({ severity: 'success', summary: 'Node found', detail: `Node found with Virtual Blockchain ID`, life: 3000 });
         manualNodeVbId.value = hex.encode(vbId)

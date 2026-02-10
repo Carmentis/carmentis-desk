@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {useToast} from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Breadcrumb from 'primevue/breadcrumb';
@@ -15,9 +14,7 @@ import {
   Hash,
   LockType,
   ProviderFactory,
-  SeedEncoder,
-  SignatureSchemeId, Utils,
-  WalletCrypto,
+  Utils,
 } from "@cmts-dev/carmentis-sdk/client";
 import {Tendermint37Client} from "@cosmjs/tendermint-rpc";
 
