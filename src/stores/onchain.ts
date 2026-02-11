@@ -402,7 +402,7 @@ export const useOnChainStore = defineStore('onchain', () => {
 			console.log(`Creating unstaking request for ${amount.toString()} node: validator node id=${Hash.from(nodeAddress).encode()}`);
 
 			// Create the unstaking request
-			const accountVb = await provider.loadAccountVirtualBlockchain(accountId);
+			const accountVb = await provider.loadAccountVirtualBlockchain(Hash.from(accountId));
 			const mb = await accountVb.createMicroblock();
 
 			mb.addSection({

@@ -28,6 +28,7 @@ import {useToast} from 'primevue/usetoast';
 import {useOnChainStore} from "../stores/onchain.ts";
 import {storeToRefs} from "pinia";
 import {Tendermint37Client} from "@cosmjs/tendermint-rpc";
+import {useQuery} from "@tanstack/vue-query";
 
 
 
@@ -305,6 +306,23 @@ async function confirmPublishOrganization() {
     website: orgWebsite.value.trim(),
   });
 }
+
+// query used to identify if the organization is found online
+const {data: isOrganizationFoundOnChain, isLoading: isFetchingOrganizationFromChain} = useQuery({
+  queryKey: ['organization-on-chain', orgId],
+  queryFn: async () => {
+    if (!organization.value || !organization.value.vbId) return undefined;
+    if (!wallet.value) return undefined;
+    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
+    try {
+      await provider.loadOrganizationVirtualBlockchain(Hash.from(organization.value.vbId));
+      return true;
+    } catch (e) {
+      console.error(`Organization not found online: ${e}`)
+      return false;
+    }
+  }
+})
 </script>
 
 <template>
@@ -338,6 +356,20 @@ async function confirmPublishOrganization() {
             <div v-if="organization.vbId">
               <label class="block text-sm font-medium text-gray-700 mb-2">Virtual Blockchain ID</label>
               <code class="bg-gray-100 px-3 py-2 rounded text-sm block">{{ organization.vbId }}</code>
+
+              <div v-if="isOrganizationFoundOnChain === true" class="mt-4 flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg">
+                <i class="pi pi-check-circle text-green-600"></i>
+                <span class="text-sm text-green-800">Organization confirmed on-chain</span>
+              </div>
+              <div v-else-if="isOrganizationFoundOnChain === false" class="mt-4 flex items-start gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <i class="pi pi-exclamation-triangle text-amber-600 mt-0.5"></i>
+                <span class="text-sm text-amber-800">Organization not found on-chain. This may be due to network transaction processing delays.</span>
+              </div>
+              <div v-else-if="isFetchingOrganizationFromChain" class="mt-4 flex items-center gap-2 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <i class="pi pi-spin pi-spinner text-blue-600"></i>
+                <span class="text-sm text-blue-800">Checking on-chain status...</span>
+              </div>
+
             </div>
             <div v-else class="text-center py-4">
               <i class="pi pi-exclamation-circle text-3xl text-amber-500 mb-2"></i>

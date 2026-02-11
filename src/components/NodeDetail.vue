@@ -69,7 +69,10 @@ const breadcrumbItems = computed(() => {
 
 // Node publication status
 const nodePublicKey = computedAsync(async () => {
-  if (!node.value) return undefined;
+  if (!node.value) {
+    console.log("Node not found")
+    return undefined
+  };
   const endpoint = node.value.rpcEndpoint;
   const client = await Tendermint37Client.connect(endpoint);
   const status = await client.status();
@@ -77,6 +80,7 @@ const nodePublicKey = computedAsync(async () => {
   if (!pk) return undefined;
   const { data, algorithm } = pk;
   const base64 = EncoderFactory.bytesToBase64Encoder();
+  console.log("Node public key:", pk)
   return { pk: base64.encode(data), pkType: algorithm };
 })
 
@@ -148,6 +152,14 @@ const isOwnedByWallet = computedAsync(async () => {
 
 // staking information
 const nodeStakeInformation = computedAsync(async () => {
+  console.log("Looking for node stake information")
+
+  const pk = nodePublicKey.value?.pk;
+  if (pk === undefined) {
+    console.error("Node public key not found");
+    return undefined;
+  }
+
   const wallet = await storageStore.getWalletById(walletId.value);
   if (wallet === undefined) return undefined;
   if (node.value === undefined) return undefined;
@@ -170,8 +182,7 @@ const nodeStakeInformation = computedAsync(async () => {
   const pk = await sk.getPublicKey();
   const accountId = await provider.getAccountIdByPublicKey(pk);
    */
-  const pk = nodePublicKey.value?.pk;
-  if (pk === undefined) return undefined;
+
   const validatorNodeVbId = await provider.getValidatorNodeIdByCometbftPublicKey(pk);
   const validatorNodeVb = await provider.loadValidatorNodeVirtualBlockchain(Hash.from(validatorNodeVbId));
   const orgVbId = await validatorNodeVb.getOrganizationId();
@@ -260,7 +271,7 @@ const submitStake = async () => {
       walletId: walletId.value,
       orgId: orgId.value,
       nodeId: nodeId.value,
-      amount: CMTSToken.createAtomic(stakeAmount.value)
+      amount: CMTSToken.createCMTS(stakeAmount.value)
     });
     closeStakeDialog();
   } catch (error) {
@@ -347,7 +358,7 @@ const submitUnstake = async () => {
       walletId: walletId.value,
       orgId: orgId.value,
       nodeId: nodeId.value,
-      amount: CMTSToken.createAtomic(unstakeAmount.value)
+      amount: CMTSToken.createCMTS(unstakeAmount.value)
     });
     closeUnstakeDialog();
   } catch (error) {
@@ -599,6 +610,7 @@ watch(nodeVbId, async (newNodeVbId) => {
                   size="small"
                   severity="secondary"
                   outlined
+                  v-if="!hasUnstakingOperationInProgress"
                 />
               </div>
             </div>
