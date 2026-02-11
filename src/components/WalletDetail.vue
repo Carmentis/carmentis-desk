@@ -18,6 +18,7 @@ import {
 } from "@cmts-dev/carmentis-sdk/client";
 import Password from 'primevue/password';
 import {useToast} from 'primevue/usetoast';
+import {useAccountBreakdownQuery, useAccountIdQuery} from "../composables/useAccountBreakdown.ts";
 
 const toast = useToast();
 const route = useRoute();
@@ -181,6 +182,10 @@ async function copyToClipboard(text: string | undefined, label: string) {
     toast.add({ severity: 'error', summary: 'Copy failed', detail: 'Failed to copy to clipboard', life: 3000 });
   }
 }
+
+const breakdownQuery = useAccountBreakdownQuery(walletId.value);
+console.log(`Breakdown for wallet ${walletId.value}`, breakdownQuery )
+console.log(breakdownQuery)
 </script>
 
 <template>
@@ -238,7 +243,7 @@ async function copyToClipboard(text: string | undefined, label: string) {
           </Card>
 
           <!-- No account found on chain Card -->
-          <Card v-if="!isWalletBreakdownLoading && walletAccountId === undefined">
+          <Card v-if="breakdownQuery.error.value">
             <template #title>
               <div class="flex items-center gap-2">
                 <i class="pi pi-wallet text-xl"></i>
@@ -257,7 +262,7 @@ async function copyToClipboard(text: string | undefined, label: string) {
           </Card>
 
           <!-- Balance Card Loading -->
-          <Card v-else-if="isWalletBreakdownLoading">
+          <Card v-else-if="breakdownQuery.isLoading.value">
             <template #title>
               <div class="flex items-center gap-2">
                 <i class="pi pi-wallet text-xl"></i>
@@ -283,7 +288,7 @@ async function copyToClipboard(text: string | undefined, label: string) {
           </Card>
 
           <!-- Balance Card -->
-          <Card v-else-if="walletBreakdown">
+          <Card v-else-if="breakdownQuery.data.value">
             <template #title>
               <div class="flex items-center gap-2">
                 <i class="pi pi-wallet text-xl"></i>
@@ -294,15 +299,15 @@ async function copyToClipboard(text: string | undefined, label: string) {
               <div class="grid grid-cols-1 gap-4">
                 <div class="bg-gray-50 rounded-lg p-4">
                   <div class="text-sm text-gray-600 font-medium mb-1">Spendable</div>
-                  <div class="text-2xl font-bold text-gray-900">{{ walletBreakdown.getSpendable() }}</div>
+                  <div class="text-2xl font-bold text-gray-900">{{ breakdownQuery.data.value.getSpendable() }}</div>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-4">
                   <div class="text-sm text-gray-600 font-medium mb-1">Vested</div>
-                  <div class="text-2xl font-bold text-gray-900">{{ walletBreakdown.getVested() }}</div>
+                  <div class="text-2xl font-bold text-gray-900">{{ breakdownQuery.data.value.getVested() }}</div>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-4">
                   <div class="text-sm text-gray-600 font-medium mb-1">Staked</div>
-                  <div class="text-2xl font-bold text-gray-900">{{ walletBreakdown.getStaked() }}</div>
+                  <div class="text-2xl font-bold text-gray-900">{{ breakdownQuery.data.value.getStaked() }}</div>
                 </div>
               </div>
             </template>
