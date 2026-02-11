@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, ref, shallowRef} from 'vue';
+import {computed, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
@@ -9,9 +9,7 @@ import SplitButton from 'primevue/splitbutton';
 import {useStorageStore, OrganizationEntity} from '../stores/storage';
 import {computedAsync} from "@vueuse/core";
 import {
-  BalanceAvailability,
   CryptoEncoderFactory,
-  ProviderFactory,
   SeedEncoder,
   SignatureSchemeId,
   WalletCrypto
@@ -54,40 +52,6 @@ const sk = computed(() => walletKeyPair.value?.sk)
 const pk = computed(() => walletKeyPair.value?.pk)
 
 // wallet account publication status
-const lastFetchTime = ref(Date.now());
-function refetch() {
-  lastFetchTime.value = Date.now();
-}
-
-const walletAccountId = computedAsync(async () => {
-  if (wallet.value === undefined) return undefined;
-  if (!pk.value) return undefined;
-  const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
-  try {
-    const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
-    return await provider.getAccountIdByPublicKey(await sigEncoder.decodePublicKey(pk.value));
-  } catch (e) {
-    console.error(e)
-    return undefined;
-  }
-});
-
-const walletAccountState = computedAsync(async () => {
-  if (wallet.value === undefined) return undefined;
-  if (!pk.value) return undefined;
-  if (walletAccountId.value === undefined) return undefined;
-  const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
-  const accountId = await walletAccountId.value;
-  const accountState = await provider.getAccountState(accountId);
-  return accountState;
-})
-
-const isWalletBreakdownLoading = shallowRef(false);
-const walletBreakdown = computedAsync(async () => {
-  if (!walletAccountState.value) return undefined;
-  const breakdown = BalanceAvailability.createFromAccountStateAbciResponse(walletAccountState.value);
-  return breakdown;
-}, null, { evaluating: isWalletBreakdownLoading });
 
 // organization management
 const showOrgDialog = ref(false);
