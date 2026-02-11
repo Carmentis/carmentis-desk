@@ -73,7 +73,7 @@ function isApplicationActive(orgId: number, appId: number) {
 
 <template>
   <div v-if="wallet" class="h-screen bg-gray-50 border-r border-gray-200 overflow-y-auto flex flex-col fixed w-64">
-    <div class="flex-1 p-4">
+    <div class="flex-1 py-4 pr-4">
       <!-- Chain Connection Card at Top -->
       <div class="mb-4">
         <Card class="shadow-sm">
