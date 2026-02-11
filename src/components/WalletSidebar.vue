@@ -41,6 +41,10 @@ function navigateToOrganization(orgId: number) {
   router.push(`/wallet/${props.walletId}/organization/${orgId}`);
 }
 
+function navigateToApplication(orgId: number, appId: number) {
+  router.push(`/wallet/${props.walletId}/organization/${orgId}/application/${appId}`);
+}
+
 function navigateToNode(orgId: number, nodeId: number) {
   router.push(`/wallet/${props.walletId}/organization/${orgId}/node/${nodeId}`);
 }
@@ -54,8 +58,16 @@ function isOrganizationActive(orgId: number) {
   return route.name === 'organization-detail' && Number(route.params.orgId) === orgId;
 }
 
-function isNodeActive(nodeId: number) {
-  return route.name === 'node-detail' && Number(route.params.nodeId) === nodeId;
+function isNodeActive(orgId: number, nodeId: number) {
+  return route.name === 'node-detail' &&
+      Number(route.params.orgId) === orgId &&
+      Number(route.params.nodeId) === nodeId;
+}
+
+function isApplicationActive(orgId: number, appId: number) {
+  return route.name === 'application-detail' &&
+      Number(route.params.orgId) === orgId &&
+      Number(route.params.appId) === appId;
 }
 </script>
 
@@ -128,7 +140,7 @@ function isNodeActive(nodeId: number) {
                 :key="node.id"
                 @click="navigateToNode(org.id, node.id)"
                 class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors"
-                :class="isNodeActive(node.id) ? 'bg-blue-100 text-blue-900 font-semibold' : 'hover:bg-gray-100 text-gray-600'"
+                :class="isNodeActive(org.id, node.id) ? 'bg-blue-100 text-blue-900 font-semibold' : 'hover:bg-gray-100 text-gray-600'"
               >
                 <i class="pi pi-sitemap text-xs"></i>
                 <span class="text-sm truncate">{{ node.name }}</span>
@@ -143,6 +155,8 @@ function isNodeActive(nodeId: number) {
               <div
                 v-for="app in org.applications"
                 :key="app.id"
+                @click="navigateToApplication(org.id, app.id)"
+                :class="isApplicationActive(org.id, app.id) ? 'bg-blue-100 text-blue-900 font-semibold' : 'hover:bg-gray-100 text-gray-600'"
                 class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-gray-100 text-gray-600"
               >
                 <i class="pi pi-box text-xs"></i>
