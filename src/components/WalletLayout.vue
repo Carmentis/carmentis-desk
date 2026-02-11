@@ -25,7 +25,7 @@ const walletId = computed(() => {
     </div>
 
     <!-- Main Content -->
-    <div class="flex-1 overflow-auto">
+    <div class="flex-1">
       <div class="container mx-auto p-6">
         <router-view />
       </div>
