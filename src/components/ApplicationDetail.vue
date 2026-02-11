@@ -13,6 +13,7 @@ import {storeToRefs} from 'pinia';
 import {Hash, ProviderFactory} from "@cmts-dev/carmentis-sdk/client";
 import {useToast} from 'primevue/usetoast';
 import {useQuery} from "@tanstack/vue-query";
+import {useHasAccountOnChainQuery} from "../composables/useAccountBreakdown.ts";
 
 const toast = useToast();
 const route = useRoute();
@@ -144,7 +145,9 @@ const {data: isApplicationFoundOnChain, isLoading: isFetchingApplicationFromChai
       return false;
     }
   }
-})
+});
+
+const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
 </script>
 
 <template>
@@ -235,8 +238,9 @@ const {data: isApplicationFoundOnChain, isLoading: isFetchingApplicationFromChai
                   icon="pi pi-cloud-upload"
                   @click="showPublishConfirmDialog = true"
                   :loading="isPublishingApplication"
-                  :disabled="isPublishingApplication"
+                  :disabled="isPublishingApplication || !hasAccountOnChain"
                   severity="secondary"
+                  :hidden="!hasAccountOnChain"
                 />
                 <Button type="submit" label="Update Details" icon="pi pi-check" />
               </div>

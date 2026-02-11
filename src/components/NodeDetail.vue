@@ -17,6 +17,7 @@ import {
   Utils,
 } from "@cmts-dev/carmentis-sdk/client";
 import {Tendermint37Client} from "@cosmjs/tendermint-rpc";
+import {useHasAccountOnChainQuery} from "../composables/useAccountBreakdown.ts";
 
 const route = useRoute();
 const router = useRouter();
@@ -405,6 +406,7 @@ watch(nodeVbId, async (newNodeVbId) => {
 
  */
 
+const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
 </script>
 
 <template>
@@ -441,6 +443,7 @@ watch(nodeVbId, async (newNodeVbId) => {
                 icon="pi pi-lock"
                 size="small"
                 outlined
+                :hidden="!hasAccountOnChain"
               />
             </div>
           </template>

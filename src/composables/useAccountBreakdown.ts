@@ -52,3 +52,11 @@ export function useAccountBreakdownQuery(walletId: number) {
 		},
 	})
 }
+
+export function useHasAccountOnChainQuery(walletId: number) {
+	const accountIdQuery = useAccountIdQuery(walletId);
+	return computed( () =>
+		accountIdQuery.isSuccess.value &&
+		accountIdQuery.data.value !== undefined
+	);
+}

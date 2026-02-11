@@ -29,6 +29,7 @@ import {useOnChainStore} from "../stores/onchain.ts";
 import {storeToRefs} from "pinia";
 import {Tendermint37Client} from "@cosmjs/tendermint-rpc";
 import {useQuery} from "@tanstack/vue-query";
+import {useHasAccountOnChainQuery} from "../composables/useAccountBreakdown.ts";
 
 
 
@@ -386,6 +387,8 @@ async function deleteApplication(appId: number) {
 function visitApplication(appId: number) {
   router.push(`/wallet/${walletId.value}/organization/${orgId.value}/application/${appId}`);
 }
+
+const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
 </script>
 
 <template>
@@ -482,8 +485,9 @@ function visitApplication(appId: number) {
                   icon="pi pi-cloud-upload"
                   @click="showPublishConfirmDialog = true"
                   :loading="isPublishingOrganization"
-                  :disabled="isPublishingOrganization"
+                  :disabled="isPublishingOrganization || !hasAccountOnChain"
                   severity="secondary"
+                  :hidden="!hasAccountOnChain"
                 />
                 <Button type="submit" label="Update Details" icon="pi pi-check" />
               </div>
