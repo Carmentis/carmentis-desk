@@ -67,6 +67,18 @@ const breadcrumbItems = computed(() => {
   ];
 });
 
+// node chain status (the chain on which the node is running)
+const chainNameOnWhichNodeIsConnected = computedAsync(async () => {
+  if (!node.value) {
+    console.log("Node not found")
+    return undefined
+  };
+  const endpoint = node.value.rpcEndpoint;
+  const client = await Tendermint37Client.connect(endpoint);
+  const status = await client.status();
+  return status.nodeInfo.network;
+})
+
 // Node publication status
 const nodePublicKey = computedAsync(async () => {
   if (!node.value) {
@@ -434,14 +446,19 @@ watch(nodeVbId, async (newNodeVbId) => {
           </template>
           <template #content>
             <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Node Name</label>
-                <div class="text-gray-900">{{ node.name }}</div>
-              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Node Name</label>
+                  <div class="text-gray-900">{{ node.name }}</div>
+                </div>
 
-              <div v-if="node.vbId">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Virtual Blockchain ID</label>
-                <code class="bg-gray-100 px-3 py-2 rounded text-sm block overflow-x-auto">{{ node.vbId }}</code>
+                <div v-if="chainNameOnWhichNodeIsConnected">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Chain</label>
+                  <div class="flex items-center gap-2 text-gray-600">
+                    <i class="pi pi-server"></i>
+                    <span class="text-sm">{{ chainNameOnWhichNodeIsConnected }}</span>
+                  </div>
+                </div>
               </div>
 
               <div v-if="nodePublicKey">
@@ -452,12 +469,20 @@ watch(nodeVbId, async (newNodeVbId) => {
                 </div>
               </div>
 
+
+
+
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">RPC Endpoint</label>
                 <div class="flex items-center gap-2 text-gray-600">
                   <i class="pi pi-globe"></i>
                   <span class="text-sm">{{ node.rpcEndpoint }}</span>
                 </div>
+              </div>
+
+              <div v-if="node.vbId">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Virtual Blockchain ID</label>
+                <code class="bg-gray-100 px-3 py-2 rounded text-sm block overflow-x-auto">{{ node.vbId }}</code>
               </div>
             </div>
           </template>
