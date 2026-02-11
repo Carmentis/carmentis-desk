@@ -166,102 +166,105 @@ function visitOrganization(orgId: number) {
       </div>
 
       <div class="space-y-4">
-        <!-- Wallet Keys Card -->
-        <Card>
-          <template #title>
-            <div class="flex items-center gap-2">
-              <i class="pi pi-key text-xl"></i>
-              <span>Wallet Keys</span>
-            </div>
-          </template>
-          <template #content>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Public Key</label>
-                <InputText v-model="pk" :disabled="true" class="w-full" />
+        <!-- Wallet Keys and Balance Cards Side-by-Side -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Wallet Keys Card -->
+          <Card>
+            <template #title>
+              <div class="flex items-center gap-2">
+                <i class="pi pi-key text-xl"></i>
+                <span>Wallet Keys</span>
               </div>
-              <div class="w-full">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Private Key</label>
-                <Password v-model="sk" :feedback="false" toggleMask class="w-full" width="100%" />
+            </template>
+            <template #content>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Public Key</label>
+                  <InputText v-model="pk" :disabled="true" class="w-full" />
+                </div>
+                <div class="w-full">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Private Key</label>
+                  <Password v-model="sk" :feedback="false" toggleMask class="w-full" width="100%" />
+                </div>
+                <div class="w-full">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Private seed</label>
+                  <Password v-model="wallet.seed" :feedback="false" toggleMask class="w-full" width="100%" />
+                </div>
               </div>
-              <div class="w-full">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Private seed</label>
-                <Password v-model="wallet.seed" :feedback="false" toggleMask class="w-full" width="100%" />
-              </div>
-            </div>
-          </template>
-        </Card>
+            </template>
+          </Card>
 
-        <!-- No account found on chain Card -->
-        <Card v-if="!isWalletBreakdownLoading && walletAccountId === undefined">
-          <template #title>
-            <div class="flex items-center gap-2">
-              <i class="pi pi-wallet text-xl"></i>
-              <span>Balance</span>
-            </div>
-          </template>
-          <template #content>
-            <div class="text-center py-12">
+          <!-- No account found on chain Card -->
+          <Card v-if="!isWalletBreakdownLoading && walletAccountId === undefined">
+            <template #title>
+              <div class="flex items-center gap-2">
+                <i class="pi pi-wallet text-xl"></i>
+                <span>Balance</span>
+              </div>
+            </template>
+            <template #content>
+              <div class="text-center py-12">
+                <i class="pi pi-exclamation-circle text-3xl text-amber-500 mb-2"></i>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">No account found</h1>
+                <p class="text-gray-600 text-sm">
+                  Purchase tokens to see your balance.
+                </p>
+              </div>
+            </template>
+          </Card>
 
-              <i class="pi pi-exclamation-circle text-3xl text-amber-500 mb-2"></i>
-              <h1 class="text-2xl font-bold text-gray-900 mb-2">No account found</h1>
-              <p class="text-gray-600 text-sm">
-                Purchase tokens to see your balance.
-              </p>
-            </div>
-          </template>
-        </Card>
+          <!-- Balance Card Loading -->
+          <Card v-else-if="isWalletBreakdownLoading">
+            <template #title>
+              <div class="flex items-center gap-2">
+                <i class="pi pi-wallet text-xl"></i>
+                <span>Balance</span>
+              </div>
+            </template>
+            <template #content>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
+                  <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                  <div class="h-8 bg-gray-200 rounded w-24"></div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
+                  <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                  <div class="h-8 bg-gray-200 rounded w-24"></div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
+                  <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                  <div class="h-8 bg-gray-200 rounded w-24"></div>
+                </div>
+              </div>
+            </template>
+          </Card>
 
-        <!-- Balance Card -->
-        <Card v-if="isWalletBreakdownLoading">
-          <template #title>
-            <div class="flex items-center gap-2">
-              <i class="pi pi-wallet text-xl"></i>
-              <span>Balance</span>
-            </div>
-          </template>
-          <template #content>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
-                <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-                <div class="h-8 bg-gray-200 rounded w-24"></div>
+          <!-- Balance Card -->
+          <Card v-else-if="walletBreakdown">
+            <template #title>
+              <div class="flex items-center gap-2">
+                <i class="pi pi-wallet text-xl"></i>
+                <span>Balance</span>
               </div>
-              <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
-                <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-                <div class="h-8 bg-gray-200 rounded w-24"></div>
+            </template>
+            <template #content>
+              <div class="grid grid-cols-1 gap-4">
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-600 font-medium mb-1">Spendable</div>
+                  <div class="text-2xl font-bold text-gray-900">{{ walletBreakdown.getSpendable() }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-600 font-medium mb-1">Vested</div>
+                  <div class="text-2xl font-bold text-gray-900">{{ walletBreakdown.getVested() }}</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="text-sm text-gray-600 font-medium mb-1">Staked</div>
+                  <div class="text-2xl font-bold text-gray-900">{{ walletBreakdown.getStaked() }}</div>
+                </div>
               </div>
-              <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
-                <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-                <div class="h-8 bg-gray-200 rounded w-24"></div>
-              </div>
-            </div>
-          </template>
-        </Card>
-
-        <Card v-else-if="walletBreakdown">
-          <template #title>
-            <div class="flex items-center gap-2">
-              <i class="pi pi-wallet text-xl"></i>
-              <span>Balance</span>
-            </div>
-          </template>
-          <template #content>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div class="bg-green-50 rounded-lg p-4">
-                <div class="text-sm text-green-600 font-medium mb-1">Spendable</div>
-                <div class="text-2xl font-bold text-green-900">{{ walletBreakdown.getSpendable() }}</div>
-              </div>
-              <div class="bg-blue-50 rounded-lg p-4">
-                <div class="text-sm text-blue-600 font-medium mb-1">Vested</div>
-                <div class="text-2xl font-bold text-blue-900">{{ walletBreakdown.getVested() }}</div>
-              </div>
-              <div class="bg-purple-50 rounded-lg p-4">
-                <div class="text-sm text-purple-600 font-medium mb-1">Staked</div>
-                <div class="text-2xl font-bold text-purple-900">{{ walletBreakdown.getStaked() }}</div>
-              </div>
-            </div>
-          </template>
-        </Card>
+            </template>
+          </Card>
+        </div>
 
         <!-- Organizations Card -->
         <Card>
