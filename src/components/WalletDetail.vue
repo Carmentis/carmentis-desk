@@ -192,6 +192,26 @@ function visitOrganization(orgId: number) {
           </template>
         </Card>
 
+        <!-- No account found on chain Card -->
+        <Card v-if="!isWalletBreakdownLoading && walletAccountId === undefined">
+          <template #title>
+            <div class="flex items-center gap-2">
+              <i class="pi pi-wallet text-xl"></i>
+              <span>Balance</span>
+            </div>
+          </template>
+          <template #content>
+            <div class="text-center py-12">
+
+              <i class="pi pi-exclamation-circle text-3xl text-amber-500 mb-2"></i>
+              <h1 class="text-2xl font-bold text-gray-900 mb-2">No account found</h1>
+              <p class="text-gray-600 text-sm">
+                Purchase tokens to see your balance.
+              </p>
+            </div>
+          </template>
+        </Card>
+
         <!-- Balance Card -->
         <Card v-if="isWalletBreakdownLoading">
           <template #title>
