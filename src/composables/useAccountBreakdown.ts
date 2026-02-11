@@ -11,6 +11,7 @@ export function useAccountIdQuery(walletId: number) {
 			console.log("Fetching account ID for walletId: ", walletId, " ...")
 			return await store.getAccountId(walletId);
 		},
+		retry: 1
 	})
 }
 

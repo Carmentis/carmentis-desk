@@ -183,9 +183,15 @@ async function copyToClipboard(text: string | undefined, label: string) {
   }
 }
 
+
+const accountIdQuery = useAccountIdQuery(walletId.value);
 const breakdownQuery = useAccountBreakdownQuery(walletId.value);
 console.log(`Breakdown for wallet ${walletId.value}`, breakdownQuery )
 console.log(breakdownQuery)
+
+function refetchBreakdown() {
+  breakdownQuery.refetch();
+}
 </script>
 
 <template>
@@ -199,7 +205,7 @@ console.log(breakdownQuery)
         </div>
         <div class="flex gap-2">
           <Button @click="goBack" label="Back" icon="pi pi-arrow-left" text />
-          <Button @click="refetch" label="Refresh" icon="pi pi-refresh" outlined />
+          <Button @click="refetchBreakdown" label="Refresh" icon="pi pi-refresh" outlined />
           <Button @click="deleteWallet" label="Delete" icon="pi pi-trash" severity="danger" outlined />
         </div>
       </div>
@@ -243,7 +249,7 @@ console.log(breakdownQuery)
           </Card>
 
           <!-- No account found on chain Card -->
-          <Card v-if="breakdownQuery.error.value">
+          <Card v-if="breakdownQuery.error.value || accountIdQuery.error.value">
             <template #title>
               <div class="flex items-center gap-2">
                 <i class="pi pi-wallet text-xl"></i>
@@ -262,7 +268,7 @@ console.log(breakdownQuery)
           </Card>
 
           <!-- Balance Card Loading -->
-          <Card v-else-if="breakdownQuery.isLoading.value">
+          <Card v-else-if="accountIdQuery.isLoading.value || breakdownQuery.isLoading.value">
             <template #title>
               <div class="flex items-center gap-2">
                 <i class="pi pi-wallet text-xl"></i>
@@ -270,7 +276,7 @@ console.log(breakdownQuery)
               </div>
             </template>
             <template #content>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="grid grid-cols-1 gap-4">
                 <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
                   <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
                   <div class="h-8 bg-gray-200 rounded w-24"></div>
@@ -290,9 +296,14 @@ console.log(breakdownQuery)
           <!-- Balance Card -->
           <Card v-else-if="breakdownQuery.data.value">
             <template #title>
-              <div class="flex items-center gap-2">
-                <i class="pi pi-wallet text-xl"></i>
-                <span>Balance</span>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <i class="pi pi-wallet text-xl"></i>
+                  <span>Balance</span>
+                </div>
+                <span v-if="breakdownQuery.dataUpdatedAt.value" class="text-xs text-gray-500">
+                  {{ new Date(breakdownQuery.dataUpdatedAt.value).toLocaleString() }}
+                </span>
               </div>
             </template>
             <template #content>
