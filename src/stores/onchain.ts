@@ -10,7 +10,7 @@ import {
 	ValidatorNodeRpcEndpointSection,
 	ValidatorNodeCometbftPublicKeyDeclarationSection,
 	CMTSToken,
-	VirtualBlockchainType, Provider
+	VirtualBlockchainType, Provider, PublicSignatureKey
 } from "@cmts-dev/carmentis-sdk/client";
 import {useStorageStore} from "./storage";
 import {ref} from "vue";
@@ -450,6 +450,14 @@ export const useOnChainStore = defineStore('onchain', () => {
 		mb.setGas(await feesCalculationFormula.computeFees(usedSigSchemeId, mb))
 	}
 
+
+	async function fetchAccountStateByPublicKey(nodeEndpoint: string, publicKey: PublicSignatureKey) {
+		const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(nodeEndpoint);
+		const accountId = await provider.getAccountIdByPublicKey(publicKey);
+		const accountState = await provider.getAccountState(accountId);
+		return accountState;
+	}
+
 	return {
 		isPublishingOrganization,
 		isClaimingNode,
@@ -458,6 +466,7 @@ export const useOnChainStore = defineStore('onchain', () => {
 		publishOrganization,
 		claimNode,
 		stakeOnNode,
-		unstakeFromNode
+		unstakeFromNode,
+		fetchAccountStateByPublicKey
 	};
 });

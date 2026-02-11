@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, ref} from 'vue';
+import {computed, ref, shallowRef} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
@@ -80,11 +80,12 @@ const walletAccountState = computedAsync(async () => {
   return accountState;
 })
 
+const isWalletBreakdownLoading = shallowRef(false);
 const walletBreakdown = computedAsync(async () => {
   if (!walletAccountState.value) return undefined;
   const breakdown = BalanceAvailability.createFromAccountStateAbciResponse(walletAccountState.value);
   return breakdown;
-});
+}, null, { evaluating: isWalletBreakdownLoading });
 
 // organization management
 const showOrgDialog = ref(false);
@@ -192,7 +193,32 @@ function visitOrganization(orgId: number) {
         </Card>
 
         <!-- Balance Card -->
-        <Card v-if="walletBreakdown">
+        <Card v-if="isWalletBreakdownLoading">
+          <template #title>
+            <div class="flex items-center gap-2">
+              <i class="pi pi-wallet text-xl"></i>
+              <span>Balance</span>
+            </div>
+          </template>
+          <template #content>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
+                <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                <div class="h-8 bg-gray-200 rounded w-24"></div>
+              </div>
+              <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
+                <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                <div class="h-8 bg-gray-200 rounded w-24"></div>
+              </div>
+              <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
+                <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                <div class="h-8 bg-gray-200 rounded w-24"></div>
+              </div>
+            </div>
+          </template>
+        </Card>
+
+        <Card v-else-if="walletBreakdown">
           <template #title>
             <div class="flex items-center gap-2">
               <i class="pi pi-wallet text-xl"></i>
