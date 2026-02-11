@@ -5,6 +5,7 @@ import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
+import SplitButton from 'primevue/splitbutton';
 import {useStorageStore, OrganizationEntity} from '../stores/storage';
 import {computedAsync} from "@vueuse/core";
 import {
@@ -147,6 +148,39 @@ async function submitOrgDialog() {
 function visitOrganization(orgId: number) {
   router.push(`/wallet/${walletId.value}/organization/${orgId}`);
 }
+
+// Copy menu items
+const copyMenuItems = ref([
+  {
+    label: 'Copy Public Key',
+    icon: 'pi pi-copy',
+    command: () => copyToClipboard(pk.value, 'Public key')
+  },
+  {
+    label: 'Copy Private Key',
+    icon: 'pi pi-copy',
+    command: () => copyToClipboard(sk.value, 'Private key')
+  },
+  {
+    label: 'Copy Seed',
+    icon: 'pi pi-copy',
+    command: () => copyToClipboard(wallet.value?.seed, 'Seed')
+  }
+]);
+
+async function copyToClipboard(text: string | undefined, label: string) {
+  if (!text) {
+    toast.add({ severity: 'error', summary: 'Copy failed', detail: `${label} not available`, life: 3000 });
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.add({ severity: 'success', summary: 'Copied', detail: `${label} copied to clipboard`, life: 3000 });
+  } catch (e) {
+    console.error('Failed to copy:', e);
+    toast.add({ severity: 'error', summary: 'Copy failed', detail: 'Failed to copy to clipboard', life: 3000 });
+  }
+}
 </script>
 
 <template>
@@ -171,9 +205,18 @@ function visitOrganization(orgId: number) {
           <!-- Wallet Keys Card -->
           <Card>
             <template #title>
-              <div class="flex items-center gap-2">
-                <i class="pi pi-key text-xl"></i>
-                <span>Wallet Keys</span>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <i class="pi pi-key text-xl"></i>
+                  <span>Wallet Keys</span>
+                </div>
+                <SplitButton
+                  label="Copy"
+                  icon="pi pi-copy"
+                  :model="copyMenuItems"
+                  size="small"
+                  @click="copyToClipboard(walletKeyPair?.pk, 'Public key')"
+                />
               </div>
             </template>
             <template #content>
