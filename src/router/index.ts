@@ -5,6 +5,7 @@ import WalletLayout from '../components/WalletLayout.vue'
 import WalletDetail from '../components/WalletDetail.vue'
 import OrganizationDetailNew from '../components/OrganizationDetailNew.vue'
 import NodeDetail from '../components/NodeDetail.vue'
+import ApplicationDetail from '../components/ApplicationDetail.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -37,6 +38,11 @@ const router = createRouter({
           path: 'organization/:orgId/node/:nodeId',
           name: 'node-detail',
           component: NodeDetail
+        },
+        {
+          path: 'organization/:orgId/application/:appId',
+          name: 'application-detail',
+          component: ApplicationDetail
         }
       ]
     }

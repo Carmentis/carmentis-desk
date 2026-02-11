@@ -10,7 +10,8 @@ import {
 	ValidatorNodeRpcEndpointSection,
 	ValidatorNodeCometbftPublicKeyDeclarationSection,
 	CMTSToken,
-	VirtualBlockchainType, Provider, PublicSignatureKey
+	VirtualBlockchainType, Provider, PublicSignatureKey,
+	ApplicationDescriptionSection
 } from "@cmts-dev/carmentis-sdk/client";
 import {useStorageStore} from "./storage";
 import {ref} from "vue";
@@ -45,6 +46,15 @@ export interface UnstakeFromNodeParams {
 	amount: CMTSToken;
 }
 
+export interface PublishApplicationParams {
+	walletId: number;
+	orgId: number;
+	appId: number;
+	name: string;
+	description: string;
+	website?: string;
+}
+
 export const useOnChainStore = defineStore('onchain', () => {
 	const storageStore = useStorageStore();
 	const toast = useToast();
@@ -54,6 +64,7 @@ export const useOnChainStore = defineStore('onchain', () => {
 	const isClaimingNode = ref(false);
 	const isStakingOnNode = ref(false);
 	const isUnstakingFromNode = ref(false);
+	const isPublishingApplication = ref(false);
 
 	/**
 	 * Publishes an organization on-chain
@@ -458,15 +469,120 @@ export const useOnChainStore = defineStore('onchain', () => {
 		return accountState;
 	}
 
+	/**
+	 * Publishes an application on-chain
+	 * Creates a new application virtual blockchain or updates an existing one
+	 */
+	async function publishApplication(params: PublishApplicationParams) {
+		isPublishingApplication.value = true;
+		try {
+			const {walletId, orgId, appId, name, description, website} = params;
+
+			// Get wallet from storage
+			const wallet = await storageStore.getWalletById(walletId);
+			if (!wallet) {
+				throw new Error(`Wallet with id ${walletId} not found`);
+			}
+
+			// Get organization from wallet
+			const organization = wallet.organizations.find(org => org.id === orgId);
+			if (!organization) {
+				throw new Error(`Organization with id ${orgId} not found in wallet ${walletId}`);
+			}
+
+			// Check if organization is published
+			if (!organization.vbId) {
+				throw new Error(`Organization must be published before publishing applications`);
+			}
+
+			// Get application from organization
+			const application = organization.applications.find(app => app.id === appId);
+			if (!application) {
+				throw new Error(`Application with id ${appId} not found in organization ${orgId}`);
+			}
+
+			// Initialize wallet crypto from seed
+			const seedEncoder = new SeedEncoder();
+			const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
+			const accountCrypto = walletSeed.getDefaultAccountCrypto();
+
+			// Create provider
+			const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
+
+			// Get signing keys
+			const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
+			const pk = await sk.getPublicKey();
+
+			// Get the account id
+			const accountId = await provider.getAccountIdByPublicKey(pk);
+
+			// Prepare application description section
+			const appDescSection: ApplicationDescriptionSection = {
+				type: SectionType.APP_DESCRIPTION,
+				name: name,
+				homepageUrl: website || '',
+				description: description,
+				logoUrl: '',
+			};
+
+			const organisationPrivateKey = sk;
+			const isAlreadyPublished = !!application.vbId;
+
+			let applicationVbId: string;
+
+			if (isAlreadyPublished) {
+				console.log(`Application already published on chain, updating it`);
+				const appVb = await provider.loadApplicationVirtualBlockchain(Hash.from(application.vbId!));
+				const mb = await appVb.createMicroblock();
+				mb.addSections([appDescSection]);
+				await updateGasInMicroblock(provider, mb, organisationPrivateKey.getSignatureSchemeId());
+				await mb.seal(organisationPrivateKey, {feesPayerAccount: accountId});
+				await provider.publishMicroblock(mb);
+				applicationVbId = application.vbId!;
+			} else {
+				console.log(`Application not published on chain, publishing a new one`);
+				const mb = Microblock.createGenesisApplicationMicroblock();
+				mb.setHeight(1);
+				mb.addSections([
+					{
+						type: SectionType.APP_CREATION,
+						organizationId: Hash.from(organization.vbId).toBytes(),
+					},
+					appDescSection
+				]);
+				await updateGasInMicroblock(provider, mb, organisationPrivateKey.getSignatureSchemeId());
+				await mb.seal(organisationPrivateKey, {feesPayerAccount: accountId});
+				await provider.publishMicroblock(mb);
+				applicationVbId = mb.getHash().encode();
+			}
+
+			// Update application in storage with the VB ID
+			await storageStore.updateApplication(walletId, orgId, appId, {
+				vbId: applicationVbId,
+				name: name
+			});
+
+			toast.add({severity: 'success', summary: 'Application published', detail: `Application "${name}" published successfully`, life: 3000});
+		} catch (e) {
+			console.error(e);
+			toast.add({severity: 'error', summary: 'Error publishing application', detail: e instanceof Error ? e.message : 'Unknown error', life: 5000});
+			throw e;
+		} finally {
+			isPublishingApplication.value = false;
+		}
+	}
+
 	return {
 		isPublishingOrganization,
 		isClaimingNode,
 		isStakingOnNode,
 		isUnstakingFromNode,
+		isPublishingApplication,
 		publishOrganization,
 		claimNode,
 		stakeOnNode,
 		unstakeFromNode,
-		fetchAccountStateByPublicKey
+		fetchAccountStateByPublicKey,
+		publishApplication
 	};
 });

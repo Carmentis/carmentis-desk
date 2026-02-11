@@ -37,7 +37,7 @@ const route = useRoute();
 const router = useRouter();
 const storageStore = useStorageStore();
 const onChainStore = useOnChainStore();
-const {isPublishingOrganization} = storeToRefs(onChainStore);
+const {isPublishingOrganization, isPublishingApplication} = storeToRefs(onChainStore);
 
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
@@ -323,6 +323,69 @@ const {data: isOrganizationFoundOnChain, isLoading: isFetchingOrganizationFromCh
     }
   }
 })
+
+// Application management
+const showAppDialog = ref(false);
+const appDialogMode = ref<'create' | 'import'>('create');
+const appName = ref('');
+const appDescription = ref('');
+const appWebsite = ref('');
+const appVbId = ref('');
+
+function openCreateAppDialog() {
+  appDialogMode.value = 'create';
+  appName.value = '';
+  appDescription.value = '';
+  appWebsite.value = '';
+  appVbId.value = '';
+  showAppDialog.value = true;
+}
+
+function openImportAppDialog() {
+  appDialogMode.value = 'import';
+  appName.value = '';
+  appDescription.value = '';
+  appWebsite.value = '';
+  appVbId.value = '';
+  showAppDialog.value = true;
+}
+
+async function submitAppDialog() {
+  if (appDialogMode.value === 'create') {
+    if (!appName.value) {
+      toast.add({ severity: 'error', summary: 'Validation error', detail: 'Application name is required', life: 3000 });
+      return;
+    }
+    await storageStore.addApplicationToOrganization(walletId.value, orgId.value, {
+      name: appName.value,
+    });
+    toast.add({ severity: 'success', summary: 'Application created', detail: `Application "${appName.value}" created successfully`, life: 3000 });
+  } else {
+    if (!appVbId.value) {
+      toast.add({ severity: 'error', summary: 'Validation error', detail: 'VB ID is required for import', life: 3000 });
+      return;
+    }
+    if (!appName.value) {
+      toast.add({ severity: 'error', summary: 'Validation error', detail: 'Application name is required for import', life: 3000 });
+      return;
+    }
+    await storageStore.addApplicationToOrganization(walletId.value, orgId.value, {
+      name: appName.value,
+      vbId: appVbId.value,
+    });
+    toast.add({ severity: 'success', summary: 'Application imported', detail: 'Application imported successfully', life: 3000 });
+  }
+  showAppDialog.value = false;
+}
+
+async function deleteApplication(appId: number) {
+  await storageStore.deleteApplicationById(walletId.value, orgId.value, appId);
+  toast.add({ severity: 'success', summary: 'Application deleted', detail: 'Application deleted successfully', life: 3000 });
+}
+
+function visitApplication(appId: number) {
+  router.push(`/wallet/${walletId.value}/organization/${orgId.value}/application/${appId}`);
+}
 </script>
 
 <template>
@@ -496,6 +559,10 @@ const {data: isOrganizationFoundOnChain, isLoading: isFetchingOrganizationFromCh
                   <!-- Applications Header -->
                   <div class="flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-gray-900">Applications ({{ organization.applications.length }})</h3>
+                    <div class="flex gap-2">
+                      <Button @click="openCreateAppDialog" label="Create App" icon="pi pi-plus" size="small" />
+                      <Button @click="openImportAppDialog" label="Import App" icon="pi pi-download" size="small" outlined />
+                    </div>
                   </div>
 
                   <!-- Applications Content -->
@@ -503,18 +570,35 @@ const {data: isOrganizationFoundOnChain, isLoading: isFetchingOrganizationFromCh
                     <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
                       <i class="pi pi-box text-2xl text-gray-400"></i>
                     </div>
-                    <p class="text-gray-500 text-sm">No applications configured yet</p>
+                    <p class="text-gray-500 text-sm mb-4">No applications configured yet</p>
+                    <div class="flex gap-2 justify-center">
+                      <Button @click="openCreateAppDialog" label="Create Application" icon="pi pi-plus" size="small" />
+                      <Button @click="openImportAppDialog" label="Import Application" icon="pi pi-download" size="small" outlined />
+                    </div>
                   </div>
                   <div v-else class="space-y-3">
                     <div
                       v-for="app in organization.applications"
                       :key="app.id"
-                      class="border border-gray-200 rounded-lg p-4"
+                      class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                      @click="visitApplication(app.id)"
                     >
-                      <div class="font-medium text-gray-900">{{ app.name }}</div>
-                      <div v-if="app.vbId" class="text-xs text-gray-500 mt-1 flex items-center gap-2">
-                        <i class="pi pi-tag"></i>
-                        <code class="bg-gray-100 px-2 py-0.5 rounded">{{ app.vbId }}</code>
+                      <div class="flex items-start justify-between">
+                        <div class="space-y-2 flex-1">
+                          <div class="font-medium text-gray-900">{{ app.name }}</div>
+                          <div v-if="app.vbId" class="text-xs text-gray-500 flex items-center gap-2">
+                            <i class="pi pi-tag"></i>
+                            <code class="bg-gray-100 px-2 py-0.5 rounded">{{ app.vbId }}</code>
+                          </div>
+                        </div>
+                        <Button
+                          @click.stop="deleteApplication(app.id)"
+                          icon="pi pi-trash"
+                          severity="danger"
+                          text
+                          rounded
+                          size="small"
+                        />
                       </div>
                     </div>
                   </div>
@@ -605,6 +689,30 @@ const {data: isOrganizationFoundOnChain, isLoading: isFetchingOrganizationFromCh
           <div class="flex justify-end gap-2">
             <Button label="Cancel" @click="showDeleteConfirmDialog = false" severity="secondary" outlined />
             <Button label="Delete" @click="confirmDeleteOrganization" icon="pi pi-trash" severity="danger" />
+          </div>
+        </template>
+      </Dialog>
+
+      <!-- Application Dialog -->
+      <Dialog v-model:visible="showAppDialog" :header="appDialogMode === 'create' ? 'Create Application' : 'Import Application'" modal class="w-full max-w-md">
+        <div class="space-y-4">
+          <div>
+            <label for="app-name" class="block text-sm font-medium text-gray-700 mb-2">
+              Application Name <span class="text-red-500">*</span>
+            </label>
+            <InputText id="app-name" v-model="appName" placeholder="Enter application name" class="w-full" />
+          </div>
+          <div v-if="appDialogMode === 'import'">
+            <label for="app-vbid" class="block text-sm font-medium text-gray-700 mb-2">
+              Virtual Blockchain ID <span class="text-red-500">*</span>
+            </label>
+            <InputText id="app-vbid" v-model="appVbId" placeholder="Enter VB ID" class="w-full" />
+          </div>
+        </div>
+        <template #footer>
+          <div class="flex justify-end gap-2">
+            <Button label="Cancel" @click="showAppDialog = false" severity="secondary" outlined />
+            <Button :label="appDialogMode === 'create' ? 'Create' : 'Import'" @click="submitAppDialog" icon="pi pi-check" />
           </div>
         </template>
       </Dialog>

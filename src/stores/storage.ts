@@ -228,6 +228,62 @@ export const useStorageStore = defineStore('storage', () => {
 		organizations.value = updatedWallets;
 	}
 
+	async function addApplicationToOrganization(walletId: number, orgId: number, application: Omit<ApplicationEntity, 'id'>) {
+		const currentWallets = await loadOrganizations();
+		const wallet = currentWallets.find(w => w.id === walletId);
+		if (!wallet) return;
+		const organization = wallet.organizations.find(org => org.id === orgId);
+		if (!organization) return;
+
+		const nextAppId = organization.applications.length > 0
+			? Math.max(...organization.applications.map(app => app.id)) + 1
+			: 1;
+		const newApplication = { ...application, id: nextAppId };
+		const updatedOrganization = {...organization, applications: [...organization.applications, newApplication]};
+		const updatedOrganizations = wallet.organizations.map(org => org.id === orgId ? updatedOrganization : org);
+		const updatedWallet = { ...wallet, organizations: updatedOrganizations };
+		const updatedWallets = currentWallets.map(w => w.id === walletId ? updatedWallet : w);
+		const storage = getStorage();
+		await storage.set("organizations", updatedWallets);
+		organizations.value = updatedWallets;
+	}
+
+	async function updateApplication(walletId: number, orgId: number, appId: number, updates: Partial<ApplicationEntity>) {
+		const currentWallets = await loadOrganizations();
+		const wallet = currentWallets.find(w => w.id === walletId);
+		if (!wallet) return;
+		const organization = wallet.organizations.find(org => org.id === orgId);
+		if (!organization) return;
+
+		const updatedApplications = organization.applications.map(app =>
+			app.id === appId ? {...app, ...updates} : app
+		);
+		const updatedOrganization = {...organization, applications: updatedApplications};
+		const updatedOrganizations = wallet.organizations.map(org => org.id === orgId ? updatedOrganization : org);
+		const updatedWallet = { ...wallet, organizations: updatedOrganizations };
+		const updatedWallets = currentWallets.map(w => w.id === walletId ? updatedWallet : w);
+		const storage = getStorage();
+		await storage.set("organizations", updatedWallets);
+		organizations.value = updatedWallets;
+	}
+
+	async function deleteApplicationById(walletId: number, orgId: number, appId: number) {
+		const currentWallets = await loadOrganizations();
+		const wallet = currentWallets.find(w => w.id === walletId);
+		if (!wallet) return;
+		const organization = wallet.organizations.find(org => org.id === orgId);
+		if (!organization) return;
+
+		const updatedApplications = organization.applications.filter(app => app.id !== appId);
+		const updatedOrganization = {...organization, applications: updatedApplications};
+		const updatedOrganizations = wallet.organizations.map(org => org.id === orgId ? updatedOrganization : org);
+		const updatedWallet = { ...wallet, organizations: updatedOrganizations };
+		const updatedWallets = currentWallets.map(w => w.id === walletId ? updatedWallet : w);
+		const storage = getStorage();
+		await storage.set("organizations", updatedWallets);
+		organizations.value = updatedWallets;
+	}
+
 	return {
 		initStorage,
 		organizations,
@@ -242,6 +298,9 @@ export const useStorageStore = defineStore('storage', () => {
 		deleteNodeById,
 		getWalletById,
 		updateOrganizationDetails,
-		updateNode
+		updateNode,
+		addApplicationToOrganization,
+		updateApplication,
+		deleteApplicationById
 	}
 })
