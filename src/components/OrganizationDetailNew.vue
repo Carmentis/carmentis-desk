@@ -37,7 +37,7 @@ const route = useRoute();
 const router = useRouter();
 const storageStore = useStorageStore();
 const onChainStore = useOnChainStore();
-const {isPublishingOrganization, isPublishingApplication} = storeToRefs(onChainStore);
+const {isPublishingOrganization} = storeToRefs(onChainStore);
 
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
