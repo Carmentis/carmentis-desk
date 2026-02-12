@@ -11,11 +11,15 @@ import {
 	ValidatorNodeCometbftPublicKeyDeclarationSection,
 	CMTSToken,
 	VirtualBlockchainType, Provider, PublicSignatureKey,
-	ApplicationDescriptionSection
+	ApplicationDescriptionSection,
+	CryptoEncoderFactory,
+	AccountVb
 } from "@cmts-dev/carmentis-sdk/client";
 import {useStorageStore} from "./storage";
 import {ref} from "vue";
 import {useToast} from "primevue/usetoast";
+
+const MAXIMAL_ALLOWED_TOKEN_TRANSFER = 1000000000;
 
 export interface PublishOrganizationParams {
 	walletId: number;
@@ -55,6 +59,12 @@ export interface PublishApplicationParams {
 	website?: string;
 }
 
+export interface TransferTokensParams {
+	walletId: number;
+	recipientPublicKey: string;
+	amount: CMTSToken;
+}
+
 export const useOnChainStore = defineStore('onchain', () => {
 	const storageStore = useStorageStore();
 	const toast = useToast();
@@ -65,6 +75,7 @@ export const useOnChainStore = defineStore('onchain', () => {
 	const isStakingOnNode = ref(false);
 	const isUnstakingFromNode = ref(false);
 	const isPublishingApplication = ref(false);
+	const isTransferringTokens = ref(false);
 
 	/**
 	 * Publishes an organization on-chain
@@ -567,17 +578,213 @@ export const useOnChainStore = defineStore('onchain', () => {
 		}
 	}
 
+	/**
+	 * Transfers tokens to a recipient's account
+	 * @param walletId The wallet ID
+	 * @param recipientPublicKey The public key of the recipient (as a string)
+	 * @param amount The amount of tokens to transfer
+	 */
+	async function transferTokens(params: TransferTokensParams) {
+		isTransferringTokens.value = true;
+		try {
+			const {walletId, recipientPublicKey, amount} = params;
+
+			// Validate token amount
+			const transferredAmount = amount.getAmountAsAtomic();
+			const isNegativeOrZero = transferredAmount <= 0;
+			const isAboveAllowedMax = MAXIMAL_ALLOWED_TOKEN_TRANSFER < amount.getAmount();
+			if (isNegativeOrZero || isAboveAllowedMax) {
+				throw new Error(
+					`Invalid amount of token transfer: Should be between zero (excluded) and ${MAXIMAL_ALLOWED_TOKEN_TRANSFER}`
+				);
+			}
+
+			// Get wallet from storage
+			const wallet = await storageStore.getWalletById(walletId);
+			if (!wallet) {
+				throw new Error(`Wallet with id ${walletId} not found`);
+			}
+
+			// Initialize wallet crypto from seed
+			const seedEncoder = new SeedEncoder();
+			const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
+			const accountCrypto = walletSeed.getDefaultAccountCrypto();
+
+			// Create provider
+			const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
+
+			// Get signing keys
+			const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
+			// Decode recipient public key
+			const encoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
+			const recipientPk = await encoder.decodePublicKey(recipientPublicKey);
+
+			console.log(
+				`Transferring ${amount} tokens to account with public key ${recipientPublicKey}`
+			);
+
+			try {
+				// Try to find existing recipient account
+				const recipientAccountHash = Hash.from(
+					await provider.getAccountIdByPublicKey(recipientPk)
+				);
+				await creditExistingAccount(sk, provider, recipientAccountHash, amount);
+				toast.add({
+					severity: 'success',
+					summary: 'Transfer successful',
+					detail: `Transferred ${amount.toString()} tokens successfully`,
+					life: 3000
+				});
+			} catch (error) {
+				// Recipient account doesn't exist, create a new one
+				console.warn(`Recipient account not found: ${error}`);
+				await createAndCreditNewAccount(sk, provider, recipientPk, amount);
+				toast.add({
+					severity: 'success',
+					summary: 'Transfer successful',
+					detail: `Created account and transferred ${amount.toString()} tokens successfully`,
+					life: 3000
+				});
+			}
+		} catch (e) {
+			console.error('Error transferring tokens:', e);
+			toast.add({
+				severity: 'error',
+				summary: 'Error transferring tokens',
+				detail: e instanceof Error ? e.message : 'Unknown error',
+				life: 5000
+			});
+			throw e;
+		} finally {
+			isTransferringTokens.value = false;
+		}
+	}
+
+	/**
+	 * Creates a new account for a recipient and credits it with tokens
+	 * @param issuerPrivateSignatureKey The private signature key of the issuer
+	 * @param provider The blockchain provider
+	 * @param recipientPublicKey The public key of the recipient
+	 * @param tokenAmount The amount of tokens to credit
+	 * @returns The hash of the created account
+	 */
+	async function createAndCreditNewAccount(
+		issuerPrivateSignatureKey: any,
+		provider: Provider,
+		recipientPublicKey: PublicSignatureKey,
+		tokenAmount: CMTSToken
+	): Promise<Hash> {
+		console.log('Creating new token account...');
+
+		const issuerAccountHash = Hash.from(
+			await provider.getAccountIdByPublicKey(await issuerPrivateSignatureKey.getPublicKey())
+		);
+		const accountCreationMb = await AccountVb.createAccountCreationMicroblock(
+			recipientPublicKey,
+			tokenAmount,
+			issuerAccountHash.toBytes()
+		);
+		const feesCalculationFormulaVersion = (
+			await provider.getProtocolState()
+		).getFeesCalculationVersion();
+		const feesCalculationFormula =
+			FeesCalculationFormulaFactory.getFeesCalculationFormulaByVersion(
+				feesCalculationFormulaVersion
+			);
+		accountCreationMb.setGas(
+			await feesCalculationFormula.computeFees(
+				issuerPrivateSignatureKey.getSignatureSchemeId(),
+				accountCreationMb
+			)
+		);
+		await accountCreationMb.seal(issuerPrivateSignatureKey, {
+			feesPayerAccount: issuerAccountHash.toBytes()
+		});
+
+		// publish
+		await provider.publishMicroblock(accountCreationMb);
+
+		const hash = accountCreationMb.getHash();
+
+		console.log(
+			`Token account created (${hash.encode()}) with initial balance of ${tokenAmount.toString()} tokens`
+		);
+
+		return hash;
+	}
+
+	/**
+	 * Credits tokens to an existing account
+	 * @param issuerPrivateSignatureKey The private signature key of the issuer
+	 * @param provider The blockchain provider
+	 * @param receiverAccountHash The hash of the receiver's account
+	 * @param tokenAmount The amount of tokens to credit
+	 */
+	async function creditExistingAccount(
+		issuerPrivateSignatureKey: any,
+		provider: Provider,
+		receiverAccountHash: Hash,
+		tokenAmount: CMTSToken
+	): Promise<Hash> {
+		console.log(
+			`Transferring ${tokenAmount.toString()} tokens to existing account at ${receiverAccountHash.encode()}`
+		);
+
+		const issuerPublicKey = await issuerPrivateSignatureKey.getPublicKey();
+		const senderAccountHash = await provider.getAccountIdFromPublicKey(issuerPublicKey);
+		const senderAccount = await provider.loadAccountVirtualBlockchain(senderAccountHash);
+		const tokenTransferMb = await senderAccount.createMicroblock();
+		tokenTransferMb.addSection({
+			type: SectionType.ACCOUNT_TRANSFER,
+			amount: tokenAmount.getAmountAsAtomic(),
+			publicReference: '',
+			privateReference: '',
+			account: receiverAccountHash.toBytes()
+		});
+		const feesCalculationFormulaVersion = (
+			await provider.getProtocolState()
+		).getFeesCalculationVersion();
+		const feesCalculationFormula =
+			FeesCalculationFormulaFactory.getFeesCalculationFormulaByVersion(
+				feesCalculationFormulaVersion
+			);
+		tokenTransferMb.setGas(
+			await feesCalculationFormula.computeFees(
+				issuerPrivateSignatureKey.getSignatureSchemeId(),
+				tokenTransferMb
+			)
+		);
+
+		const issuerAccountHash = senderAccountHash;
+		await tokenTransferMb.seal(issuerPrivateSignatureKey, {
+			feesPayerAccount: issuerAccountHash.toBytes()
+		});
+
+		// publish
+		const hash = tokenTransferMb.getHash();
+		console.log(`Transferring ${tokenAmount} tokens to account id ${hash.encode()}`);
+		console.log(tokenTransferMb.toString());
+		await provider.publishMicroblock(tokenTransferMb);
+
+		console.log(
+			`Transfer of ${tokenAmount} tokens completed successfully to account ${receiverAccountHash.encode()}`
+		);
+		return hash;
+	}
+
 	return {
 		isPublishingOrganization,
 		isClaimingNode,
 		isStakingOnNode,
 		isUnstakingFromNode,
 		isPublishingApplication,
+		isTransferringTokens,
 		publishOrganization,
 		claimNode,
 		stakeOnNode,
 		unstakeFromNode,
 		fetchAccountStateByPublicKey,
-		publishApplication
+		publishApplication,
+		transferTokens
 	};
 });

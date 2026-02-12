@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, ref} from 'vue';
+import {computed, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
@@ -7,22 +7,26 @@ import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import SplitButton from 'primevue/splitbutton';
 import {useStorageStore, OrganizationEntity} from '../stores/storage';
+import {useOnChainStore} from '../stores/onchain';
 import {computedAsync} from "@vueuse/core";
 import {
   CryptoEncoderFactory,
   SeedEncoder,
   SignatureSchemeId,
-  WalletCrypto
+  WalletCrypto,
+  CMTSToken
 } from "@cmts-dev/carmentis-sdk/client";
 import Password from 'primevue/password';
 import {useToast} from 'primevue/usetoast';
 import {useAccountBreakdownQuery, useAccountIdQuery} from "../composables/useAccountBreakdown.ts";
 import WalletDetailTransactionsHistory from "./WalletDetailTransactionsHistory.vue";
-
+import {useWalletStore} from "../stores/walletStore.ts";
+import Message from 'primevue/message'
 const toast = useToast();
 const route = useRoute();
 const router = useRouter();
 const storageStore = useStorageStore();
+const onChainStore = useOnChainStore();
 
 const goBack = () => {
   router.push('/');
@@ -53,6 +57,53 @@ const sk = computed(() => walletKeyPair.value?.sk)
 const pk = computed(() => walletKeyPair.value?.pk)
 
 // wallet account publication status
+
+// transfer dialog
+const walletStore = useWalletStore();
+const isCreatingNewAccount = ref<boolean | undefined>(undefined);
+const showTransferDialog = ref(false);
+const transferPublicKey = ref('');
+const transferAmount = ref('');
+watch(transferPublicKey, async () => {
+  try {
+     // attempt to parse the public key
+    const encoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
+    const pk = await encoder.decodePublicKey(transferPublicKey.value);
+    isCreatingNewAccount.value = !await walletStore.isAccountFoundByPublicKey(walletId.value, pk);
+  } catch (e) {
+    isCreatingNewAccount.value = undefined;
+  }
+});
+
+function openTransferDialog() {
+  transferPublicKey.value = '';
+  transferAmount.value = '';
+  showTransferDialog.value = true;
+}
+
+async function submitTransferDialog() {
+  if (!transferPublicKey.value) {
+    toast.add({ severity: 'error', summary: 'Validation error', detail: 'Public key is required', life: 3000 });
+    return;
+  }
+  if (!transferAmount.value || Number(transferAmount.value) <= 0) {
+    toast.add({ severity: 'error', summary: 'Validation error', detail: 'Valid amount is required', life: 3000 });
+    return;
+  }
+
+  try {
+    const amount = CMTSToken.createCMTS(Number(transferAmount.value));
+    await onChainStore.transferTokens({
+      walletId: walletId.value,
+      recipientPublicKey: transferPublicKey.value,
+      amount: amount
+    });
+    showTransferDialog.value = false;
+    refetchBreakdown();
+  } catch (e) {
+    console.error('Transfer failed:', e);
+  }
+}
 
 // organization management
 const showOrgDialog = ref(false);
@@ -269,9 +320,12 @@ function refetchBreakdown() {
                   <i class="pi pi-wallet text-xl"></i>
                   <span>Balance</span>
                 </div>
-                <span v-if="breakdownQuery.dataUpdatedAt.value" class="text-xs text-gray-500">
-                  {{ new Date(breakdownQuery.dataUpdatedAt.value).toLocaleString() }}
-                </span>
+                <div class="flex items-center gap-2">
+                  <span v-if="breakdownQuery.dataUpdatedAt.value" class="text-xs text-gray-500">
+                    {{ new Date(breakdownQuery.dataUpdatedAt.value).toLocaleString() }}
+                  </span>
+                  <Button @click="openTransferDialog" label="Transfer" icon="pi pi-send" size="small" />
+                </div>
               </div>
             </template>
             <template #content>
@@ -356,6 +410,36 @@ function refetchBreakdown() {
         <WalletDetailTransactionsHistory/>
 
       </div>
+      <!-- Transfer Dialog -->
+      <Dialog v-model:visible="showTransferDialog" header="Transfer Tokens" modal class="w-full max-w-md">
+        <div class="space-y-4">
+          <div v-if="isCreatingNewAccount === true">
+            <Message>You are creating a new account</Message>
+          </div>
+          <div v-if="isCreatingNewAccount === false">
+            <Message>The account has been found online.</Message>
+          </div>
+          <div>
+            <label for="transfer-public-key" class="block text-sm font-medium text-gray-700 mb-2">
+              Recipient Public Key <span class="text-red-500">*</span>
+            </label>
+            <InputText id="transfer-public-key" v-model="transferPublicKey" placeholder="Enter recipient public key" class="w-full" />
+          </div>
+          <div>
+            <label for="transfer-amount" class="block text-sm font-medium text-gray-700 mb-2">
+              Amount <span class="text-red-500">*</span>
+            </label>
+            <InputText id="transfer-amount" v-model="transferAmount" type="number" placeholder="Enter amount" class="w-full" />
+          </div>
+        </div>
+        <template #footer>
+          <div class="flex justify-end gap-2">
+            <Button label="Cancel" @click="showTransferDialog = false" severity="secondary" outlined />
+            <Button label="Transfer" @click="submitTransferDialog" icon="pi pi-send" />
+          </div>
+        </template>
+      </Dialog>
+
       <!-- Organization Dialog -->
       <Dialog v-model:visible="showOrgDialog" :header="orgDialogMode === 'create' ? 'Create Organization' : 'Import Organization'" modal class="w-full max-w-md">
         <div class="space-y-4">

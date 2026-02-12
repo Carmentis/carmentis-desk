@@ -82,6 +82,16 @@ export const useWalletStore = defineStore('wallet', () => {
 		}
 	}
 
+	async function isAccountFoundByPublicKey(walletId: number, pk: PublicSignatureKey) {
+		try {
+			const id = await getAccountIdFromPublicKey(walletId, pk);
+			console.log(`Account found with id ${Utils.binaryToHexa(id)}`)
+			return true;
+		} catch (e) {
+			return false;
+		}
+	}
+
 
 	return {
 		state: state,
@@ -89,8 +99,8 @@ export const useWalletStore = defineStore('wallet', () => {
 		getAccountId,
 		getAccountIdFromPublicKey,
 		getKeyPair,
-		fetchAccountTransactionsHistory
-
+		fetchAccountTransactionsHistory,
+		isAccountFoundByPublicKey,
 	}
 
 	/*
