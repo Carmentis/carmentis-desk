@@ -5,11 +5,9 @@ import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import SelectButton from 'primevue/selectbutton';
-import Password from 'primevue/password';
 import { useStorageStore } from '../stores/storage';
 import { SeedEncoder, WalletCrypto } from "@cmts-dev/carmentis-sdk/client";
 import { mnemonicToSeedSync } from '@scure/bip39';
-import { wordlist } from '@scure/bip39/wordlists/english';
 
 const router = useRouter();
 const storageStore = useStorageStore();
