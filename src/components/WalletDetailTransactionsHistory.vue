@@ -27,6 +27,8 @@ const transactions = computed(() => {
       transferredAt: transaction.transferredAt().toLocaleString(),
       type: transaction.getTransactionTypeLabel(),
       linkedAccount: transaction.getLinkedAccount().encode(),
+      isNegative: transaction.getAmount().isNegative(),
+      isZero: transaction.getAmount().isZero(),
     }));
   }
   return [];
@@ -60,7 +62,10 @@ const transactions = computed(() => {
   <Card v-else-if="accountHistoryQuery.data.value">
     <template #title>
       <div class="flex justify-between items-center">
-        <span>Transaction History</span>
+        <div class="space-x-2">
+          <i class="pi pi-calendar"/>
+          <span>Transaction History</span>
+        </div>
         <div class="flex items-center gap-2 w-auto">
           <label for="limit" class="text-sm font-normal">Limit:</label>
           <InputNumber
@@ -81,7 +86,16 @@ const transactions = computed(() => {
     <template #content>
       <DataTable :value="transactions" stripedRows>
         <Column field="height" header="Height" sortable></Column>
-        <Column field="amount" header="Amount" sortable></Column>
+        <Column field="amount" header="Amount" sortable>
+          <template #body="slotProps">
+            <div class="flex items-center gap-2">
+              <i v-if="slotProps.data.isZero" class="pi pi-equals"></i>
+              <i v-else-if="!slotProps.data.isNegative" class="pi pi-arrow-up text-green-500"></i>
+              <i v-else class="pi pi-arrow-down text-red-500"></i>
+              <span>{{ slotProps.data.amount }}</span>
+            </div>
+          </template>
+        </Column>
         <Column field="transferredAt" header="Date" sortable></Column>
         <Column field="type" header="Type" sortable></Column>
         <Column field="linkedAccount" header="Linked Account"></Column>
