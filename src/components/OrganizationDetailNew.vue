@@ -297,7 +297,10 @@ async function updateOrganizationDetails() {
 
 async function confirmPublishOrganization() {
   showPublishConfirmDialog.value = false;
+  // update organization details locally
+  await updateOrganizationDetails();
 
+  // publish information on-chain
   await onChainStore.publishOrganization({
     walletId: walletId.value,
     orgId: orgId.value,

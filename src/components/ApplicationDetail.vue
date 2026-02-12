@@ -120,6 +120,11 @@ async function confirmPublishApplication() {
     return;
   }
 
+  // update application details locally
+  await updateApplicationDetails();
+
+
+  // update application details on-chain
   await onchainStore.publishApplication({
     walletId: walletId.value,
     orgId: orgId.value,
