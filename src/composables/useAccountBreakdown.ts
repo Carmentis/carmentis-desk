@@ -1,7 +1,7 @@
 import {useQuery} from "@tanstack/vue-query";
 import {useWalletStore} from "../stores/walletStore.ts";
-import {BalanceAvailability} from "@cmts-dev/carmentis-sdk/client";
-import {computed} from "vue";
+import {BalanceAvailability, Utils} from "@cmts-dev/carmentis-sdk/client";
+import {computed, ref} from "vue";
 
 export function useAccountIdQuery(walletId: number) {
 	const store = useWalletStore();
@@ -33,6 +33,66 @@ export function useAccountStateQuery(walletId: number) {
 			}
 		},
 	})
+}
+
+export function useAccountTransactionsHistory(walletId: number) {
+	const store = useWalletStore();
+	const accountIdQuery = useAccountIdQuery(walletId);
+	const accountStateQuery = useAccountStateQuery(walletId);
+
+	const limit = ref(10);
+	const lastAccountHistoryHash = computed({
+		get: () => {
+			if (accountStateQuery.data.value) {
+				return accountStateQuery.data.value.lastHistoryHash;
+			}
+			console.log("Account state query data is undefined")
+			return undefined;
+		},
+		set: (newValue: Uint8Array) => {
+			lastAccountHistoryHash.value = newValue;
+		}
+	});
+
+
+	const enabled = computed(() =>
+		!!accountIdQuery.data.value &&
+		lastAccountHistoryHash.value !== undefined
+	);
+	const accountHistoryQuery = useQuery({
+		enabled,
+		queryKey: ['account-transactions-history', walletId, accountIdQuery.data.value],
+		queryFn: async () => {
+			const accountId = accountIdQuery.data.value;
+			const lastHistoryHash = lastAccountHistoryHash.value;
+			console.log(`Fetching account transactions history for account id ${Utils.binaryToHexa(accountId)} at history hash ${Utils.binaryToHexa(lastHistoryHash)}`)
+			if (accountId && lastHistoryHash !== undefined) {
+				try {
+					return await store.fetchAccountTransactionsHistory(
+						walletId,
+						accountId,
+						lastHistoryHash,
+						limit.value
+					);
+				} catch (e) {
+					console.error(e)
+					throw e;
+				}
+			} else {
+				throw new Error('Account ID is undefined');
+			}
+		}
+	})
+
+	function setLastAccountHistoryHash(hash: Uint8Array) {
+		lastAccountHistoryHash.value = hash;
+	}
+
+	function setLimit(newLimit: number) {
+		limit.value = newLimit;
+	}
+
+	return { accountHistoryQuery, setLastAccountHistoryHash, setLimit, limit }
 }
 
 export function useAccountBreakdownQuery(walletId: number) {

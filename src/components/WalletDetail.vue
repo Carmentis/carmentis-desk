@@ -17,6 +17,7 @@ import {
 import Password from 'primevue/password';
 import {useToast} from 'primevue/usetoast';
 import {useAccountBreakdownQuery, useAccountIdQuery} from "../composables/useAccountBreakdown.ts";
+import WalletDetailTransactionsHistory from "./WalletDetailTransactionsHistory.vue";
 
 const toast = useToast();
 const route = useRoute();
@@ -348,6 +349,8 @@ function refetchBreakdown() {
             </div>
           </template>
         </Card>
+
+        <WalletDetailTransactionsHistory/>
 
       </div>
       <!-- Organization Dialog -->

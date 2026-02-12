@@ -1,9 +1,10 @@
 import {defineStore} from "pinia";
 import {useStorageStore} from "./storage.ts";
 import {
+	AccountTransactions,
 	PrivateSignatureKey, ProviderFactory, PublicSignatureKey,
 	SeedEncoder,
-	SignatureSchemeId,
+	SignatureSchemeId, Utils,
 	WalletCrypto
 } from "@cmts-dev/carmentis-sdk/client";
 import {ref} from "vue";
@@ -35,6 +36,7 @@ export const useWalletStore = defineStore('wallet', () => {
 	}
 
 	async function fetchAccountStateByAccountId(walletId: number, accountId: Uint8Array) {
+		console.log(`Fetching account state for account id ${Utils.binaryToHexa(accountId)} (wallet ID: ${walletId})`)
 		const provider = await getProvider(walletId);
 		return provider.getAccountState(accountId);
 	}
@@ -69,6 +71,17 @@ export const useWalletStore = defineStore('wallet', () => {
 		return await provider.getAccountIdByPublicKey(pk);
 	}
 
+	async function fetchAccountTransactionsHistory(walletId: number, accountId: Uint8Array, lastAccountHistoryHash: Uint8Array, limit: number) {
+		try {
+			const provider = await getProvider(walletId);
+			const history  = await provider.getAccountHistory(accountId, lastAccountHistoryHash, limit);
+			return AccountTransactions.createFromAbciResponse(history);
+		} catch (e) {
+			console.error(e)
+			throw new Error('Unable to retreive the account history')
+		}
+	}
+
 
 	return {
 		state: state,
@@ -76,6 +89,8 @@ export const useWalletStore = defineStore('wallet', () => {
 		getAccountId,
 		getAccountIdFromPublicKey,
 		getKeyPair,
+		fetchAccountTransactionsHistory
+
 	}
 
 	/*
