@@ -72,7 +72,7 @@ const transactions = computed(() => {
             showButtons
             buttonLayout="horizontal"
           />
-          <Button @click="accountHistoryQuery.refetch">
+          <Button @click="() => accountHistoryQuery.refetch()">
             Refetch
           </Button>
         </div>
