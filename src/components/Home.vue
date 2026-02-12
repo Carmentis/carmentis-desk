@@ -63,33 +63,45 @@
     </div>
 
     <!-- Wallets Grid -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <Card v-for="org in organizations" :key="org.id" class="hover:shadow-lg transition-shadow cursor-pointer" @click="visitWallet(org.id)">
-        <template #header>
-          <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
-            <div class="flex items-center justify-between text-white">
-              <i class="pi pi-wallet text-3xl"></i>
-              <span class="text-sm font-medium bg-white/20 px-3 py-1 rounded-full">ID: {{ org.id }}</span>
-            </div>
-          </div>
-        </template>
-        <template #title>
-          <div class="text-lg font-semibold text-gray-900 truncate">{{ org.name }}</div>
-        </template>
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <Card v-for="org in organizations" :key="org.id"
+            class="border-0 shadow-sm hover:shadow-xl transition-all cursor-pointer bg-surface-0"
+            @click="visitWallet(org.id)">
         <template #content>
-          <div class="space-y-2 text-sm text-gray-600">
-            <div class="flex items-center gap-2">
-              <i class="pi pi-server text-gray-400"></i>
-              <span class="truncate">{{ org.nodeEndpoint }}</span>
+          <div class="p-6 space-y-4">
+            <!-- Header -->
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-surface-100 to-surface-50 flex items-center justify-center group-hover:from-primary-50 group-hover:to-primary-100 transition-colors">
+                  <i class="pi pi-wallet text-2xl text-surface-600"></i>
+                </div>
+                <div>
+                  <h3 class="text-base font-semibold text-surface-900 truncate">{{ org.name }}</h3>
+                  <span class="text-xs text-surface-400 font-mono">ID: {{ org.id }}</span>
+                </div>
+              </div>
             </div>
-            <div class="flex items-center gap-2">
-              <i class="pi pi-building text-gray-400"></i>
-              <span>{{ org.organizations?.length || 0 }} organization(s)</span>
+
+            <!-- Details -->
+            <div class="space-y-2.5 text-sm border-t border-surface-100 pt-4">
+              <div class="flex items-center gap-2.5 text-surface-600">
+                <i class="pi pi-server text-surface-400 text-xs"></i>
+                <span class="truncate text-xs">{{ org.nodeEndpoint }}</span>
+              </div>
+              <div class="flex items-center gap-2.5 text-surface-600">
+                <i class="pi pi-building text-surface-400 text-xs"></i>
+                <span class="text-xs">{{ org.organizations?.length || 0 }} organizations</span>
+              </div>
+            </div>
+
+            <!-- Action -->
+            <div class="pt-2">
+              <div class="flex items-center justify-between text-surface-500 hover:text-primary-600 transition-colors text-sm font-medium">
+                <span>View details</span>
+                <i class="pi pi-arrow-right text-xs"></i>
+              </div>
             </div>
           </div>
-        </template>
-        <template #footer>
-          <Button label="View Details" icon="pi pi-arrow-right" class="w-full" text @click.stop="visitWallet(org.id)" />
         </template>
       </Card>
     </div>
