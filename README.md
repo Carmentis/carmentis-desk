@@ -1,7 +1,26 @@
-# Tauri + Vue + TypeScript
+# Carmentis Operator Client
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+The Carmentis Operator Client is a cross-platform native application allowing one
+to create and manage Carmentis wallets, organizations, applications and nodes.
 
-## Recommended IDE Setup
 
-- [VS Code](https://code.visualstudio.com/) + [Vue - Official](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## Usage
+
+Once installed, create a new wallet, purcahse tokens online using your public key
+and start by creating a new organization that you will declare online.
+Then you can start creating applications and nodes, associated to your organization.
+A node can be claimed and you can stake tokens to your node directly from the client.
+
+## Development
+
+### Launch in dev mode
+To launch the application in dev mode, run the following command:
+```shell
+pnpm run tauri dev
+```
+
+### Building for production
+To build the application for production, run the following command:
+```shell
+pnpm run tauri build
+```
