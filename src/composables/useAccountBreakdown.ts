@@ -32,6 +32,10 @@ export function useAccountStateQuery(walletId: number) {
 				throw new Error('Account ID is undefined');
 			}
 		},
+		staleTime: 60000,
+		refetchOnReconnect: true,
+		refetchOnMount: true,
+		refetchOnWindowFocus: true,
 	})
 }
 

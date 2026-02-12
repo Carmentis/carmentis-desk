@@ -18,7 +18,12 @@ import {
 } from "@cmts-dev/carmentis-sdk/client";
 import Password from 'primevue/password';
 import {useToast} from 'primevue/usetoast';
-import {useAccountBreakdownQuery, useAccountIdQuery} from "../composables/useAccountBreakdown.ts";
+import {
+  useAccountBreakdownQuery,
+  useAccountIdQuery,
+  useAccountStateQuery,
+  useAccountTransactionsHistory
+} from "../composables/useAccountBreakdown.ts";
 import WalletDetailTransactionsHistory from "./WalletDetailTransactionsHistory.vue";
 import {useWalletStore} from "../stores/walletStore.ts";
 import Message from 'primevue/message'
@@ -201,9 +206,15 @@ async function copyToClipboard(text: string | undefined, label: string) {
 
 
 const accountIdQuery = useAccountIdQuery(walletId.value);
+const accountStateQuery = useAccountStateQuery(walletId.value);
 const breakdownQuery = useAccountBreakdownQuery(walletId.value);
-console.log(`Breakdown for wallet ${walletId.value}`, breakdownQuery )
-console.log(breakdownQuery)
+const { accountHistoryQuery } = useAccountTransactionsHistory(walletId.value);
+
+async function refetchWallet() {
+  await accountStateQuery.refetch();
+  await breakdownQuery.refetch();
+  await accountHistoryQuery.refetch();
+}
 
 function refetchBreakdown() {
   breakdownQuery.refetch();
@@ -224,7 +235,7 @@ function refetchBreakdown() {
         </div>
         <div class="flex gap-2">
           <Button @click="goBack" label="Back" icon="pi pi-arrow-left" text />
-          <Button @click="refetchBreakdown" label="Refresh" icon="pi pi-refresh" outlined />
+          <Button @click="refetchWallet" label="Refresh" icon="pi pi-refresh" outlined />
           <Button @click="deleteWallet" label="Delete" icon="pi pi-trash" severity="danger" outlined />
         </div>
       </div>
