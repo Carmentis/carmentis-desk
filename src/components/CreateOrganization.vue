@@ -1,18 +1,30 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
+import SelectButton from 'primevue/selectbutton';
+import Password from 'primevue/password';
 import { useStorageStore } from '../stores/storage';
 import { SeedEncoder, WalletCrypto } from "@cmts-dev/carmentis-sdk/client";
+import { mnemonicToSeedSync } from '@scure/bip39';
+import { wordlist } from '@scure/bip39/wordlists/english';
 
 const router = useRouter();
 const storageStore = useStorageStore();
 
 const organizationName = ref('');
 const seed = ref('');
+const passphrase = ref('');
 const nodeEndpoint = ref('https://ares.testnet.carmentis.io');
+
+// Method selection: 'seed' or 'passphrase'
+const creationMethod = ref<'seed' | 'passphrase'>('seed');
+const methodOptions = ref([
+  { label: 'Seed Phrase', value: 'seed' },
+  { label: 'Passphrase', value: 'passphrase' }
+]);
 
 const isGeneratingSeed = ref(false);
 const generateSeed = () => {
@@ -26,12 +38,42 @@ const generateSeed = () => {
   }
 }
 
+// Derive seed from passphrase using @scure/bip39
+const deriveSeedFromPassphrase = (passphrase: string): string => {
+  // Use the passphrase as a mnemonic-like input to derive a seed
+  // mnemonicToSeedSync takes a mnemonic and optional passphrase
+  // We'll use the passphrase directly as the mnemonic input
+  const derivedSeed = mnemonicToSeedSync(passphrase, '');
+  const seedEncoder = new SeedEncoder();
+  return seedEncoder.encode(derivedSeed);
+}
+
+const isFormValid = computed(() => {
+  if (!organizationName.value) return false;
+  if (creationMethod.value === 'seed') {
+    return !!seed.value;
+  } else {
+    return !!passphrase.value;
+  }
+});
+
 const createOrganization = async () => {
   if (!organizationName.value) return;
-  if (!seed.value) return;
+
+  let finalSeed = '';
+
+  if (creationMethod.value === 'seed') {
+    if (!seed.value) return;
+    finalSeed = seed.value;
+  } else {
+    if (!passphrase.value) return;
+    // Derive seed from passphrase
+    finalSeed = deriveSeedFromPassphrase(passphrase.value);
+  }
+
   await storageStore.addOrganization({
     name: organizationName.value,
-    seed: seed.value,
+    seed: finalSeed,
     nodeEndpoint: nodeEndpoint.value,
     organizations: [],
   });
@@ -68,8 +110,16 @@ const goBack = () => {
             />
           </div>
 
-          <!-- Seed -->
+          <!-- Creation Method Selection -->
           <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Creation Method <span class="text-red-500">*</span>
+            </label>
+            <SelectButton v-model="creationMethod" :options="methodOptions" optionLabel="label" optionValue="value" class="w-full" />
+          </div>
+
+          <!-- Seed Phrase Input (shown when method is 'seed') -->
+          <div v-if="creationMethod === 'seed'">
             <label for="seed" class="block text-sm font-medium text-gray-700 mb-2">
               Seed Phrase <span class="text-red-500">*</span>
             </label>
@@ -91,6 +141,23 @@ const goBack = () => {
             </div>
             <small class="text-gray-500 mt-1 block">
               <i class="pi pi-info-circle"></i> Keep your seed phrase secure and never share it
+            </small>
+          </div>
+
+          <!-- Passphrase Input (shown when method is 'passphrase') -->
+          <div v-if="creationMethod === 'passphrase'">
+            <label for="passphrase" class="block text-sm font-medium text-gray-700 mb-2">
+              Passphrase <span class="text-red-500">*</span>
+            </label>
+            <InputText
+              id="passphrase"
+              v-model="passphrase"
+              placeholder="Enter a strong passphrase"
+              toggleMask
+              class="w-full"
+            />
+            <small class="text-gray-500 mt-1 block">
+              <i class="pi pi-info-circle"></i> A seed will be derived from your passphrase. Use a strong, memorable passphrase.
             </small>
           </div>
 
@@ -125,7 +192,7 @@ const goBack = () => {
             @click="createOrganization"
             label="Create Wallet"
             icon="pi pi-check"
-            :disabled="!organizationName || !seed"
+            :disabled="!isFormValid"
           />
         </div>
       </template>
