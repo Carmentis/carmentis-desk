@@ -6,7 +6,7 @@ import ConfirmDialog from 'primevue/confirmdialog';
 <template>
   <div class="min-h-screen bg-gray-50">
     <ConfirmDialog/>
-    <Toast />
+    <Toast position="top-center"/>
 
     <!-- Main Content -->
     <main class="mx-auto px-4 sm:px-6 lg:px-8 py-8">
