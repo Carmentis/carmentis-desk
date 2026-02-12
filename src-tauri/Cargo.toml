@@ -1,9 +1,10 @@
 [package]
 name = "carmentis-operator-light"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "Carmentis Operator Client (Light). The operator client allows one to easily integrate the Carmentis ecosystem."
+authors = ["carmentis"]
 edition = "2021"
+license-file="LICENCE.txt"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
