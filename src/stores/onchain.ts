@@ -87,11 +87,6 @@ export const useOnChainStore = defineStore('onchain', () => {
 				throw new Error(`Organization with id ${orgId} not found in wallet ${walletId}`);
 			}
 
-			// Check if organization is already published
-			if (organization.vbId) {
-				throw new Error(`Organization "${organizationName}" is already published with VB ID: ${organization.vbId}`);
-			}
-
 			// Initialize wallet crypto from seed
 			const seedEncoder = new SeedEncoder();
 			const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
