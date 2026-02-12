@@ -400,7 +400,10 @@ const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
       <!-- Header -->
       <div class="flex justify-between items-start mb-6">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900">{{ organization.name }}</h1>
+          <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <i class="pi pi-building text-5xl"></i>
+            {{ organization.name }}
+          </h1>
         </div>
         <div class="flex gap-2">
           <Button @click="goBack" label="Back to Wallet" icon="pi pi-arrow-left" text />

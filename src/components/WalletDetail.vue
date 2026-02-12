@@ -165,7 +165,10 @@ function refetchBreakdown() {
       <!-- Header -->
       <div class="flex justify-between items-start mb-6">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900">{{ wallet.name }}</h1>
+          <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <i class="pi pi-wallet text-5xl"></i>
+            {{ wallet.name }}
+          </h1>
           <p class="text-sm text-gray-500 mt-1">Wallet ID: {{ wallet.id }}</p>
         </div>
         <div class="flex gap-2">
