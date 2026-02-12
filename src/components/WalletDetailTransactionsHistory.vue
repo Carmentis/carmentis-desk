@@ -24,7 +24,7 @@ const transactions = computed(() => {
     return accountHistoryQuery.data.value.getTransactions().map((transaction) => ({
       height: transaction.getHeight(),
       amount: transaction.getAmount(),
-      transferredAt: transaction.transferredAt(),
+      transferredAt: transaction.transferredAt().toLocaleString(),
       type: transaction.getTransactionTypeLabel(),
       linkedAccount: transaction.getLinkedAccount().encode(),
     }));
