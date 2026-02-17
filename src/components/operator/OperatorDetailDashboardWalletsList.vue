@@ -2,6 +2,7 @@
 import {useRoute} from "vue-router";
 import {computed, ref} from "vue";
 import {useGetAllWallets, useCreateWalletMutation, useDeleteWalletMutation} from "../../composables/operator.ts";
+import {useStorageStore, WalletEntity} from "../../stores/storage.ts";
 import Card from "primevue/card";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
@@ -10,8 +11,11 @@ import Message from "primevue/message";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import InputText from "primevue/inputtext";
+import Dropdown from "primevue/dropdown";
+import Password from "primevue/password";
 import {useToast} from "primevue/usetoast";
 import {useConfirm} from "primevue/useconfirm";
+import {storeToRefs} from "pinia";
 
 const route = useRoute();
 const operatorId = computed(() => Number(route.params.operatorId));
@@ -20,22 +24,35 @@ const createWalletMutation = useCreateWalletMutation(operatorId.value);
 const deleteWalletMutation = useDeleteWalletMutation(operatorId.value);
 const toast = useToast();
 const confirm = useConfirm();
+const storageStore = useStorageStore();
+const {organizations} = storeToRefs(storageStore);
 
 // Dialog state
 const showCreateWalletDialog = ref(false);
+const showUploadWalletDialog = ref(false);
 const newWalletRpcEndpoint = ref('');
+const newWalletName = ref('');
+const newWalletSeed = ref('');
+const selectedWalletToUpload = ref<WalletEntity | null>(null);
 
 function openCreateWalletDialog() {
   newWalletRpcEndpoint.value = '';
+  newWalletName.value = '';
+  newWalletSeed.value = '';
   showCreateWalletDialog.value = true;
 }
 
+function openUploadWalletDialog() {
+  selectedWalletToUpload.value = null;
+  showUploadWalletDialog.value = true;
+}
+
 async function createWallet() {
-  if (!newWalletRpcEndpoint.value.trim()) {
+  if (!newWalletRpcEndpoint.value.trim() || !newWalletName.value.trim() || !newWalletSeed.value.trim()) {
     toast.add({
       severity: 'error',
       summary: 'Validation Error',
-      detail: 'Please enter an RPC endpoint',
+      detail: 'Please fill in all fields',
       life: 3000
     });
     return;
@@ -43,7 +60,9 @@ async function createWallet() {
 
   try {
     await createWalletMutation.mutateAsync({
-      rpcEndpoint: newWalletRpcEndpoint.value.trim()
+      rpcEndpoint: newWalletRpcEndpoint.value.trim(),
+      name: newWalletName.value.trim(),
+      seed: newWalletSeed.value.trim()
     });
 
     toast.add({
@@ -60,6 +79,43 @@ async function createWallet() {
       severity: 'error',
       summary: 'Error',
       detail: error?.response?.data?.message || 'Failed to create wallet',
+      life: 3000
+    });
+  }
+}
+
+async function uploadWallet() {
+  if (!selectedWalletToUpload.value) {
+    toast.add({
+      severity: 'error',
+      summary: 'Validation Error',
+      detail: 'Please select a wallet',
+      life: 3000
+    });
+    return;
+  }
+
+  try {
+    await createWalletMutation.mutateAsync({
+      rpcEndpoint: selectedWalletToUpload.value.nodeEndpoint,
+      name: selectedWalletToUpload.value.name,
+      seed: selectedWalletToUpload.value.seed
+    });
+
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'Wallet uploaded successfully',
+      life: 3000
+    });
+
+    showUploadWalletDialog.value = false;
+    await getAllWalletsRequest.refetch();
+  } catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: error?.response?.data?.message || 'Failed to upload wallet',
       life: 3000
     });
   }
@@ -108,7 +164,10 @@ function confirmDeleteWallet(wallet: any) {
           <i class="pi pi-wallet text-2xl text-primary-500"></i>
           <span>Wallets</span>
         </div>
-        <Button label="Add Wallet" icon="pi pi-plus" size="small" @click="openCreateWalletDialog" />
+        <div class="flex gap-2">
+          <Button label="Upload Wallet" icon="pi pi-upload" size="small" severity="secondary" outlined @click="openUploadWalletDialog" />
+          <Button label="Add Wallet" icon="pi pi-plus" size="small" @click="openCreateWalletDialog" />
+        </div>
       </div>
     </template>
     <template #content>
@@ -153,6 +212,25 @@ function confirmDeleteWallet(wallet: any) {
           responsiveLayout="scroll"
           class="text-sm"
         >
+
+          <Column field="walletId" header="Wallet ID" sortable>
+            <template #body="slotProps">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-server text-surface-400"></i>
+                <span class="font-mono text-xs">{{ slotProps.data.walletId }}</span>
+              </div>
+            </template>
+          </Column>
+
+          <Column field="name" header="Name" sortable>
+            <template #body="slotProps">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-server text-surface-400"></i>
+                <span class="font-mono text-xs">{{ slotProps.data.name }}</span>
+              </div>
+            </template>
+          </Column>
+
           <Column field="rpcEndpoint" header="RPC Endpoint" sortable>
             <template #body="slotProps">
               <div class="flex items-center gap-2">
@@ -162,14 +240,8 @@ function confirmDeleteWallet(wallet: any) {
             </template>
           </Column>
 
-          <Column header="Status" style="width: 120px">
-            <template #body>
-              <div class="flex items-center gap-2">
-                <i class="pi pi-check-circle text-green-500"></i>
-                <span class="text-xs text-surface-600">Active</span>
-              </div>
-            </template>
-          </Column>
+
+
 
           <Column header="Actions" style="width: 100px">
             <template #body="slotProps">
@@ -192,6 +264,17 @@ function confirmDeleteWallet(wallet: any) {
   <Dialog v-model:visible="showCreateWalletDialog" modal header="Add Wallet" :style="{ width: '500px' }">
     <div class="space-y-4 py-4">
       <div>
+        <label for="walletName" class="block text-sm font-semibold text-gray-700 mb-2">
+          Wallet Name
+        </label>
+        <InputText
+          id="walletName"
+          v-model="newWalletName"
+          placeholder="Enter wallet name"
+          class="w-full"
+        />
+      </div>
+      <div>
         <label for="walletRpcEndpoint" class="block text-sm font-semibold text-gray-700 mb-2">
           RPC Endpoint
         </label>
@@ -201,7 +284,19 @@ function confirmDeleteWallet(wallet: any) {
           placeholder="https://rpc.example.com"
           class="w-full"
         />
-        <small class="text-surface-500 mt-1 block">Enter the RPC endpoint URL for the wallet</small>
+      </div>
+      <div>
+        <label for="walletSeed" class="block text-sm font-semibold text-gray-700 mb-2">
+          Seed
+        </label>
+        <Password
+          id="walletSeed"
+          v-model="newWalletSeed"
+          placeholder="Enter wallet seed"
+          class="w-full"
+          :feedback="false"
+          toggleMask
+        />
       </div>
     </div>
     <template #footer>
@@ -210,6 +305,71 @@ function confirmDeleteWallet(wallet: any) {
         label="Create"
         @click="createWallet"
         :loading="createWalletMutation.isPending.value"
+      />
+    </template>
+  </Dialog>
+
+  <!-- Upload Wallet Dialog -->
+  <Dialog v-model:visible="showUploadWalletDialog" modal header="Upload Wallet" :style="{ width: '550px' }">
+    <div class="space-y-4 py-4">
+      <Message severity="warn" :closable="false">
+        <div class="space-y-2">
+          <p class="font-semibold">⚠️ Security Warning</p>
+          <p class="text-sm">
+            When you click "Upload", the selected wallet's <strong>seed phrase and endpoint</strong>
+            will be sent to the operator server. Only proceed if you trust this operator.
+          </p>
+        </div>
+      </Message>
+
+      <div>
+        <label for="selectWallet" class="block text-sm font-semibold text-gray-700 mb-2">
+          Select Wallet
+        </label>
+        <Dropdown
+          id="selectWallet"
+          v-model="selectedWalletToUpload"
+          :options="organizations"
+          optionLabel="name"
+          placeholder="Select a wallet to upload"
+          class="w-full"
+        >
+          <template #value="slotProps">
+            <div v-if="slotProps.value" class="flex items-center gap-2">
+              <i class="pi pi-wallet text-surface-500"></i>
+              <span>{{ slotProps.value.name }}</span>
+            </div>
+            <span v-else>{{ slotProps.placeholder }}</span>
+          </template>
+          <template #option="slotProps">
+            <div class="flex items-center gap-2">
+              <i class="pi pi-wallet text-surface-500"></i>
+              <div>
+                <div class="">{{ slotProps.option.name }}</div>
+                <div class="text-xs text-surface-500">{{ slotProps.option.nodeEndpoint }}</div>
+              </div>
+            </div>
+          </template>
+        </Dropdown>
+      </div>
+
+      <div v-if="selectedWalletToUpload && false" class="bg-surface-50 p-4 rounded border border-surface-200">
+        <h4 class="text-sm font-semibold text-surface-700 mb-2">Selected Wallet Details:</h4>
+        <div class="space-y-1 text-sm">
+          <div><span class="text-surface-600">Name:</span> <span class="font-mono">{{ selectedWalletToUpload.name }}</span></div>
+          <div><span class="text-surface-600">Endpoint:</span> <span class="font-mono text-xs">{{ selectedWalletToUpload.nodeEndpoint }}</span></div>
+          <div><span class="text-surface-600">Seed:</span> <span class="font-mono text-xs">{{ selectedWalletToUpload.seed.substring(0, 20) }}...</span></div>
+        </div>
+      </div>
+    </div>
+    <template #footer>
+      <Button label="Cancel" text @click="showUploadWalletDialog = false" />
+      <Button
+        label="Upload"
+        severity="warning"
+        @click="uploadWallet"
+        :loading="createWalletMutation.isPending.value"
+        :disabled="!selectedWalletToUpload"
       />
     </template>
   </Dialog>
