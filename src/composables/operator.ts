@@ -114,6 +114,22 @@ export function useGetAllUsers(operatorId: number) {
 	})
 }
 
+export function useCreateUserMutation(operatorId: number) {
+	const endpoint = useOperatorEndpoint(operatorId);
+	const authStore = useOperatorAuthStore();
+	const token = authStore.getValidToken(operatorId);
+	return useMutation({
+		mutationFn: async (newUser: { publicKey: string, pseudo: string }) => {
+			const response = await axios.post<OperatorUser>(`${endpoint.value}/user`, newUser, {
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+			return response.data;
+		},
+	})
+}
+
 export interface OperatorWallet {
 	rpcEndpoint: string
 }
@@ -131,6 +147,22 @@ export function useGetAllWallets(operatorId: number) {
 			return response.data;
 		},
 		refetchInterval: 10000
+	})
+}
+
+export function useCreateWalletMutation(operatorId: number) {
+	const endpoint = useOperatorEndpoint(operatorId);
+	const authStore = useOperatorAuthStore();
+	const token = authStore.getValidToken(operatorId);
+	return useMutation({
+		mutationFn: async (newWallet: { rpcEndpoint: string }) => {
+			const response = await axios.post<OperatorWallet>(`${endpoint.value}/wallet`, newWallet, {
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+			return response.data;
+		},
 	})
 }
 

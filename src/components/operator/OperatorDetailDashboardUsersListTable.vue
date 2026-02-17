@@ -1,17 +1,29 @@
 <script setup lang="ts">
 import {useRoute} from "vue-router";
-import {computed} from "vue";
-import {useGetAllUsers} from "../../composables/operator.ts";
+import {computed, ref} from "vue";
+import {useGetAllUsers, useCreateUserMutation} from "../../composables/operator.ts";
 import Card from "primevue/card";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Skeleton from "primevue/skeleton";
 import Message from "primevue/message";
 import Avatar from "primevue/avatar";
+import Button from "primevue/button";
+import Dialog from "primevue/dialog";
+import InputText from "primevue/inputtext";
+import Textarea from "primevue/textarea";
+import {useToast} from "primevue/usetoast";
 
 const route = useRoute();
 const operatorId = computed(() => Number(route.params.operatorId));
 const getAllUsersRequest = useGetAllUsers(operatorId.value);
+const createUserMutation = useCreateUserMutation(operatorId.value);
+const toast = useToast();
+
+// Dialog state
+const showCreateUserDialog = ref(false);
+const newUserPseudo = ref('');
+const newUserPublicKey = ref('');
 
 // Helper function to get initials from pseudo
 function getInitials(pseudo: string): string {
@@ -29,14 +41,59 @@ function truncatePublicKey(key: string): string {
   return `${key.slice(0, 100)}...`;
 }
 
+function openCreateUserDialog() {
+  newUserPseudo.value = '';
+  newUserPublicKey.value = '';
+  showCreateUserDialog.value = true;
+}
+
+async function createUser() {
+  if (!newUserPseudo.value.trim() || !newUserPublicKey.value.trim()) {
+    toast.add({
+      severity: 'error',
+      summary: 'Validation Error',
+      detail: 'Please fill in all fields',
+      life: 3000
+    });
+    return;
+  }
+
+  try {
+    await createUserMutation.mutateAsync({
+      pseudo: newUserPseudo.value.trim(),
+      publicKey: newUserPublicKey.value.trim()
+    });
+
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'User created successfully',
+      life: 3000
+    });
+
+    showCreateUserDialog.value = false;
+    await getAllUsersRequest.refetch();
+  } catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: error?.response?.data?.message || 'Failed to create user',
+      life: 3000
+    });
+  }
+}
+
 </script>
 
 <template>
   <Card>
     <template #title>
-      <div class="flex items-center gap-3">
-        <i class="pi pi-users text-2xl text-primary-500"></i>
-        <span>Users</span>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <i class="pi pi-users text-2xl text-primary-500"></i>
+          <span>Users</span>
+        </div>
+        <Button label="Add User" icon="pi pi-plus" size="small" @click="openCreateUserDialog" />
       </div>
     </template>
     <template #content>
@@ -113,6 +170,43 @@ function truncatePublicKey(key: string): string {
       </div>
     </template>
   </Card>
+
+  <!-- Create User Dialog -->
+  <Dialog v-model:visible="showCreateUserDialog" modal header="Add User" :style="{ width: '500px' }">
+    <div class="space-y-4 py-4">
+      <div>
+        <label for="userPseudo" class="block text-sm font-semibold text-gray-700 mb-2">
+          Pseudo
+        </label>
+        <InputText
+          id="userPseudo"
+          v-model="newUserPseudo"
+          placeholder="Enter user pseudo"
+          class="w-full"
+        />
+      </div>
+      <div>
+        <label for="userPublicKey" class="block text-sm font-semibold text-gray-700 mb-2">
+          Public Key
+        </label>
+        <Textarea
+          id="userPublicKey"
+          v-model="newUserPublicKey"
+          placeholder="Enter public key"
+          rows="4"
+          class="w-full"
+        />
+      </div>
+    </div>
+    <template #footer>
+      <Button label="Cancel" text @click="showCreateUserDialog = false" />
+      <Button
+        label="Create"
+        @click="createUser"
+        :loading="createUserMutation.isPending.value"
+      />
+    </template>
+  </Dialog>
 </template>
 
 <style scoped>

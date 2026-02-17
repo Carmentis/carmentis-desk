@@ -1,25 +1,78 @@
 <script setup lang="ts">
 import {useRoute} from "vue-router";
-import {computed} from "vue";
-import {useGetAllWallets} from "../../composables/operator.ts";
+import {computed, ref} from "vue";
+import {useGetAllWallets, useCreateWalletMutation} from "../../composables/operator.ts";
 import Card from "primevue/card";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Skeleton from "primevue/skeleton";
 import Message from "primevue/message";
+import Button from "primevue/button";
+import Dialog from "primevue/dialog";
+import InputText from "primevue/inputtext";
+import {useToast} from "primevue/usetoast";
 
 const route = useRoute();
 const operatorId = computed(() => Number(route.params.operatorId));
 const getAllWalletsRequest = useGetAllWallets(operatorId.value);
+const createWalletMutation = useCreateWalletMutation(operatorId.value);
+const toast = useToast();
+
+// Dialog state
+const showCreateWalletDialog = ref(false);
+const newWalletRpcEndpoint = ref('');
+
+function openCreateWalletDialog() {
+  newWalletRpcEndpoint.value = '';
+  showCreateWalletDialog.value = true;
+}
+
+async function createWallet() {
+  if (!newWalletRpcEndpoint.value.trim()) {
+    toast.add({
+      severity: 'error',
+      summary: 'Validation Error',
+      detail: 'Please enter an RPC endpoint',
+      life: 3000
+    });
+    return;
+  }
+
+  try {
+    await createWalletMutation.mutateAsync({
+      rpcEndpoint: newWalletRpcEndpoint.value.trim()
+    });
+
+    toast.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'Wallet created successfully',
+      life: 3000
+    });
+
+    showCreateWalletDialog.value = false;
+    await getAllWalletsRequest.refetch();
+  } catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: error?.response?.data?.message || 'Failed to create wallet',
+      life: 3000
+    });
+  }
+}
 
 </script>
 
 <template>
   <Card>
     <template #title>
-      <div class="flex items-center gap-3">
-        <i class="pi pi-wallet text-2xl text-primary-500"></i>
-        <span>Wallets</span>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <i class="pi pi-wallet text-2xl text-primary-500"></i>
+          <span>Wallets</span>
+        </div>
+        <Button label="Add Wallet" icon="pi pi-plus" size="small" @click="openCreateWalletDialog" />
       </div>
     </template>
     <template #content>
@@ -85,6 +138,32 @@ const getAllWalletsRequest = useGetAllWallets(operatorId.value);
       </div>
     </template>
   </Card>
+
+  <!-- Create Wallet Dialog -->
+  <Dialog v-model:visible="showCreateWalletDialog" modal header="Add Wallet" :style="{ width: '500px' }">
+    <div class="space-y-4 py-4">
+      <div>
+        <label for="walletRpcEndpoint" class="block text-sm font-semibold text-gray-700 mb-2">
+          RPC Endpoint
+        </label>
+        <InputText
+          id="walletRpcEndpoint"
+          v-model="newWalletRpcEndpoint"
+          placeholder="https://rpc.example.com"
+          class="w-full"
+        />
+        <small class="text-surface-500 mt-1 block">Enter the RPC endpoint URL for the wallet</small>
+      </div>
+    </div>
+    <template #footer>
+      <Button label="Cancel" text @click="showCreateWalletDialog = false" />
+      <Button
+        label="Create"
+        @click="createWallet"
+        :loading="createWalletMutation.isPending.value"
+      />
+    </template>
+  </Dialog>
 </template>
 
 <style scoped>
