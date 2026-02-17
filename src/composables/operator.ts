@@ -130,6 +130,22 @@ export function useCreateUserMutation(operatorId: number) {
 	})
 }
 
+export function useDeleteUserMutation(operatorId: number) {
+	const endpoint = useOperatorEndpoint(operatorId);
+	const authStore = useOperatorAuthStore();
+	const token = authStore.getValidToken(operatorId);
+	return useMutation({
+		mutationFn: async (publicKey: string) => {
+			const response = await axios.delete(`${endpoint.value}/user/${encodeURIComponent(publicKey)}`, {
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+			return response.data;
+		},
+	})
+}
+
 export interface OperatorWallet {
 	rpcEndpoint: string
 }
@@ -157,6 +173,22 @@ export function useCreateWalletMutation(operatorId: number) {
 	return useMutation({
 		mutationFn: async (newWallet: { rpcEndpoint: string }) => {
 			const response = await axios.post<OperatorWallet>(`${endpoint.value}/wallet`, newWallet, {
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+			return response.data;
+		},
+	})
+}
+
+export function useDeleteWalletMutation(operatorId: number) {
+	const endpoint = useOperatorEndpoint(operatorId);
+	const authStore = useOperatorAuthStore();
+	const token = authStore.getValidToken(operatorId);
+	return useMutation({
+		mutationFn: async (rpcEndpoint: string) => {
+			const response = await axios.delete(`${endpoint.value}/wallet/${encodeURIComponent(rpcEndpoint)}`, {
 				headers: {
 					Authorization: `Bearer ${token}`
 				}

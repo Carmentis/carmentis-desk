@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {useRoute} from "vue-router";
 import {computed, ref} from "vue";
-import {useGetAllUsers, useCreateUserMutation} from "../../composables/operator.ts";
+import {useGetAllUsers, useCreateUserMutation, useDeleteUserMutation} from "../../composables/operator.ts";
 import Card from "primevue/card";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
@@ -13,12 +13,15 @@ import Dialog from "primevue/dialog";
 import InputText from "primevue/inputtext";
 import Textarea from "primevue/textarea";
 import {useToast} from "primevue/usetoast";
+import {useConfirm} from "primevue/useconfirm";
 
 const route = useRoute();
 const operatorId = computed(() => Number(route.params.operatorId));
 const getAllUsersRequest = useGetAllUsers(operatorId.value);
 const createUserMutation = useCreateUserMutation(operatorId.value);
+const deleteUserMutation = useDeleteUserMutation(operatorId.value);
 const toast = useToast();
+const confirm = useConfirm();
 
 // Dialog state
 const showCreateUserDialog = ref(false);
@@ -81,6 +84,39 @@ async function createUser() {
       life: 3000
     });
   }
+}
+
+function confirmDeleteUser(user: any) {
+  confirm.require({
+    message: `Are you sure you want to delete user "${user.pseudo}"? This action cannot be undone.`,
+    header: 'Delete User',
+    icon: 'pi pi-exclamation-triangle',
+    rejectClass: 'p-button-secondary p-button-outlined',
+    rejectLabel: 'Cancel',
+    acceptLabel: 'Delete',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await deleteUserMutation.mutateAsync(user.publicKey);
+
+        toast.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'User deleted successfully',
+          life: 3000
+        });
+
+        await getAllUsersRequest.refetch();
+      } catch (error: any) {
+        toast.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: error?.response?.data?.message || 'Failed to delete user',
+          life: 3000
+        });
+      }
+    }
+  });
 }
 
 </script>
@@ -163,6 +199,19 @@ async function createUser() {
                   {{ truncatePublicKey(slotProps.data.publicKey) }}
                 </code>
               </div>
+            </template>
+          </Column>
+
+          <Column header="Actions" style="width: 100px">
+            <template #body="slotProps">
+              <Button
+                icon="pi pi-trash"
+                severity="danger"
+                text
+                rounded
+                @click="confirmDeleteUser(slotProps.data)"
+                :loading="deleteUserMutation.isPending.value"
+              />
             </template>
           </Column>
 

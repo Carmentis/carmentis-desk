@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {useRoute} from "vue-router";
 import {computed, ref} from "vue";
-import {useGetAllWallets, useCreateWalletMutation} from "../../composables/operator.ts";
+import {useGetAllWallets, useCreateWalletMutation, useDeleteWalletMutation} from "../../composables/operator.ts";
 import Card from "primevue/card";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
@@ -11,12 +11,15 @@ import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import InputText from "primevue/inputtext";
 import {useToast} from "primevue/usetoast";
+import {useConfirm} from "primevue/useconfirm";
 
 const route = useRoute();
 const operatorId = computed(() => Number(route.params.operatorId));
 const getAllWalletsRequest = useGetAllWallets(operatorId.value);
 const createWalletMutation = useCreateWalletMutation(operatorId.value);
+const deleteWalletMutation = useDeleteWalletMutation(operatorId.value);
 const toast = useToast();
+const confirm = useConfirm();
 
 // Dialog state
 const showCreateWalletDialog = ref(false);
@@ -60,6 +63,39 @@ async function createWallet() {
       life: 3000
     });
   }
+}
+
+function confirmDeleteWallet(wallet: any) {
+  confirm.require({
+    message: `Are you sure you want to delete wallet "${wallet.rpcEndpoint}"? This action cannot be undone.`,
+    header: 'Delete Wallet',
+    icon: 'pi pi-exclamation-triangle',
+    rejectClass: 'p-button-secondary p-button-outlined',
+    rejectLabel: 'Cancel',
+    acceptLabel: 'Delete',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await deleteWalletMutation.mutateAsync(wallet.rpcEndpoint);
+
+        toast.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Wallet deleted successfully',
+          life: 3000
+        });
+
+        await getAllWalletsRequest.refetch();
+      } catch (error: any) {
+        toast.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: error?.response?.data?.message || 'Failed to delete wallet',
+          life: 3000
+        });
+      }
+    }
+  });
 }
 
 </script>
@@ -132,6 +168,19 @@ async function createWallet() {
                 <i class="pi pi-check-circle text-green-500"></i>
                 <span class="text-xs text-surface-600">Active</span>
               </div>
+            </template>
+          </Column>
+
+          <Column header="Actions" style="width: 100px">
+            <template #body="slotProps">
+              <Button
+                icon="pi pi-trash"
+                severity="danger"
+                text
+                rounded
+                @click="confirmDeleteWallet(slotProps.data)"
+                :loading="deleteWalletMutation.isPending.value"
+              />
             </template>
           </Column>
         </DataTable>
