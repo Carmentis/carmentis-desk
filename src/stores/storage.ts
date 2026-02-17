@@ -26,6 +26,15 @@ export interface OrganizationEntity {
 	applications: ApplicationEntity[]
 }
 
+export interface OperatorEntity {
+	id: number,
+	name: string,
+	httpEndpoint: string,
+	walletId?: number,
+	publicKey?: string,
+	pseudo?: string,
+}
+
 export interface WalletEntity {
 	id: number,
 	name: string,
@@ -39,6 +48,7 @@ export const useStorageStore = defineStore('storage', () => {
 	let store: Store | undefined = undefined;
 	const initialized = ref(false);
 	const organizations = ref<WalletEntity[]>([]);
+	const operators = ref<OperatorEntity[]>([]);
 
 
 
@@ -47,6 +57,7 @@ export const useStorageStore = defineStore('storage', () => {
 		store = await load('store.json');
 		initialized.value = true;
 		organizations.value = await loadOrganizations();
+		operators.value = await loadOperators();
 	}
 
 	function getStorage() {
@@ -284,9 +295,35 @@ export const useStorageStore = defineStore('storage', () => {
 		organizations.value = updatedWallets;
 	}
 
+	async function loadOperators() {
+		const storage = getStorage();
+		return await storage.get<OperatorEntity[]>('operators') || [];
+	}
+
+	async function addOperator(operator: Omit<OperatorEntity, 'id'>) {
+		const currentOperators = await loadOperators();
+		const nextId = currentOperators.length > 0
+			? Math.max(...currentOperators.map(op => op.id)) + 1
+			: 1;
+		const newOperator = { ...operator, id: nextId };
+		const updatedOperators = [...currentOperators, newOperator];
+		const storage = getStorage();
+		await storage.set('operators', updatedOperators);
+		operators.value = updatedOperators;
+	}
+
+	async function deleteOperatorById(operatorId: number) {
+		const currentOperators = await loadOperators();
+		const updatedOperators = currentOperators.filter(op => op.id !== operatorId);
+		const storage = getStorage();
+		await storage.set('operators', updatedOperators);
+		operators.value = updatedOperators;
+	}
+
 	return {
 		initStorage,
 		organizations,
+		wallets: organizations,
 		addOrganization,
 		deleteOrganizationById,
 		removeOrganizationById,
@@ -301,6 +338,12 @@ export const useStorageStore = defineStore('storage', () => {
 		updateNode,
 		addApplicationToOrganization,
 		updateApplication,
-		deleteApplicationById
+		deleteApplicationById,
+
+		// operators
+		operators,
+		loadOperators,
+		addOperator,
+		deleteOperatorById
 	}
 })

@@ -6,6 +6,7 @@ import WalletDetail from '../components/WalletDetail.vue'
 import OrganizationDetailNew from '../components/OrganizationDetailNew.vue'
 import NodeDetail from '../components/NodeDetail.vue'
 import ApplicationDetail from '../components/ApplicationDetail.vue'
+import OperatorDetail from '../components/operator/OperatorDetail.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -19,6 +20,11 @@ const router = createRouter({
       path: '/wallet/new',
       name: 'create-organization',
       component: CreateOrganization
+    },
+    {
+      path: '/operator/:operatorId',
+      name: 'operator-detail',
+      component: OperatorDetail
     },
     {
       path: '/wallet/:walletId',
