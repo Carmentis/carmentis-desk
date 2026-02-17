@@ -3,7 +3,8 @@ import Button from 'primevue/button';
 import {useRoute} from "vue-router";
 import {computed} from "vue";
 import {useOperatorAuthStore} from "./operatorAuthStore.ts";
-import OperatorDetailDashboardUsersList from "./OperatorDetailDashboardUsersList.vue";
+import OperatorDetailDashboardWalletsList from "./OperatorDetailDashboardWalletsList.vue";
+import OperatorDetailDashboardUsersListTable from "./OperatorDetailDashboardUsersListTable.vue";
 
 const route = useRoute();
 const operatorId = computed(() => Number(route.params.operatorId));
@@ -18,5 +19,8 @@ function disconnect() {
 
   <Button @click="disconnect" label="Disconnect"/>
 
-  <OperatorDetailDashboardUsersList/>
+  <div class="space-y-4">
+    <OperatorDetailDashboardUsersListTable />
+    <OperatorDetailDashboardWalletsList />
+  </div>
 </template>
