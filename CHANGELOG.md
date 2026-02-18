@@ -1,3 +1,16 @@
+# [1.1.0](https://github.com/Carmentis/carmentis-desk/compare/v1.0.0...v1.1.0) (2026-02-18)
+
+
+### Bug Fixes
+
+* unused selected wallet information containing errors ([9cb2070](https://github.com/Carmentis/carmentis-desk/commit/9cb207070eef9c7a2132780043c8d133a9a9b2d5))
+* update application mutation to use updated parameter types ([3018eba](https://github.com/Carmentis/carmentis-desk/commit/3018ebaaba749dcc35e8dd654630d7a39e050c08))
+
+
+### Features
+
+* add clearOperators method to storage module ([abc3247](https://github.com/Carmentis/carmentis-desk/commit/abc324715c46f2333bf1e1e564147e8402f40e39))
+
 # 1.0.0 (2026-02-18)
 
 
