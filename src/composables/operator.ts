@@ -238,7 +238,7 @@ export function useCreateApplicationMutation(operatorId: number) {
 	const authStore = useOperatorAuthStore();
 	const token = authStore.getValidToken(operatorId);
 	return useMutation({
-		mutationFn: async (newApplication: { vbId: string, walletRpcEndpoint: string }) => {
+		mutationFn: async (newApplication: { vbId: string, walletId: number, name: string }) => {
 			const response = await axios.post<OperatorApplication>(`${endpoint.value}/application`, newApplication, {
 				headers: {
 					Authorization: `Bearer ${token}`
