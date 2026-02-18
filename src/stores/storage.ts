@@ -98,6 +98,12 @@ export const useStorageStore = defineStore('storage', () => {
 		await store.set("organizations", [])
 	}
 
+	async function clearOperators() {
+		const store = getStorage();
+		operators.value = [];
+		await store.set("operators", [])
+	}
+
 	async function addOrganizationToWallet(walletId: number, organization: Omit<OrganizationEntity, 'id'>) {
 		const currentWallets = await loadOrganizations();
 		const wallet = currentWallets.find(w => w.id === walletId);
@@ -343,6 +349,7 @@ export const useStorageStore = defineStore('storage', () => {
 		// operators
 		operators,
 		loadOperators,
+		clearOperators,
 		addOperator,
 		deleteOperatorById
 	}
