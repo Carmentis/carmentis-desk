@@ -1,7 +1,7 @@
 [package]
-name = "carmentis-operator-light"
+name = "carmentis-desk"
 version = "0.1.0"
-description = "Carmentis Operator Client (Light). The operator client allows one to easily integrate the Carmentis ecosystem."
+description = "Carmentis Desk, an application integrating all tools to interact with the Carmentis ecosystem."
 authors = ["carmentis"]
 edition = "2021"
 license-file="LICENCE.txt"

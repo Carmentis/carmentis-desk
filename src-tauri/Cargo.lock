@@ -396,7 +396,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "carmentis-operator-light"
+name = "carmentis-desk"
 version = "0.1.0"
 dependencies = [
  "serde",

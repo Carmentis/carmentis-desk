@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "carmentis-operator-light",
+  "productName": "carmentis-desk",
   "version": "1.1.0",
-  "identifier": "com.carmentis.operator-light",
+  "identifier": "com.carmentis.carmentis-desk",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "carmentis-operator-light",
+        "title": "Carmentis Desk",
         "width": 800,
         "height": 600
       }
