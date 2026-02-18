@@ -365,20 +365,3 @@ function confirmDeleteWallet(wallet: any) {
     </template>
   </Dialog>
 </template>
-
-<style scoped>
-:deep(.p-datatable) {
-  font-size: 0.875rem;
-}
-
-:deep(.p-datatable .p-datatable-thead > tr > th) {
-  background-color: var(--surface-50);
-  color: var(--surface-700);
-  font-weight: 600;
-  padding: 0.75rem 1rem;
-}
-
-:deep(.p-datatable .p-datatable-tbody > tr > td) {
-  padding: 0.75rem 1rem;
-}
-</style>
