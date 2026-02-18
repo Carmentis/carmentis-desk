@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-      - dev
+      - next
 
 jobs:
   release:
@@ -119,6 +119,6 @@ jobs:
           tagName: v${{ steps.get_version.outputs.VERSION }}
           releaseName: 'App v${{ steps.get_version.outputs.VERSION }}'
           releaseBody: 'See the assets to download this version and install.'
-          releaseDraft: ${{ github.ref_name == 'dev' }}
-          prerelease: false
+          releaseDraft: ${{ github.ref_name == 'next' }}
+          prerelease: ${{ github.ref_name == 'next' }}
           args: ${{ matrix.args }}
