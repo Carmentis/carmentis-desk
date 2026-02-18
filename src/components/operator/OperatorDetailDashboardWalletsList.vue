@@ -352,15 +352,6 @@ function confirmDeleteWallet(wallet: any) {
           </template>
         </Dropdown>
       </div>
-
-      <div v-if="selectedWalletToUpload && false" class="bg-surface-50 p-4 rounded border border-surface-200">
-        <h4 class="text-sm font-semibold text-surface-700 mb-2">Selected Wallet Details:</h4>
-        <div class="space-y-1 text-sm">
-          <div><span class="text-surface-600">Name:</span> <span class="font-mono">{{ selectedWalletToUpload.name }}</span></div>
-          <div><span class="text-surface-600">Endpoint:</span> <span class="font-mono text-xs">{{ selectedWalletToUpload.nodeEndpoint }}</span></div>
-          <div><span class="text-surface-600">Seed:</span> <span class="font-mono text-xs">{{ selectedWalletToUpload.seed.substring(0, 20) }}...</span></div>
-        </div>
-      </div>
     </div>
     <template #footer>
       <Button label="Cancel" text @click="showUploadWalletDialog = false" />
