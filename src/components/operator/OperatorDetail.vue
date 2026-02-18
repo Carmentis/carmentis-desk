@@ -42,45 +42,85 @@ const deleteOperator = () => {
 };
 
 const isInitializedQuery = useIsOperatorInitialized(operatorId.value)
-const { isAuthenticatedToOperator } = useOperatorAuthStore();
+const operatorAuthStore = useOperatorAuthStore();
+const { isAuthenticatedToOperator } = operatorAuthStore;
 const authenticated = computed(() => isAuthenticatedToOperator(operatorId.value));
+
+const disconnectFromOperator = () => {
+  confirm.require({
+    message: 'Are you sure you want to disconnect from this operator?',
+    header: 'Disconnect',
+    icon: 'pi pi-sign-out',
+    rejectClass: 'p-button-secondary p-button-outlined',
+    rejectLabel: 'Cancel',
+    acceptLabel: 'Disconnect',
+    acceptClass: 'p-button-secondary',
+    accept: () => {
+      operatorAuthStore.disconnectFromOperator(operatorId.value);
+    }
+  });
+};
 </script>
 
 <template>
   <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex justify-between items-center">
-      <div class="flex items-center gap-4">
-        <Button icon="pi pi-arrow-left" text rounded @click="goBack" />
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900">{{ operator?.name }}</h1>
-          <p class="text-sm text-gray-500 mt-1">Operator Details</p>
-        </div>
+    <!-- Header with Back Button -->
+    <div class="flex items-center gap-4 mb-4">
+      <Button icon="pi pi-arrow-left" text rounded @click="goBack" />
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">{{ operator?.name }}</h1>
+        <p class="text-sm text-gray-500 mt-1">Operator Management</p>
       </div>
-      <Button label="Delete Operator" icon="pi pi-trash" severity="danger" outlined @click="deleteOperator" />
     </div>
 
-    <!-- Operator Info Card -->
-    <Card>
-      <template #title>
-        <div class="flex items-center gap-3">
-          <i class="pi pi-server text-2xl text-primary-500"></i>
-          <span>Operator Information</span>
-        </div>
-      </template>
+    <!-- Operator Info Bar -->
+    <Card class="operator-info-card">
       <template #content>
-        <div class="space-y-4">
-          <div>
-            <label class="text-sm font-semibold text-gray-700 block mb-2">Name</label>
-            <p class="text-gray-900">{{ operator?.name }}</p>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-6 flex-1">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center">
+                <i class="pi pi-server text-xl text-primary-500"></i>
+              </div>
+              <div>
+                <p class="text-xs text-surface-500 uppercase font-semibold">Operator</p>
+                <p class="text-base font-semibold text-surface-900">{{ operator?.name }}</p>
+              </div>
+            </div>
+
+            <div class="h-8 w-px bg-surface-200"></div>
+
+            <div>
+              <p class="text-xs text-surface-500 uppercase font-semibold">Endpoint</p>
+              <p class="text-sm font-mono text-surface-700">{{ operator?.httpEndpoint }}</p>
+            </div>
+
+            <div class="h-8 w-px bg-surface-200"></div>
+
+            <div>
+              <p class="text-xs text-surface-500 uppercase font-semibold">ID</p>
+              <p class="text-sm font-mono text-surface-700">{{ operator?.id }}</p>
+            </div>
           </div>
-          <div>
-            <label class="text-sm font-semibold text-gray-700 block mb-2">HTTP Endpoint</label>
-            <p class="text-gray-900 font-mono text-sm">{{ operator?.httpEndpoint }}</p>
-          </div>
-          <div>
-            <label class="text-sm font-semibold text-gray-700 block mb-2">ID</label>
-            <p class="text-gray-900 font-mono">{{ operator?.id }}</p>
+
+          <div class="flex gap-2">
+            <Button
+              v-if="authenticated"
+              label="Disconnect"
+              icon="pi pi-sign-out"
+              severity="secondary"
+              outlined
+              size="small"
+              @click="disconnectFromOperator"
+            />
+            <Button
+              label="Delete"
+              icon="pi pi-trash"
+              severity="danger"
+              outlined
+              size="small"
+              @click="deleteOperator"
+            />
           </div>
         </div>
       </template>
@@ -105,3 +145,13 @@ const authenticated = computed(() => isAuthenticatedToOperator(operatorId.value)
     </div>
   </div>
 </template>
+
+<style scoped>
+:deep(.operator-info-card .p-card-body) {
+  padding: 1rem;
+}
+
+:deep(.operator-info-card .p-card-content) {
+  padding: 0;
+}
+</style>
