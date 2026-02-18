@@ -89,7 +89,5 @@ watch(loginError, () => {
     <Button label="Login" :disabled="isLogingIn" @click="login" />
     <Button label="Refresh Challenge" :disabled="isLogingIn" @click="() => refetchChallenge()" />
   </div>
-Login required: Obtained challenge{{ challenge }}
-
 
 </template>
