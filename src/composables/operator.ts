@@ -202,12 +202,7 @@ export function useDeleteWalletMutation(operatorId: number) {
 
 export interface OperatorApplication {
 	vbId: string,
-	name: string,
-	wallet: {
-		walletId: number,
-		name: string,
-		rpcEndpoint: string
-	}
+	walletRpcEndpoint: string
 }
 
 export function useGetAllApplications(operatorId: number) {
@@ -231,8 +226,7 @@ export function useCreateApplicationMutation(operatorId: number) {
 	const authStore = useOperatorAuthStore();
 	const token = authStore.getValidToken(operatorId);
 	return useMutation({
-		mutationFn: async (newApplication: { vbId: string, walletId: number, name: string }) => {
-			console.log(`Creating application ${newApplication.vbId} for wallet ${newApplication.walletId}`)
+		mutationFn: async (newApplication: { vbId: string, walletRpcEndpoint: string }) => {
 			const response = await axios.post<OperatorApplication>(`${endpoint.value}/application`, newApplication, {
 				headers: {
 					Authorization: `Bearer ${token}`
@@ -250,6 +244,83 @@ export function useDeleteApplicationMutation(operatorId: number) {
 	return useMutation({
 		mutationFn: async (vbId: string) => {
 			const response = await axios.delete(`${endpoint.value}/application/${encodeURIComponent(vbId)}`, {
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+			return response.data;
+		},
+	})
+}
+
+export interface OperatorApiKey {
+	id: number,
+	name: string,
+	apiKey: string,
+	applicationVbId: string,
+	createdAt: string,
+	activeUntil: string | null,
+	isActive: boolean
+}
+
+export function useGetAllApiKeys(operatorId: number) {
+	const endpoint = useOperatorEndpoint(operatorId);
+	const authStore = useOperatorAuthStore();
+	const token = authStore.getValidToken(operatorId)
+	return useQuery({
+		enabled: computed(() => !!endpoint.value && !!token),
+		queryKey: ['operator', operatorId, 'apiKeys'],
+		queryFn: async () => {
+			console.log(`Getting all API keys at ${endpoint.value}`)
+			const response = await axios.get<Array<OperatorApiKey>>(`${endpoint.value}/apiKey`);
+			return response.data;
+		},
+		refetchInterval: 10000
+	})
+}
+
+export function useCreateApiKeyMutation(operatorId: number) {
+	const endpoint = useOperatorEndpoint(operatorId);
+	const authStore = useOperatorAuthStore();
+	const token = authStore.getValidToken(operatorId);
+	return useMutation({
+		mutationFn: async (newApiKey: { name: string, applicationVbId: string, activeUntil: string | null }) => {
+			const response = await axios.post<OperatorApiKey>(`${endpoint.value}/apiKey`, newApiKey, {
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+			return response.data;
+		},
+	})
+}
+
+export function useToggleApiKeyMutation(operatorId: number) {
+	const endpoint = useOperatorEndpoint(operatorId);
+	const authStore = useOperatorAuthStore();
+	const token = authStore.getValidToken(operatorId);
+	return useMutation({
+		mutationFn: async (params: { id: number, isActive: boolean }) => {
+			const response = await axios.patch(`${endpoint.value}/apiKey/${params.id}/toggle`,
+				{ isActive: params.isActive },
+				{
+					headers: {
+						Authorization: `Bearer ${token}`
+					}
+				}
+			);
+			return response.data;
+		},
+	})
+}
+
+export function useDeleteApiKeyMutation(operatorId: number) {
+	const endpoint = useOperatorEndpoint(operatorId);
+	const authStore = useOperatorAuthStore();
+	const token = authStore.getValidToken(operatorId);
+	return useMutation({
+		mutationFn: async (id: number) => {
+			const response = await axios.delete(`${endpoint.value}/apiKey/${id}`, {
 				headers: {
 					Authorization: `Bearer ${token}`
 				}

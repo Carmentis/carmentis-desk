@@ -6,6 +6,7 @@ import {useOperatorAuthStore} from "./operatorAuthStore.ts";
 import OperatorDetailDashboardWalletsList from "./OperatorDetailDashboardWalletsList.vue";
 import OperatorDetailDashboardUsersListTable from "./OperatorDetailDashboardUsersListTable.vue";
 import OperatorDetailDashboardApplicationsList from "./OperatorDetailDashboardApplicationsList.vue";
+import OperatorDetailDashboardApiKeysList from "./OperatorDetailDashboardApiKeysList.vue";
 
 const route = useRoute();
 const operatorId = computed(() => Number(route.params.operatorId));
@@ -24,5 +25,6 @@ function disconnect() {
     <OperatorDetailDashboardUsersListTable />
     <OperatorDetailDashboardWalletsList />
     <OperatorDetailDashboardApplicationsList />
+    <OperatorDetailDashboardApiKeysList />
   </div>
 </template>
