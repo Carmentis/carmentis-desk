@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import TabView from 'primevue/tabview';
+
+import Tabs from 'primevue/tabs';
+import TabList from 'primevue/tablist';
+import Tab from 'primevue/tab';
+import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
+
 import OperatorDetailDashboardWalletsList from "./OperatorDetailDashboardWalletsList.vue";
 import OperatorDetailDashboardUsersListTable from "./OperatorDetailDashboardUsersListTable.vue";
 import OperatorDetailDashboardApplicationsList from "./OperatorDetailDashboardApplicationsList.vue";
@@ -11,47 +16,55 @@ import OperatorDetailDashboardApiKeysList from "./OperatorDetailDashboardApiKeys
 <template>
   <div class="space-y-6">
     <!-- Dashboard Content with Tabs -->
-    <TabView class="dashboard-tabs">
-      <TabPanel>
-        <template #header>
+    <Tabs value="users">
+      <TabList>
+
+        <Tab value="users">
           <div class="flex items-center gap-2">
             <i class="pi pi-users"></i>
             <span>Users</span>
           </div>
-        </template>
-        <OperatorDetailDashboardUsersListTable />
-      </TabPanel>
+        </Tab>
 
-      <TabPanel>
-        <template #header>
+        <Tab value="wallets">
           <div class="flex items-center gap-2">
             <i class="pi pi-wallet"></i>
             <span>Wallets</span>
           </div>
-        </template>
-        <OperatorDetailDashboardWalletsList />
-      </TabPanel>
+        </Tab>
 
-      <TabPanel>
-        <template #header>
+        <Tab value="applications">
           <div class="flex items-center gap-2">
             <i class="pi pi-box"></i>
             <span>Applications</span>
           </div>
-        </template>
-        <OperatorDetailDashboardApplicationsList />
-      </TabPanel>
+        </Tab>
 
-      <TabPanel>
-        <template #header>
+        <Tab value="keys">
           <div class="flex items-center gap-2">
             <i class="pi pi-key"></i>
             <span>API Keys</span>
           </div>
-        </template>
-        <OperatorDetailDashboardApiKeysList />
-      </TabPanel>
-    </TabView>
+        </Tab>
+      </TabList>
+      <TabPanels>
+        <TabPanel value="users">
+          <OperatorDetailDashboardUsersListTable />
+        </TabPanel>
+
+        <TabPanel value="wallets">
+          <OperatorDetailDashboardWalletsList />
+        </TabPanel>
+
+        <TabPanel value="applications">
+          <OperatorDetailDashboardApplicationsList />
+        </TabPanel>
+
+        <TabPanel value="keys">
+          <OperatorDetailDashboardApiKeysList />
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
   </div>
 </template>
 
