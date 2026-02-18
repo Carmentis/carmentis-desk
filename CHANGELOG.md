@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/Carmentis/carmentis-desk/compare/v1.1.0...v1.1.1) (2026-02-18)
+
+
+### Bug Fixes
+
+* update release name in release workflow config ([4efd70f](https://github.com/Carmentis/carmentis-desk/commit/4efd70f9919e6cbd1252678a1e6d4c17c3db76c7))
+
 # [1.1.0](https://github.com/Carmentis/carmentis-desk/compare/v1.0.0...v1.1.0) (2026-02-18)
 
 
