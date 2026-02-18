@@ -107,7 +107,11 @@ export function useGetAllUsers(operatorId: number) {
 		queryKey: ['operator', operatorId, 'users'],
 		queryFn: async () => {
 			console.log(`Getting all users at ${endpoint.value}`)
-			const response = await axios.get<Array<OperatorChallenge>>(`${endpoint.value}/user`);
+			const response = await axios.get<Array<OperatorChallenge>>(`${endpoint.value}/user`, {
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
 			return response.data;
 		},
 		refetchInterval: 10000
@@ -161,7 +165,11 @@ export function useGetAllWallets(operatorId: number) {
 		queryKey: ['operator', operatorId, 'wallets'],
 		queryFn: async () => {
 			console.log(`Getting all wallets at ${endpoint.value}`)
-			const response = await axios.get<Array<OperatorWallet>>(`${endpoint.value}/wallet`);
+			const response = await axios.get<Array<OperatorWallet>>(`${endpoint.value}/wallet`,{
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
 			return response.data;
 		},
 		refetchInterval: 10000
@@ -214,7 +222,11 @@ export function useGetAllApplications(operatorId: number) {
 		queryKey: ['operator', operatorId, 'applications'],
 		queryFn: async () => {
 			console.log(`Getting all applications at ${endpoint.value}`)
-			const response = await axios.get<Array<OperatorApplication>>(`${endpoint.value}/application`);
+			const response = await axios.get<Array<OperatorApplication>>(`${endpoint.value}/application`, {
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
 			return response.data;
 		},
 		refetchInterval: 10000
@@ -272,7 +284,11 @@ export function useGetAllApiKeys(operatorId: number) {
 		queryKey: ['operator', operatorId, 'apiKeys'],
 		queryFn: async () => {
 			console.log(`Getting all API keys at ${endpoint.value}`)
-			const response = await axios.get<Array<OperatorApiKey>>(`${endpoint.value}/apiKey`);
+			const response = await axios.get<Array<OperatorApiKey>>(`${endpoint.value}/apiKey`, {
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
 			return response.data;
 		},
 		refetchInterval: 10000
