@@ -200,6 +200,65 @@ export function useDeleteWalletMutation(operatorId: number) {
 	})
 }
 
+export interface OperatorApplication {
+	vbId: string,
+	name: string,
+	wallet: {
+		walletId: number,
+		name: string,
+		rpcEndpoint: string
+	}
+}
+
+export function useGetAllApplications(operatorId: number) {
+	const endpoint = useOperatorEndpoint(operatorId);
+	const authStore = useOperatorAuthStore();
+	const token = authStore.getValidToken(operatorId)
+	return useQuery({
+		enabled: computed(() => !!endpoint.value && !!token),
+		queryKey: ['operator', operatorId, 'applications'],
+		queryFn: async () => {
+			console.log(`Getting all applications at ${endpoint.value}`)
+			const response = await axios.get<Array<OperatorApplication>>(`${endpoint.value}/application`);
+			return response.data;
+		},
+		refetchInterval: 10000
+	})
+}
+
+export function useCreateApplicationMutation(operatorId: number) {
+	const endpoint = useOperatorEndpoint(operatorId);
+	const authStore = useOperatorAuthStore();
+	const token = authStore.getValidToken(operatorId);
+	return useMutation({
+		mutationFn: async (newApplication: { vbId: string, walletId: number, name: string }) => {
+			console.log(`Creating application ${newApplication.vbId} for wallet ${newApplication.walletId}`)
+			const response = await axios.post<OperatorApplication>(`${endpoint.value}/application`, newApplication, {
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+			return response.data;
+		},
+	})
+}
+
+export function useDeleteApplicationMutation(operatorId: number) {
+	const endpoint = useOperatorEndpoint(operatorId);
+	const authStore = useOperatorAuthStore();
+	const token = authStore.getValidToken(operatorId);
+	return useMutation({
+		mutationFn: async (vbId: string) => {
+			const response = await axios.delete(`${endpoint.value}/application/${encodeURIComponent(vbId)}`, {
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			});
+			return response.data;
+		},
+	})
+}
+
 /*
 
 export function useAccountStateQuery(walletId: number) {
