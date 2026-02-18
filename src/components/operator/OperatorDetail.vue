@@ -64,21 +64,14 @@ const disconnectFromOperator = () => {
 
 <template>
   <div class="space-y-6">
-    <!-- Header with Back Button -->
-    <div class="flex items-center gap-4 mb-4">
-      <Button icon="pi pi-arrow-left" text rounded @click="goBack" />
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">{{ operator?.name }}</h1>
-        <p class="text-sm text-gray-500 mt-1">Operator Management</p>
-      </div>
-    </div>
-
     <!-- Operator Info Bar -->
     <Card class="operator-info-card">
       <template #content>
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-6 flex-1">
             <div class="flex items-center gap-3">
+              <Button icon="pi pi-arrow-left" text rounded @click="goBack" />
+
               <div class="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center">
                 <i class="pi pi-server text-xl text-primary-500"></i>
               </div>
