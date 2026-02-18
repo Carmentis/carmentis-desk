@@ -5,9 +5,9 @@
       "channel": "latest"
     },
     {
-      "name": "dev",
-      "channel": "dev",
-      "prerelease": false
+      "name": "next",
+      "channel": "next",
+      "prerelease": true
     }
   ],
   "plugins": [

@@ -35,8 +35,10 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDEwNjRGNUE4N0I5MTY0M0MKUldROFpKRjdxUFZrRUxnV3Zrbmxyd1lzRmUzUElKVGFONEIxMGR0S091MzdSd0JSQzMzUGp1MDcK",
-      "endpoints": []
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFCRDM5NDYxRTdGRTVBNjUKUldSbFd2N25ZWlRUcTRabWlFNUE1eWx5aVV4TlBieDZ2TU1CTEszZ296cnpWZWJONkd4MU84UnYK",
+      "endpoints": [
+        "https://github.com/carmentis/carmentis-operator-light/releases/latest/download/latest.json"
+      ]
     },
     "windows": {
       "installMode": "passive"
