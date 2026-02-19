@@ -27,7 +27,7 @@ app.use(PrimeVue, {
 
 
 
-// application setup
+// we init the storage to load the wallets and the operators from the storage
 const storage = useStorageStore();
 storage.initStorage();
 
