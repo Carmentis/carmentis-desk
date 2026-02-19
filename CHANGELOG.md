@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/Carmentis/carmentis-desk/compare/v1.2.0...v1.2.1) (2026-02-19)
+
+
+### Bug Fixes
+
+* attempt to fix the windows invalid production tag ([ff39e48](https://github.com/Carmentis/carmentis-desk/commit/ff39e48ef5bbcb357ccc97961c5cbd6ca6e659b0))
+
 # [1.2.0](https://github.com/Carmentis/carmentis-desk/compare/v1.1.2...v1.2.0) (2026-02-19)
 
 
