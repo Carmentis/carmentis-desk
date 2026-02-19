@@ -68,9 +68,6 @@ jobs:
           ref: ${{ github.ref }}
           fetch-depth: 0
 
-      - name: Pull latest changes
-        run: git pull origin ${{ github.ref_name }}
-
       - name: setup node
         uses: actions/setup-node@v4
         with:
@@ -117,7 +114,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         with:
           tagName: v${{ steps.get_version.outputs.VERSION }}
-          releaseName: 'Carmentis Desk v__VERSION__'
+          releaseName: 'Carmentis Desk v${{ steps.get_version.outputs.VERSION }}'
           releaseBody: 'See the assets to download this version and install.'
           releaseDraft: ${{ github.ref_name == 'next' }}
           prerelease: ${{ github.ref_name == 'next' }}
