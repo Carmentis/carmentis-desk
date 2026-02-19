@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/Carmentis/carmentis-desk/compare/v1.1.1...v1.1.2) (2026-02-19)
+
+
+### Bug Fixes
+
+* comment to explain what we do for the storage init ([995e77b](https://github.com/Carmentis/carmentis-desk/commit/995e77b260db2c291cf661ae8310ab4b3a1adf41))
+
 ## [1.1.1](https://github.com/Carmentis/carmentis-desk/compare/v1.1.0...v1.1.1) (2026-02-18)
 
 
