@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/Carmentis/carmentis-desk/compare/v1.2.1...v1.2.2) (2026-02-19)
+
+
+### Bug Fixes
+
+* enable mac and linux releases ([ae2d611](https://github.com/Carmentis/carmentis-desk/commit/ae2d6115287fdd1083447af2ab7ebbd3f45698b9))
+
 ## [1.2.1](https://github.com/Carmentis/carmentis-desk/compare/v1.2.0...v1.2.1) (2026-02-19)
 
 
