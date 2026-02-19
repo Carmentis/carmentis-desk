@@ -47,7 +47,7 @@ jobs:
     permissions:
       contents: write
     strategy:
-      max-parallel: 1
+      max-parallel: 2
       fail-fast: true
       matrix:
         include:
