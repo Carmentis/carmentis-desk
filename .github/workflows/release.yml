@@ -48,7 +48,7 @@ jobs:
       contents: write
     strategy:
       max-parallel: 1
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
           - platform: 'macos-latest'
