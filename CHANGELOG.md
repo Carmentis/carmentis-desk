@@ -1,3 +1,15 @@
+# [1.2.0](https://github.com/Carmentis/carmentis-desk/compare/v1.1.2...v1.2.0) (2026-02-19)
+
+
+### Bug Fixes
+
+* attempt to fix the ci for Windows ([9c9e874](https://github.com/Carmentis/carmentis-desk/commit/9c9e8748970662c1b55396278a0871b8cf5f306a))
+
+
+### Features
+
+* add process plugin and implement update functionality ([09a9cde](https://github.com/Carmentis/carmentis-desk/commit/09a9cde6916d816203eb59fb6da029d7fbc0472c))
+
 ## [1.1.2](https://github.com/Carmentis/carmentis-desk/compare/v1.1.1...v1.1.2) (2026-02-19)
 
 
