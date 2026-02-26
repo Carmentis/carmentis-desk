@@ -1,6 +1,5 @@
 import {defineStore} from "pinia";
 import {
-	FeesCalculationFormulaFactory,
 	Hash, IProvider, Microblock, OrganizationDescriptionSection,
 	ProviderFactory, SectionType,
 	SeedEncoder,
@@ -461,10 +460,18 @@ export const useOnChainStore = defineStore('onchain', () => {
 	}
 
 	async function updateGasInMicroblock(provider: IProvider, mb: Microblock, usedSigSchemeId: SignatureSchemeId) {
+		const fees = await provider.computeMicroblockFees(
+			mb,
+			{ signatureSchemeId: usedSigSchemeId },
+		)
+		/*
 		const protocolVariables = await provider.getProtocolState();
 		const feesCalculationFormulaVersion = protocolVariables.getFeesCalculationVersion();
 		const feesCalculationFormula = FeesCalculationFormulaFactory.getFeesCalculationFormulaByVersion(feesCalculationFormulaVersion);
 		mb.setGas(await feesCalculationFormula.computeFees(usedSigSchemeId, mb))
+
+		 */
+		mb.setMaxFees(fees);
 	}
 
 
@@ -684,6 +691,7 @@ export const useOnChainStore = defineStore('onchain', () => {
 			tokenAmount,
 			issuerAccountHash.toBytes()
 		);
+		/*
 		const feesCalculationFormulaVersion = (
 			await provider.getProtocolState()
 		).getFeesCalculationVersion();
@@ -697,6 +705,13 @@ export const useOnChainStore = defineStore('onchain', () => {
 				accountCreationMb
 			)
 		);
+
+		 */
+		const fees = await provider.computeMicroblockFees(
+			accountCreationMb,
+			{ signatureSchemeId: issuerPrivateSignatureKey.getSignatureSchemeId() }
+		);
+		accountCreationMb.setMaxFees(fees);
 		await accountCreationMb.seal(issuerPrivateSignatureKey, {
 			feesPayerAccount: issuerAccountHash.toBytes()
 		});
@@ -741,19 +756,11 @@ export const useOnChainStore = defineStore('onchain', () => {
 			privateReference: '',
 			account: receiverAccountHash.toBytes()
 		});
-		const feesCalculationFormulaVersion = (
-			await provider.getProtocolState()
-		).getFeesCalculationVersion();
-		const feesCalculationFormula =
-			FeesCalculationFormulaFactory.getFeesCalculationFormulaByVersion(
-				feesCalculationFormulaVersion
-			);
-		tokenTransferMb.setGas(
-			await feesCalculationFormula.computeFees(
-				issuerPrivateSignatureKey.getSignatureSchemeId(),
-				tokenTransferMb
-			)
+		const fees = await provider.computeMicroblockFees(
+			tokenTransferMb,
+			{ signatureSchemeId: issuerPrivateSignatureKey.getSignatureSchemeId() }
 		);
+		tokenTransferMb.setMaxFees(fees);
 
 		const issuerAccountHash = senderAccountHash;
 		await tokenTransferMb.seal(issuerPrivateSignatureKey, {
