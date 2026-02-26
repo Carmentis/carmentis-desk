@@ -207,7 +207,7 @@ const nodeStakeInformation = computedAsync(async () => {
   console.log("Node account state:", accountState)
   const stakingForThisNode = accountState.locks.filter(
       lock => lock.type === LockType.NodeStaking && Utils.binaryIsEqual(
-          lock.parameters.validatorNodeAccountId,
+          lock.parameters.validatorNodeId,
           nodeVbId.toBytes()
       )
   );

@@ -201,7 +201,7 @@ async function fetchNodesOnChain() {
 
   const locks = accountState.locks;
   const stakingLocks = locks.filter(lock => lock.type === LockType.NodeStaking);
-  const nodesIds = stakingLocks.map(sl => Hash.from(sl.parameters.validatorNodeAccountId as Uint8Array));
+  const nodesIds = stakingLocks.map(sl => Hash.from(sl.parameters.validatorNodeId as Uint8Array));
   const newNodesIds = [];
   for (const nodeId of nodesIds) {
     const isAlreadyDeclared = await storageStore.isNodeDeclared(walletId.value, orgId.value, nodeId.encode());
