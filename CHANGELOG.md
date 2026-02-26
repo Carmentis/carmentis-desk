@@ -1,3 +1,15 @@
+# [1.3.0](https://github.com/Carmentis/carmentis-desk/compare/v1.2.2...v1.3.0) (2026-02-26)
+
+
+### Bug Fixes
+
+* invalid validator node id field name ([05793ca](https://github.com/Carmentis/carmentis-desk/commit/05793ca3497cee113d48799b7c54fe11acadeda6))
+
+
+### Features
+
+* moving to sdk 1.20 ([7c6ea0c](https://github.com/Carmentis/carmentis-desk/commit/7c6ea0c35edd879dbc3811174bfe40b5c8f6b130))
+
 ## [1.2.2](https://github.com/Carmentis/carmentis-desk/compare/v1.2.1...v1.2.2) (2026-02-19)
 
 
