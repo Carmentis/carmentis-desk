@@ -7,7 +7,8 @@ import Card from 'primevue/card';
 import SelectButton from 'primevue/selectbutton';
 import { useStorageStore } from '../stores/storage';
 import { SeedEncoder, WalletCrypto } from "@cmts-dev/carmentis-sdk/client";
-import { mnemonicToSeedSync } from '@scure/bip39';
+import { mnemonicToSeedSync, generateMnemonic } from '@scure/bip39';
+import { wordlist } from '@scure/bip39/wordlists/english.js';
 
 const router = useRouter();
 const storageStore = useStorageStore();
@@ -33,6 +34,18 @@ const generateSeed = () => {
     seed.value = seedEncoder.encode(generatedWallet.getSeedAsBytes());
   } finally {
     isGeneratingSeed.value = false;
+  }
+}
+
+const isGeneratingPassphrase = ref(false);
+const generatePassphrase = () => {
+  isGeneratingPassphrase.value = true;
+  try {
+    // Generate a 12-word mnemonic passphrase
+    const mnemonic = generateMnemonic(wordlist, 128); // 128 bits = 12 words
+    passphrase.value = mnemonic;
+  } finally {
+    isGeneratingPassphrase.value = false;
   }
 }
 
@@ -147,13 +160,23 @@ const goBack = () => {
             <label for="passphrase" class="block text-sm font-medium text-gray-700 mb-2">
               Passphrase <span class="text-red-500">*</span>
             </label>
-            <InputText
-              id="passphrase"
-              v-model="passphrase"
-              placeholder="Enter a strong passphrase"
-              toggleMask
-              class="w-full"
-            />
+            <div class="space-y-2">
+              <InputText
+                id="passphrase"
+                v-model="passphrase"
+                placeholder="Enter or generate a passphrase"
+                :disabled="isGeneratingPassphrase"
+                toggleMask
+                class="w-full"
+              />
+              <Button
+                @click="generatePassphrase"
+                label="Generate Passphrase"
+                icon="pi pi-refresh"
+                :loading="isGeneratingPassphrase"
+                outlined
+              />
+            </div>
             <small class="text-gray-500 mt-1 block">
               <i class="pi pi-info-circle"></i> A seed will be derived from your passphrase. Use a strong, memorable passphrase.
             </small>
