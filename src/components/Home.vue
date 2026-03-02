@@ -11,6 +11,8 @@
   import {useToast} from "primevue/usetoast";
   import { check } from '@tauri-apps/plugin-updater';
   import { relaunch } from '@tauri-apps/plugin-process';
+  import Menubar from "primevue/menubar";
+  import type { MenuItem } from "primevue/menuitem";
 
 
   const store = useStorageStore();
@@ -104,6 +106,63 @@
     });
   }
 
+  // Menu items for the navbar
+  const menuItems = computed<MenuItem[]>(() => [
+    {
+      label: 'Wallets',
+      icon: 'pi pi-wallet',
+      items: [
+        {
+          label: 'Create Wallet',
+          icon: 'pi pi-plus',
+          command: () => router.push('/wallet/new')
+        },
+        {
+          separator: true,
+          visible: organizations.value.length > 0
+        },
+        {
+          label: 'Clear All Wallets',
+          icon: 'pi pi-trash',
+          command: () => confirmClearAllOrganizations(),
+          visible: organizations.value.length > 0
+        }
+      ]
+    },
+    {
+      label: 'Operators',
+      icon: 'pi pi-server',
+      items: [
+        {
+          label: 'Add Operator',
+          icon: 'pi pi-plus',
+          command: () => openOperatorDialog()
+        },
+        {
+          separator: true,
+          visible: operators.value.length > 0
+        },
+        {
+          label: 'Clear All Operators',
+          icon: 'pi pi-trash',
+          command: () => confirmClearAllOperators(),
+          visible: operators.value.length > 0
+        }
+      ]
+    },
+    {
+      label: 'Settings',
+      icon: 'pi pi-cog',
+      items: [
+        {
+          label: searchUpdateButtonMessage.value,
+          icon: 'pi pi-refresh',
+          command: () => checkForUpdate()
+        }
+      ]
+    }
+  ]);
+
   const isSearchingForUpdate = ref(false);
   const isDownloadingUpdate = ref(false);
   const downloadingProgress = ref(0);
@@ -163,21 +222,24 @@
 
 <template>
   <div class="space-y-6">
-    <!-- Header Section -->
-    <div class="flex justify-between items-center">
-      <div>
-        <h2 class="text-3xl font-bold text-gray-900">Home</h2>
-        <p class="mt-1 text-sm text-gray-500">Manage your wallets and operators</p>
-      </div>
-      <div class="flex gap-2">
-        <Button v-if="organizations.length > 0" label="Clear All Wallets" icon="pi pi-trash" severity="danger" outlined @click="confirmClearAllOrganizations" />
-        <router-link to="/wallet/new">
-          <Button label="Create Wallet" icon="pi pi-plus"  />
-        </router-link>
-        <Button v-if="operators.length > 0" label="Clear All Operators" icon="pi pi-trash" severity="danger" outlined @click="confirmClearAllOperators" />
-        <Button label="Add Operator" icon="pi pi-plus" @click="openOperatorDialog" />
-        <Button :label="searchUpdateButtonMessage" @click="checkForUpdate"/>
-      </div>
+    <!-- Menubar Navigation -->
+    <Menubar :model="menuItems">
+      <template #start>
+        <div class="flex items-center gap-2">
+          <i class="pi pi-home text-2xl text-primary"></i>
+          <div>
+            <h2 class="text-xl font-bold text-gray-900">Home</h2>
+          </div>
+        </div>
+      </template>
+      <template #end>
+        <div class="ml-auto"></div>
+      </template>
+    </Menubar>
+
+    <!-- Subtitle -->
+    <div class="px-2">
+      <p class="text-sm text-gray-500">Manage your wallets and operators</p>
     </div>
 
     <!-- Empty State -->
