@@ -174,6 +174,8 @@
         <router-link to="/wallet/new">
           <Button label="Create Wallet" icon="pi pi-plus"  />
         </router-link>
+        <Button v-if="operators.length > 0" label="Clear All Operators" icon="pi pi-trash" severity="danger" outlined @click="confirmClearAllOperators" />
+        <Button label="Add Operator" icon="pi pi-plus" @click="openOperatorDialog" />
         <Button :label="searchUpdateButtonMessage" @click="checkForUpdate"/>
       </div>
     </div>
@@ -271,34 +273,6 @@
           </div>
         </template>
       </Card>
-    </div>
-
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
-    </div>
-
-    <!-- Operators Section -->
-    <div class="mt-12">
-      <div class="flex justify-between items-center mb-6">
-
-        <div class="flex gap-2">
-          <Button v-if="operators.length > 0" label="Clear All Operators" icon="pi pi-trash" severity="danger" outlined @click="confirmClearAllOperators" />
-          <Button label="Add Operator" icon="pi pi-plus" @click="openOperatorDialog" />
-        </div>
-      </div>
-
-      <!-- Empty State -->
-      <div v-if="operators.length === 0" class="text-center py-12 bg-surface-50 rounded-lg">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
-          <i class="pi pi-server text-3xl text-gray-400"></i>
-        </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">No operators yet</h3>
-        <p class="text-gray-500 mb-6">Get started by adding your first operator</p>
-        <Button label="Add Your First Operator" icon="pi pi-plus" @click="openOperatorDialog" />
-      </div>
-
-
     </div>
 
     <!-- Operator Creation Dialog -->
