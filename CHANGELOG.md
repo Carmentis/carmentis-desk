@@ -1,3 +1,12 @@
+# [1.4.0](https://github.com/Carmentis/carmentis-desk/compare/v1.3.0...v1.4.0) (2026-03-02)
+
+
+### Features
+
+* add "Clear All Operators" and "Add Operator" buttons to top wallet actions ([940f291](https://github.com/Carmentis/carmentis-desk/commit/940f2910046d9c0b94ac3bc996b71ee9a9190f77))
+* add passphrase generation using `@scure/bip39` and update form UI ([d7aa459](https://github.com/Carmentis/carmentis-desk/commit/d7aa459b5022658101548028617930f3ee0a2be6))
+* integrate Menubar with menu actions and refactor Home layout ([69b13fc](https://github.com/Carmentis/carmentis-desk/commit/69b13fc4c1a64cda1631300c67318e7198e69c4e))
+
 # [1.3.0](https://github.com/Carmentis/carmentis-desk/compare/v1.2.2...v1.3.0) (2026-02-26)
 
 
