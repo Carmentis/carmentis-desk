@@ -243,15 +243,12 @@
     </div>
 
     <!-- Empty State -->
-    <div v-if="organizations.length === 0" class="text-center py-12">
+    <div v-if="organizations.length === 0 && operators.length === 0" class="text-center py-12">
       <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
         <i class="pi pi-wallet text-3xl text-gray-400"></i>
       </div>
-      <h3 class="text-lg font-medium text-gray-900 mb-2">No wallets yet</h3>
-      <p class="text-gray-500 mb-6">Get started by creating your first wallet</p>
-      <router-link to="/wallet/new">
-        <Button label="Create Your First Wallet" icon="pi pi-plus" />
-      </router-link>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">No information to display</h3>
+      <p class="text-gray-500 mb-6"></p>
     </div>
 
 
