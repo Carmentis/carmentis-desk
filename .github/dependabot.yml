@@ -1,0 +1,12 @@
+version: 2
+updates:
+  # Enable version updates for npm (frontend dependencies)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "master"
+    labels:
+      - "dependencies"
+      - "javascript"
+
