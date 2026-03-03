@@ -6,6 +6,8 @@ export interface ApplicationEntity {
 	id: number,
 	vbId?: string,
 	name: string,
+	description?: string,
+	website?: string,
 }
 
 export interface NodeEntity {

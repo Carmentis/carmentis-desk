@@ -87,8 +87,8 @@ async function confirmDeleteApplication() {
 function initializeForm() {
   if (application.value) {
     appName.value = application.value.name;
-    appDescription.value = '';
-    appWebsite.value = '';
+    appDescription.value = application.value.description || '';
+    appWebsite.value = application.value.website || '';
   }
 }
 
@@ -107,6 +107,8 @@ async function updateApplicationDetails() {
 
   await storageStore.updateApplication(walletId.value, orgId.value, appId.value, {
     name: appName.value.trim(),
+    description: appDescription.value.trim() || undefined,
+    website: appWebsite.value.trim() || undefined,
   });
 
   toast.add({ severity: 'success', summary: 'Application updated', detail: 'Application details updated successfully', life: 3000 });
@@ -185,7 +187,17 @@ const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
           <template #content>
             <div v-if="application.vbId">
               <label class="block text-sm font-medium text-gray-700 mb-2">Virtual Blockchain ID</label>
-              <code class="bg-gray-100 px-3 py-2 rounded text-sm block">{{ application.vbId }}</code>
+              <code class="bg-gray-100 px-3 py-2 rounded text-sm block mb-4">{{ application.vbId }}</code>
+
+              <div v-if="application.description" class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <p class="text-gray-600 text-sm">{{ application.description }}</p>
+              </div>
+
+              <div v-if="application.website" class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Website</label>
+                <a :href="application.website" target="_blank" class="text-blue-600 hover:underline text-sm">{{ application.website }}</a>
+              </div>
 
               <div v-if="isApplicationFoundOnChain === true" class="mt-4 flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg">
                 <i class="pi pi-check-circle text-green-600"></i>
