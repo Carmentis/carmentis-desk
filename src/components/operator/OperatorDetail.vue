@@ -60,6 +60,8 @@ const disconnectFromOperator = () => {
     }
   });
 };
+
+const hasWallets = computed(() => storageStore.organizations.length > 0);
 </script>
 
 <template>
@@ -119,12 +121,35 @@ const disconnectFromOperator = () => {
       </template>
     </Card>
 
+    <!-- No Wallet Warning -->
+    <div v-if="!hasWallets" class="flex justify-center items-center py-12">
+      <Card class="border-amber-200 bg-amber-50 max-w-2xl w-full">
+        <template #content>
+          <div class="text-center p-6">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 mb-4">
+              <i class="pi pi-exclamation-triangle text-3xl text-amber-600"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-amber-900 mb-3">No Wallet Available</h3>
+            <p class="text-sm text-amber-800 mb-6 max-w-md mx-auto">
+              You need to create a wallet before you can use this operator. A wallet is required to authenticate and perform actions with the operator.
+            </p>
+            <Button
+              label="Create Wallet"
+              icon="pi pi-plus"
+              severity="warning"
+              @click="router.push('/wallet/new')"
+            />
+          </div>
+        </template>
+      </Card>
+    </div>
 
-
-    <OperatorDetailSetup v-if="isInitializedQuery.data.value === false"/>
-    <div v-if="isInitializedQuery.data.value === true">
-      <OperatorDetailLogin v-if="!authenticated"/>
-      <OperatorDetailDashboard v-else/>
+    <div v-if="hasWallets">
+      <OperatorDetailSetup v-if="isInitializedQuery.data.value === false"/>
+      <div v-if="isInitializedQuery.data.value === true">
+        <OperatorDetailLogin v-if="!authenticated"/>
+        <OperatorDetailDashboard v-else/>
+      </div>
     </div>
 
     <!-- Not Found State -->
