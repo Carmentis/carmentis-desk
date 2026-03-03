@@ -283,11 +283,11 @@ function refetchBreakdown() {
                 </div>
                 <div class="w-full">
                   <label class="block text-sm font-medium text-gray-700 mb-2">Private Key</label>
-                  <Password v-model="sk" :feedback="false" toggleMask class="w-full" width="100%" />
+                  <Password v-model="sk" :feedback="false" toggleMask class="w-full" input-class="w-full" />
                 </div>
                 <div class="w-full">
                   <label class="block text-sm font-medium text-gray-700 mb-2">Private seed</label>
-                  <Password v-model="wallet.seed" :feedback="false" toggleMask class="w-full" width="100%" />
+                  <Password v-model="wallet.seed" :feedback="false" toggleMask class="w-full" width="100%" input-class="w-full" />
                 </div>
               </div>
             </template>
