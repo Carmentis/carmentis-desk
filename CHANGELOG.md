@@ -1,3 +1,21 @@
+# [1.5.0](https://github.com/Carmentis/carmentis-desk/compare/v1.4.0...v1.5.0) (2026-03-03)
+
+
+### Bug Fixes
+
+* add missing input-class for Password fields in WalletDetail component ([faf8da2](https://github.com/Carmentis/carmentis-desk/commit/faf8da23d15286fae91e52a44434e611c573eaf7))
+* update empty state condition and message in Home component ([60fa30b](https://github.com/Carmentis/carmentis-desk/commit/60fa30b3724d00a0742be18f1e4c4ddeb82a7835))
+* update wallet route check for "WalletSidebar" component ([a24c51d](https://github.com/Carmentis/carmentis-desk/commit/a24c51db70c39c0a5d5823afa9bbd172387f274f))
+
+
+### Features
+
+* add "Home" navigation link to WalletSidebar and update wallet route check ([af47953](https://github.com/Carmentis/carmentis-desk/commit/af47953c4a821c65fb89bb8b61de6ce8341d43e5))
+* add confirmation dialog for wallet deletion in WalletDetail component ([605ddfa](https://github.com/Carmentis/carmentis-desk/commit/605ddfa947e85a56106066c1fea2a543af4539d2))
+* add description and website fields to Application details and enhance UI display ([99ea25d](https://github.com/Carmentis/carmentis-desk/commit/99ea25d9548c91dc46c60d054a04cc89d9ebff8e))
+* add search functionality for organizations and operators in Home component ([791d88b](https://github.com/Carmentis/carmentis-desk/commit/791d88b0608f795519173dc938ac177e0c161e0d))
+* add warning for missing wallets and create wallet prompt in OperatorDetail component ([9a8e9f6](https://github.com/Carmentis/carmentis-desk/commit/9a8e9f61bbad25333ffb2d1f48b110f0b58afa3c))
+
 # [1.4.0](https://github.com/Carmentis/carmentis-desk/compare/v1.3.0...v1.4.0) (2026-03-02)
 
 
