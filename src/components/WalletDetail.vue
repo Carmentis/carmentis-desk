@@ -27,19 +27,34 @@ import {
 import WalletDetailTransactionsHistory from "./WalletDetailTransactionsHistory.vue";
 import {useWalletStore} from "../stores/walletStore.ts";
 import Message from 'primevue/message'
+import {useConfirm} from 'primevue/useconfirm';
+
 const toast = useToast();
 const route = useRoute();
 const router = useRouter();
 const storageStore = useStorageStore();
 const onChainStore = useOnChainStore();
+const confirm = useConfirm();
 
 const goBack = () => {
   router.push('/');
 };
 
-const deleteWallet = async () => {
-  await storageStore.removeOrganizationById(walletId.value);
-  await router.push('/');
+const deleteWallet = () => {
+  confirm.require({
+    message: `Are you sure you want to delete the wallet "${wallet.value?.name}"? This action will delete all associated organizations, nodes, and applications and cannot be undone.`,
+    header: 'Delete Wallet',
+    icon: 'pi pi-exclamation-triangle',
+    rejectClass: 'p-button-secondary p-button-outlined',
+    rejectLabel: 'Cancel',
+    acceptLabel: 'Delete',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      await storageStore.removeOrganizationById(walletId.value);
+      toast.add({ severity: 'success', summary: 'Wallet deleted', detail: 'Wallet deleted successfully', life: 3000 });
+      await router.push('/');
+    }
+  });
 };
 
 const walletId = computed(() => Number(route.params.walletId));
