@@ -55,7 +55,7 @@ function navigateToNode(orgId: number, nodeId: number) {
 
 // Check if current route matches
 function isWalletActive() {
-  return route.name === 'wallet' && Number(route.params.id) === props.walletId;
+  return route.name === 'wallet-detail'
 }
 
 function isOrganizationActive(orgId: number) {
