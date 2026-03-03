@@ -15,7 +15,7 @@
     "@primeuix/themes": "^2.0.3",
     "@primevue/forms": "^4.5.4",
     "@scure/bip39": "^2.0.1",
-    "@tailwindcss/postcss": "^4.1.18",
+    "@tailwindcss/postcss": "^4.2.1",
     "@tanstack/vue-query": "^5.92.9",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
