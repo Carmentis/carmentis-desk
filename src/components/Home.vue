@@ -27,6 +27,30 @@
   const newOperatorName = ref('');
   const newOperatorEndpoint = ref('');
 
+  // Search filter
+  const searchQuery = ref('');
+
+  // Filtered organizations and operators based on search query
+  const filteredOrganizations = computed(() => {
+    if (!searchQuery.value.trim()) {
+      return organizations.value;
+    }
+    const query = searchQuery.value.toLowerCase();
+    return organizations.value.filter(org =>
+      org.name.toLowerCase().includes(query)
+    );
+  });
+
+  const filteredOperators = computed(() => {
+    if (!searchQuery.value.trim()) {
+      return operators.value;
+    }
+    const query = searchQuery.value.toLowerCase();
+    return operators.value.filter(op =>
+      op.name.toLowerCase().includes(query)
+    );
+  });
+
   function visitWallet(orgId: number) {
     router.push(`/wallet/${orgId}`);
   }
@@ -233,7 +257,11 @@
         </div>
       </template>
       <template #end>
-        <div class="ml-auto"></div>
+        <div class="flex items-center gap-2">
+          <span class="p-input-icon-left">
+            <InputText v-model="searchQuery" placeholder="Search..." class="w-64" size="small" />
+          </span>
+        </div>
       </template>
     </Menubar>
 
@@ -254,7 +282,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <!-- Wallets Grid -->
-      <Card v-for="org in organizations" :key="org.id"
+      <Card v-for="org in filteredOrganizations" :key="org.id"
             class="border-0 shadow-sm hover:shadow-xl transition-all cursor-pointer bg-surface-0"
             @click="visitWallet(org.id)">
         <template #content>
@@ -270,6 +298,7 @@
                   <span class="text-xs text-surface-400 font-mono">ID: {{ org.id }}</span>
                 </div>
               </div>
+              <span class="px-2 py-1 text-xs font-semibold text-blue-600 bg-blue-100 rounded-md">WALLET</span>
             </div>
 
             <!-- Details -->
@@ -296,7 +325,7 @@
       </Card>
 
       <!-- Operators Grid -->
-      <Card v-for="operator in operators" :key="operator.id"
+      <Card v-for="operator in filteredOperators" :key="operator.id"
             class="border-0 shadow-sm hover:shadow-xl transition-all cursor-pointer bg-surface-0"
             @click="visitOperator(operator.id)">
         <template #content>
@@ -312,6 +341,7 @@
                   <span class="text-xs text-surface-400 font-mono">ID: {{ operator.id }}</span>
                 </div>
               </div>
+              <span class="px-2 py-1 text-xs font-semibold text-green-600 bg-green-100 rounded-md">OPERATOR</span>
             </div>
 
             <!-- Details -->
