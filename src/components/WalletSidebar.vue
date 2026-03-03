@@ -33,6 +33,10 @@ function isOrgExpanded(orgId: number) {
   return expandedOrgs.value.has(orgId);
 }
 
+function navigateToHome() {
+  router.push(`/`);
+}
+
 function navigateToWallet() {
   router.push(`/wallet/${props.walletId}`);
 }
@@ -51,7 +55,7 @@ function navigateToNode(orgId: number, nodeId: number) {
 
 // Check if current route matches
 function isWalletActive() {
-  return route.name === 'wallet-detail' && Number(route.params.id) === props.walletId;
+  return route.name === 'wallet' && Number(route.params.id) === props.walletId;
 }
 
 function isOrganizationActive(orgId: number) {
@@ -93,6 +97,15 @@ function isApplicationActive(orgId: number, appId: number) {
             </div>
           </template>
         </Card>
+      </div>
+
+      <!-- Home -->
+      <div
+          @click="navigateToHome"
+          class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors mb-2 hover:bg-gray-100 text-gray-700"
+      >
+        <i class="pi pi-home text-lg"></i>
+        <span class="text-sm">Home</span>
       </div>
 
       <!-- Wallet Item -->
