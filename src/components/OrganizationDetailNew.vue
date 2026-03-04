@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import {computed, ref, watch} from 'vue';
+import {computed, ref, watch, inject, onMounted} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
-import Breadcrumb from 'primevue/breadcrumb';
+import MenuBar from 'primevue/menubar';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
@@ -39,6 +39,7 @@ const router = useRouter();
 const storageStore = useStorageStore();
 const onChainStore = useOnChainStore();
 const {isPublishingOrganization} = storeToRefs(onChainStore);
+const registerNavbarActions = inject<(actions: any[]) => void>('registerNavbarActions');
 
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
@@ -392,27 +393,25 @@ function visitApplication(appId: number) {
 }
 
 const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
+
+const items = [
+  {
+    label: 'Delete',
+    icon: 'pi pi-trash',
+    severity: 'danger',
+    command: () => showDeleteConfirmDialog.value = true,
+    outlined: true
+  }
+]
 </script>
 
 <template>
   <div class="space-y-6">
     <div v-if="wallet && organization">
-      <!-- Breadcrumb -->
-      <Breadcrumb :home="breadcrumbHome" :model="breadcrumbItems" class="mb-4" />
 
-      <!-- Header -->
-      <div class="flex justify-between items-start mb-6">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <i class="pi pi-building text-5xl"></i>
-            {{ organization.name }}
-          </h1>
-        </div>
-        <div class="flex gap-2">
-          <Button @click="goBack" label="Back to Wallet" icon="pi pi-arrow-left" text />
-          <Button @click="showDeleteConfirmDialog = true" icon="pi pi-trash" severity="danger" text />
-        </div>
-      </div>
+     <div class="mb-4">
+       <MenuBar :model="items"/>
+     </div>
 
       <!-- Organization Cards Side-by-Side -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">

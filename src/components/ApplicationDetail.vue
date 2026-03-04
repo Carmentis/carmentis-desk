@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, ref, watch} from 'vue';
+import {computed, ref, watch, inject, onMounted} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
@@ -21,6 +21,7 @@ const router = useRouter();
 const storageStore = useStorageStore();
 const onchainStore = useOnChainStore();
 const {isPublishingApplication} = storeToRefs(onchainStore);
+const registerNavbarActions = inject<(actions: any[]) => void>('registerNavbarActions');
 
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
@@ -155,24 +156,39 @@ const {data: isApplicationFoundOnChain, isLoading: isFetchingApplicationFromChai
 });
 
 const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
+
+// Register navbar actions
+onMounted(() => {
+  if (registerNavbarActions) {
+    registerNavbarActions([
+      {
+        label: 'Update',
+        icon: 'pi pi-check',
+        command: updateApplicationDetails,
+        outlined: true
+      },
+      {
+        label: 'Publish',
+        icon: 'pi pi-cloud-upload',
+        command: () => showPublishConfirmDialog.value = true,
+        severity: 'secondary',
+        outlined: true
+      },
+      {
+        label: 'Delete',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+        command: () => showDeleteConfirmDialog.value = true,
+        outlined: true
+      }
+    ]);
+  }
+});
 </script>
 
 <template>
   <div class="space-y-6">
     <div v-if="wallet && organization && application">
-      <!-- Breadcrumb -->
-      <Breadcrumb :home="breadcrumbHome" :model="breadcrumbItems" class="mb-4" />
-
-      <!-- Header -->
-      <div class="flex justify-between items-start mb-6">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900">{{ application.name }}</h1>
-        </div>
-        <div class="flex gap-2">
-          <Button @click="goBack" label="Back to Organization" icon="pi pi-arrow-left" text />
-          <Button @click="showDeleteConfirmDialog = true" icon="pi pi-trash" severity="danger" text />
-        </div>
-      </div>
 
       <!-- Application Cards Side-by-Side -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">

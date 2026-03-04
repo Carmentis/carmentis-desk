@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, ref} from 'vue';
+import {computed, ref, inject, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
@@ -23,6 +23,7 @@ const route = useRoute();
 const router = useRouter();
 const storageStore = useStorageStore();
 const onchainStore = useOnChainStore();
+const registerNavbarActions = inject<(actions: any[]) => void>('registerNavbarActions');
 await storageStore.initStorage();
 
 const walletId = computed(() => Number(route.params.walletId));
@@ -407,27 +408,58 @@ watch(nodeVbId, async (newNodeVbId) => {
  */
 
 const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
+
+// Register navbar actions - needs to be reactive to node state changes
+watch([isNodePublished, isNodeClaimed, isOwnedByWallet, nodeStakeInformation, hasUnstakingOperationInProgress], () => {
+  if (registerNavbarActions) {
+    const actions = [];
+
+    if (!node.value?.vbId && !isNodePublished.value && !isNodeClaimed.value) {
+      actions.push({
+        label: 'Claim Node',
+        icon: 'pi pi-lock',
+        command: openClaimDialog,
+        outlined: true
+      });
+    }
+
+    if (isOwnedByWallet.value && nodeStakeInformation.value === undefined) {
+      actions.push({
+        label: 'Stake Tokens',
+        icon: 'pi pi-wallet',
+        command: openStakeDialog,
+        outlined: true
+      });
+    }
+
+    if (isOwnedByWallet.value && nodeStakeInformation.value !== undefined) {
+      actions.push({
+        label: 'Stake More',
+        icon: 'pi pi-plus',
+        command: openStakeDialog,
+        outlined: true
+      });
+
+      if (!hasUnstakingOperationInProgress.value) {
+        actions.push({
+          label: 'Unstake',
+          icon: 'pi pi-minus',
+          severity: 'secondary',
+          command: openUnstakeDialog,
+          outlined: true
+        });
+      }
+    }
+
+    registerNavbarActions(actions);
+  }
+}, { immediate: true });
+
 </script>
 
 <template>
   <div class="space-y-6">
     <div v-if="node && wallet && organization">
-      <!-- Breadcrumb -->
-      <Breadcrumb :home="breadcrumbHome" :model="breadcrumbItems" class="mb-4 bg-transparent"  />
-
-      <!-- Header -->
-      <div class="flex justify-between items-start mb-6">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <i class="pi pi-sitemap text-5xl"></i>
-            {{ node.name }}
-          </h1>
-          <p class="text-sm text-gray-500 mt-1">Node ID: {{ node.id }}</p>
-        </div>
-        <div class="flex gap-2">
-          <Button @click="goBack" label="Back to Organization" icon="pi pi-arrow-left" text />
-        </div>
-      </div>
 
       <!-- Node Information and Status Cards -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

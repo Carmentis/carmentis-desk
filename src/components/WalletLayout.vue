@@ -2,6 +2,7 @@
 import {computed} from 'vue';
 import {useRoute} from 'vue-router';
 import WalletSidebar from './WalletSidebar.vue';
+import Navbar from "./Navbar.vue";
 
 const route = useRoute();
 
@@ -27,6 +28,9 @@ const walletId = computed(() => {
     <!-- Main Content -->
     <div class="flex-1">
       <div class="container mx-auto p-6">
+        <div class="mb-4">
+          <Navbar/>
+        </div>
         <router-view />
       </div>
     </div>

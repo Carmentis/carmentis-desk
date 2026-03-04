@@ -9,6 +9,7 @@ import SplitButton from 'primevue/splitbutton';
 import {useStorageStore, OrganizationEntity} from '../stores/storage';
 import {useOnChainStore} from '../stores/onchain';
 import {computedAsync} from "@vueuse/core";
+import MenuBar from 'primevue/menubar';
 import {
   CryptoEncoderFactory,
   SeedEncoder,
@@ -28,6 +29,7 @@ import WalletDetailTransactionsHistory from "./WalletDetailTransactionsHistory.v
 import {useWalletStore} from "../stores/walletStore.ts";
 import Message from 'primevue/message'
 import {useConfirm} from 'primevue/useconfirm';
+import type {MenuItem} from "primevue/menuitem";
 
 const toast = useToast();
 const route = useRoute();
@@ -234,28 +236,57 @@ async function refetchWallet() {
 function refetchBreakdown() {
   breakdownQuery.refetch();
 }
+
+const menuItems = computed<MenuItem[]>(() => [
+  {
+    label: 'Copy',
+    icon: 'pi pi-copy',
+    items: [
+      {
+        label: 'Copy public key',
+        icon: 'pi pi-copy',
+        command: () => copyToClipboard(pk.value, 'Public key'),
+      },
+      {
+        separator: true
+      },
+      {
+        label: 'Copy private key',
+        icon: 'pi pi-copy',
+        command: () => copyToClipboard(sk.value, 'Private key')
+      },
+      {
+        label: 'Copy seed',
+        icon: 'pi pi-copy',
+        command: () => copyToClipboard(wallet.value?.seed, 'Seed')
+      }
+    ]
+  },
+  {
+    label: 'Transfer',
+    icon: 'pi pi-send',
+    command: openTransferDialog
+  },
+  {
+    label: 'Delete Wallet',
+    icon: 'pi pi-trash',
+    command: deleteWallet
+  },
+
+  ])
+
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div>
     <div v-if="wallet">
-      <!-- Header -->
-      <div class="flex justify-between items-start mb-6">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <i class="pi pi-wallet text-5xl"></i>
-            {{ wallet.name }}
-          </h1>
-          <p class="text-sm text-gray-500 mt-1">Wallet ID: {{ wallet.id }}</p>
-        </div>
-        <div class="flex gap-2">
-          <Button @click="goBack" label="Back" icon="pi pi-arrow-left" text />
-          <Button @click="refetchWallet" label="Refresh" icon="pi pi-refresh" outlined />
-          <Button @click="deleteWallet" label="Delete" icon="pi pi-trash" severity="danger" outlined />
-        </div>
-      </div>
 
-      <div class="space-y-4">
+
+      <div class="space-y-4 ">
+        <!-- Actions Bar -->
+        <MenuBar :model="menuItems">
+        </MenuBar>
+
         <!-- Wallet Keys and Balance Cards Side-by-Side -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <!-- Wallet Keys Card -->
@@ -492,7 +523,7 @@ function refetchBreakdown() {
     </div>
 
     <!-- Not Found State -->
-    <div v-else class="text-center py-12">
+    <div v-else class="text-center py-12 px-4">
       <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
         <i class="pi pi-exclamation-triangle text-3xl text-red-600"></i>
       </div>
