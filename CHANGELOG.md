@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/Carmentis/carmentis-desk/compare/v1.5.0...v1.6.0) (2026-03-04)
+
+
+### Features
+
+* add Navbar component with contextual actions and integrate it across detail views ([e60b0d2](https://github.com/Carmentis/carmentis-desk/commit/e60b0d2f720beaa9e97a25160c8184e0611180e2))
+
 # [1.5.0](https://github.com/Carmentis/carmentis-desk/compare/v1.4.0...v1.5.0) (2026-03-03)
 
 
