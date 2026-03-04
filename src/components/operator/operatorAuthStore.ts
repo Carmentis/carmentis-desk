@@ -23,12 +23,15 @@ export const useOperatorAuthStore = defineStore('operatorAuth', () => {
 		return authStore.value.authenticatedOperators.some(op => op.operatorId === operatorId);
 	}
 	function addCredential(operatorId: number, walletId: number, authToken: string) {
+		console.log(`Adding credential for operator ${operatorId} with wallet ${walletId}`)
 		const authenticatedOperators = authStore.value.authenticatedOperators;
 		const credential = { walletId, authToken };
 		const operator = authenticatedOperators.find(op => op.operatorId === operatorId);
 		if (operator) {
+			console.log(`Adding credential to operator ${operator.operatorId} for wallet ${walletId}`)
 			operator.credentials.push(credential);
 		} else {
+			console.log(`Creating new operator credential for ${operatorId} with wallet ${walletId}`)
 			authStore.value.authenticatedOperators.push({operatorId, credentials: [credential]});
 		}
 	}

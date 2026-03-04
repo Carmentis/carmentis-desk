@@ -24,6 +24,7 @@ const toast = useToast();
 
 const route = useRoute();
 const operatorId = computed(() => Number(route.params.operatorId));
+console.log(`Current operator id: ${operatorId.value}`)
 const { data: challenge, isSuccess: isChallengedObtained, refetch: refetchChallenge } = useGetChallenge(operatorId.value);
 const {
   mutate: sendLoginRequest,
@@ -65,9 +66,12 @@ watch(isSuccess, () => {
   const response = loginResponse.value;
   if (response && selectedWallet.value) {
     const {token} = response;
+    const selectedWalletId = selectedWallet.value.id;
+    const operatorId = Number(route.params.operatorId);
+    console.log(`Addition of credential for operator ${operatorId} and wallet ${selectedWalletId}: ${token}`)
     authStore.addCredential(
-        selectedWallet.value.id,
-        operatorId.value,
+        operatorId,
+        selectedWalletId,
         token,
     )
     toast.add({severity:'success', summary:'Login successful', detail:'You can now access the operator dashboard', life: 3000});
