@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/Carmentis/carmentis-desk/compare/v1.6.0...v1.6.1) (2026-03-04)
+
+
+### Bug Fixes
+
+* addCredential for operator was called with two inverted parameters ([219a1ca](https://github.com/Carmentis/carmentis-desk/commit/219a1ca32eb662a77b9805b289e8c6d43ce059a8))
+
 # [1.6.0](https://github.com/Carmentis/carmentis-desk/compare/v1.5.0...v1.6.0) (2026-03-04)
 
 
