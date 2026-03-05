@@ -42,32 +42,8 @@ const node = computed(() =>
   organization.value?.nodes.find(n => n.id === nodeId.value)
 );
 
-const goBack = () => {
-  router.push(`/wallet/${walletId.value}/organization/${orgId.value}`);
-};
 
-// Breadcrumb
-const breadcrumbHome = ref({
-  icon: 'pi pi-home',
-  command: () => router.push('/')
-});
 
-const breadcrumbItems = computed(() => {
-  if (!wallet.value || !organization.value || !node.value) return [];
-  return [
-    {
-      label: wallet.value.name,
-      command: () => router.push(`/wallet/${walletId.value}`)
-    },
-    {
-      label: organization.value.name,
-      command: () => router.push(`/wallet/${walletId.value}/organization/${orgId.value}`)
-    },
-    {
-      label: node.value.name
-    }
-  ];
-});
 
 // node chain status (the chain on which the node is running)
 const chainNameOnWhichNodeIsConnected = computedAsync(async () => {
@@ -145,6 +121,19 @@ const nodeOwnerName = computedAsync(async () => {
   const orgVb = await provider.loadOrganizationVirtualBlockchain(nodeOwnerAccountId.value);
   const orgDesc = await orgVb.getDescription();
   return orgDesc.name;
+})
+
+const isNodeValidator = computedAsync(async () => {
+  if (!nodeVbId.value) return undefined;
+  if (!wallet.value) return undefined;
+  const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
+  const validatorNodeVb = await provider.loadValidatorNodeVirtualBlockchain(nodeVbId.value);
+  const validatorNodeState = await validatorNodeVb.getVirtualBlockchainState()
+  return validatorNodeState.internalState.lastKnownApprovalStatus
+})
+const isNodeValidatorMessage = computed(() => {
+  if (!isNodeValidator.value) return undefined;
+  return 'Validator'
 })
 
 const isNodeClaimed = computed(() => {
@@ -552,6 +541,13 @@ watch([isNodePublished, isNodeClaimed, isOwnedByWallet, nodeStakeInformation, ha
                   >
                     <i class="pi" :class="isNodePublished ? 'pi-check-circle' : 'pi-times-circle'"></i>
                     {{ isNodePublished ? 'Published' : 'Not Published' }}
+                  </div>
+                  <div
+                      class="px-3 py-1 rounded-full text-sm font-medium"
+                      :class="isNodeValidator ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
+                  >
+                    <i class="pi" :class="isNodeValidator ? 'pi-check-circle' : 'pi-times-circle'"></i>
+                    {{ isNodeValidator ? 'Validator' : 'Replicator' }}
                   </div>
                 </div>
               </div>
