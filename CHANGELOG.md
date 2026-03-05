@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/Carmentis/carmentis-desk/compare/v1.6.1...v1.7.0) (2026-03-05)
+
+
+### Features
+
+* add validator status indicator to NodeDetail component ([23cb735](https://github.com/Carmentis/carmentis-desk/commit/23cb73552b70f1c6732804f26ef70242a09fc2f0))
+
 ## [1.6.1](https://github.com/Carmentis/carmentis-desk/compare/v1.6.0...v1.6.1) (2026-03-04)
 
 
