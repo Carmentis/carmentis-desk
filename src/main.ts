@@ -21,7 +21,7 @@ app.use(ConfirmationService);
 app.use(VueQueryPlugin)
 app.use(PrimeVue, {
 	theme: {
-		preset: Aura
+		preset: Aura,
 	}
 });
 

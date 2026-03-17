@@ -13,6 +13,7 @@
   import { relaunch } from '@tauri-apps/plugin-process';
   import Menubar from "primevue/menubar";
   import type { MenuItem } from "primevue/menuitem";
+  import { useTheme } from "../composables/useTheme";
 
 
   const store = useStorageStore();
@@ -21,6 +22,10 @@
   const {organizations, operators} = storeToRefs(store);
   const confirm = useConfirm();
   const toast = useToast();
+
+  // Theme management
+  const { currentTheme, toggleTheme, initTheme } = useTheme();
+  await initTheme();
 
   // Operator creation dialog state
   const showOperatorDialog = ref(false);
@@ -178,6 +183,14 @@
       label: 'Settings',
       icon: 'pi pi-cog',
       items: [
+        {
+          label: computed(() => currentTheme.value === 'light' ? 'Dark Mode' : 'Light Mode').value,
+          icon: computed(() => currentTheme.value === 'light' ? 'pi pi-moon' : 'pi pi-sun').value,
+          command: () => toggleTheme()
+        },
+        {
+          separator: true
+        },
         {
           label: searchUpdateButtonMessage.value,
           icon: 'pi pi-refresh',

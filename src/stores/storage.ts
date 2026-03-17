@@ -330,6 +330,7 @@ export const useStorageStore = defineStore('storage', () => {
 
 	return {
 		initStorage,
+		getStorage,
 		organizations,
 		wallets: organizations,
 		addOrganization,
