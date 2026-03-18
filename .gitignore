@@ -1,5 +1,6 @@
-
+.idea
 .tauri/myappkey.key
+src-tauri/gen
 .vscode
 # Logs
 logs

@@ -22,6 +22,9 @@ app.use(VueQueryPlugin)
 app.use(PrimeVue, {
 	theme: {
 		preset: Aura,
+		options: {
+			darkModeSelector: '.invalid-dark-mode'
+		}
 	}
 });
 

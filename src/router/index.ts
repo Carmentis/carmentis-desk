@@ -7,6 +7,8 @@ import OrganizationDetailNew from '../components/OrganizationDetailNew.vue'
 import NodeDetail from '../components/NodeDetail.vue'
 import ApplicationDetail from '../components/ApplicationDetail.vue'
 import OperatorDetail from '../components/operator/OperatorDetail.vue'
+import Connect from "../components/Connect.vue";
+import WalletRequest from "../components/walletRequest/WalletRequest.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -15,6 +17,11 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: Home
+    },
+    {
+      path: '/connect/walletRequest',
+      name: 'connect/walletRequest',
+      component: WalletRequest
     },
     {
       path: '/wallet/new',
@@ -51,6 +58,10 @@ const router = createRouter({
           component: ApplicationDetail
         }
       ]
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/'
     }
   ]
 })

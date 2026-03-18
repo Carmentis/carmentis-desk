@@ -9,6 +9,10 @@
     "core:default",
     "opener:default",
     "store:default",
-    "process:default"
+    "process:default",
+    "deep-link:default",
+    "core:window:allow-unminimize",
+    "core:window:allow-show",
+    "core:window:allow-set-focus"
   ]
 }

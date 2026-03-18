@@ -10,6 +10,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@cmts-dev/carmentis-relay-client": "^1.2.0",
     "@cmts-dev/carmentis-sdk": "^1.20.1",
     "@cosmjs/tendermint-rpc": "^0.38.1",
     "@primeuix/themes": "^2.0.3",
@@ -18,6 +19,7 @@
     "@tailwindcss/postcss": "^4.2.1",
     "@tanstack/vue-query": "^5.92.9",
     "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/plugin-deep-link": "~2.4.7",
     "@tauri-apps/plugin-opener": "^2.5.3",
     "@tauri-apps/plugin-process": "~2.3.1",
     "@tauri-apps/plugin-store": "~2.4.2",
