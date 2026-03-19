@@ -44,4 +44,6 @@ function reject() {
   <div class="flex items-center justify-center h-full p-4">
     Event approval
   </div>
+  <p>{{props.walletRequest.serverUrl}}</p>
+  <p>{{props.walletRequest.anchorRequestId}}</p>
 </template>

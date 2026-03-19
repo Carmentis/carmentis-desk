@@ -42,6 +42,7 @@ responder.onClose(() => {
 })
 
 responder.onMessage((message) => {
+  console.log("Received message:", message);
   const parseRequest = v.safeParse(WalletRequestSchema, message);
   if (parseRequest.success) {
     walletRequest.value = parseRequest.output;
