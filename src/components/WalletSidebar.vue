@@ -18,6 +18,13 @@ const wallet = computed(() =>
 
 const chainEndpoint = computed(() => wallet.value?.nodeEndpoint || 'Not connected');
 
+// Track wallet expansion
+const walletExpanded = ref(true);
+
+function toggleWallet() {
+  walletExpanded.value = !walletExpanded.value;
+}
+
 // Track which organizations are expanded
 const expandedOrgs = ref<Set<number>>(new Set());
 
@@ -110,73 +117,77 @@ function isApplicationActive(orgId: number, appId: number) {
 
       <!-- Wallet Item -->
       <div
-        @click="navigateToWallet"
-        class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors mb-2"
+        class="flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors mb-1"
         :class="isWalletActive() ? 'bg-blue-100 text-blue-900 font-semibold' : 'hover:bg-gray-100 text-gray-700'"
       >
-        <i class="pi pi-wallet text-lg"></i>
-        <span class="text-sm">{{ wallet.name }}</span>
+        <div @click="navigateToWallet" class="flex items-center gap-2 flex-1 min-w-0">
+          <i class="pi pi-wallet text-base flex-shrink-0"></i>
+          <span class="text-sm truncate">{{ wallet.name }}</span>
+        </div>
+        <button
+          v-if="wallet.organizations.length > 0"
+          @click.stop="toggleWallet"
+          class="p-1 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
+        >
+          <i
+            class="pi text-xs"
+            :class="walletExpanded ? 'pi-chevron-down' : 'pi-chevron-right'"
+          ></i>
+        </button>
       </div>
 
-      <!-- Organizations -->
-      <div class="space-y-1">
+      <!-- Organizations (children of wallet) -->
+      <div v-if="walletExpanded" class="ml-3 border-l-2 border-gray-200 pl-2 space-y-1 mb-1">
         <div v-for="org in wallet.organizations" :key="org.id" class="space-y-1">
+
           <!-- Organization Header -->
           <div
             class="flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors"
             :class="isOrganizationActive(org.id) ? 'bg-blue-100 text-blue-900 font-semibold' : 'hover:bg-gray-100 text-gray-700'"
           >
             <div @click="navigateToOrganization(org.id)" class="flex items-center gap-2 flex-1 min-w-0">
-              <i class="pi pi-building text-sm flex-shrink-0"></i>
+              <i class="pi pi-building text-xs flex-shrink-0"></i>
               <span class="text-sm truncate">{{ org.name }}</span>
             </div>
             <button
+              v-if="org.nodes.length > 0 || org.applications.length > 0"
               @click.stop="toggleOrg(org.id)"
-              class="p-1 hover:bg-gray-200 rounded transition-colors"
+              class="p-1 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
             >
               <i
-                class="pi text-xs transition-transform"
+                class="pi text-xs"
                 :class="isOrgExpanded(org.id) ? 'pi-chevron-down' : 'pi-chevron-right'"
               ></i>
             </button>
           </div>
 
-          <!-- Organization Sub-items (Nodes & Applications) -->
-          <div v-if="isOrgExpanded(org.id)" class="ml-4 space-y-1 border-l-2 border-gray-200 pl-2">
-            <!-- Nodes Section -->
-            <div v-if="org.nodes.length > 0" class="space-y-1">
-              <div class="px-3 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Nodes
-              </div>
-              <div
-                v-for="node in org.nodes"
-                :key="node.id"
-                @click="navigateToNode(org.id, node.id)"
-                class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors"
-                :class="isNodeActive(org.id, node.id) ? 'bg-blue-100 text-blue-900 font-semibold' : 'hover:bg-gray-100 text-gray-600'"
-              >
-                <i class="pi pi-sitemap text-xs"></i>
-                <span class="text-sm truncate">{{ node.name }}</span>
-              </div>
+          <!-- Org Sub-items (Nodes & Applications) -->
+          <div v-if="isOrgExpanded(org.id)" class="ml-3 border-l-2 border-gray-200 pl-2 space-y-1">
+            <!-- Nodes -->
+            <div
+              v-for="node in org.nodes"
+              :key="node.id"
+              @click="navigateToNode(org.id, node.id)"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer transition-colors"
+              :class="isNodeActive(org.id, node.id) ? 'bg-blue-100 text-blue-900 font-semibold' : 'hover:bg-gray-100 text-gray-600'"
+            >
+              <i class="pi pi-sitemap text-xs flex-shrink-0"></i>
+              <span class="text-xs truncate">{{ node.name }}</span>
             </div>
 
-            <!-- Applications Section -->
-            <div v-if="org.applications.length > 0" class="space-y-1 mt-2">
-              <div class="px-3 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Applications
-              </div>
-              <div
-                v-for="app in org.applications"
-                :key="app.id"
-                @click="navigateToApplication(org.id, app.id)"
-                :class="isApplicationActive(org.id, app.id) ? 'bg-blue-100 text-blue-900 font-semibold' : 'hover:bg-gray-100 text-gray-600'"
-                class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors hover:bg-gray-100 text-gray-600"
-              >
-                <i class="pi pi-box text-xs"></i>
-                <span class="text-sm truncate">{{ app.name }}</span>
-              </div>
+            <!-- Applications -->
+            <div
+              v-for="app in org.applications"
+              :key="app.id"
+              @click="navigateToApplication(org.id, app.id)"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer transition-colors"
+              :class="isApplicationActive(org.id, app.id) ? 'bg-blue-100 text-blue-900 font-semibold' : 'hover:bg-gray-100 text-gray-600'"
+            >
+              <i class="pi pi-box text-xs flex-shrink-0"></i>
+              <span class="text-xs truncate">{{ app.name }}</span>
             </div>
           </div>
+
         </div>
       </div>
     </div>
