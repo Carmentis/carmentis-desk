@@ -307,6 +307,9 @@ const menuItems = computed<MenuItem[]>(() => [
                 />
               </div>
             </template>
+            <template #subtitle>
+              <p class="text-sm text-surface-500">Your cryptographic key pair and seed. Keep the private key and seed strictly confidential — anyone with access to them can control this wallet.</p>
+            </template>
             <template #content>
               <div class="space-y-4">
                 <div>
@@ -333,6 +336,9 @@ const menuItems = computed<MenuItem[]>(() => [
                 <span>Balance</span>
               </div>
             </template>
+            <template #subtitle>
+              <p class="text-sm text-surface-500">Your on-chain token holdings broken down by spendable, vested, and staked amounts.</p>
+            </template>
             <template #content>
               <div class="text-center py-12">
                 <i class="pi pi-exclamation-circle text-3xl text-amber-500 mb-2"></i>
@@ -351,6 +357,9 @@ const menuItems = computed<MenuItem[]>(() => [
                 <i class="pi pi-wallet text-xl"></i>
                 <span>Balance</span>
               </div>
+            </template>
+            <template #subtitle>
+              <p class="text-sm text-surface-500">Your on-chain token holdings broken down by spendable, vested, and staked amounts.</p>
             </template>
             <template #content>
               <div class="grid grid-cols-1 gap-4">
@@ -386,6 +395,9 @@ const menuItems = computed<MenuItem[]>(() => [
                 </div>
               </div>
             </template>
+            <template #subtitle>
+              <p class="text-sm text-surface-500">Your on-chain token holdings broken down by spendable, vested, and staked amounts.</p>
+            </template>
             <template #content>
               <div class="grid grid-cols-1 gap-4">
                 <div class="bg-gray-50 rounded-lg p-4">
@@ -418,6 +430,9 @@ const menuItems = computed<MenuItem[]>(() => [
                 <Button @click="openImportOrgDialog" label="Import Org" icon="pi pi-download" size="small" outlined />
               </div>
             </div>
+          </template>
+          <template #subtitle>
+            <p class="text-sm text-surface-500">Legal entities registered on the Carmentis network. Each organization can run validator nodes and deploy applications.</p>
           </template>
           <template #content>
             <div v-if="wallet.organizations.length === 0" class="text-center py-8">
