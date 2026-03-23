@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {useRoute, useRouter} from "vue-router";
 import Button from 'primevue/button';
+import Card from 'primevue/card';
 import {onMounted, ref} from "vue";
 import {Responder} from "@cmts-dev/carmentis-relay-client";
 import * as v from 'valibot';
@@ -83,9 +84,8 @@ onMounted(async () => {
 })
 </script>
 <template>
-  <Button label="Home" @click="closeConnect" />
-
-  <div v-if="walletRequest">
+  <!-- Full-page layout when a request is active -->
+  <div v-if="walletRequest" class="min-h-screen">
     <WalletRequestAuthByPublicKey
         @approve="(pk, sig, chal) => approveAuthenticationRequest(pk, chal, sig)"
         :wallet-request="walletRequest"
@@ -95,5 +95,40 @@ onMounted(async () => {
         :wallet-request="walletRequest"
         v-else-if="walletRequest.type === WalletRequestType.DATA_APPROVAL"
     />
+  </div>
+
+  <!-- Waiting state -->
+  <div v-else class="min-h-screen bg-surface-50 p-4">
+    <div class="max-w-2xl mx-auto flex flex-col gap-4">
+
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div>
+          <span class="text-sm font-medium text-surface-600">Connected to relay</span>
+        </div>
+        <Button label="Disconnect" icon="pi pi-times" severity="secondary" size="small" outlined @click="closeConnect" />
+      </div>
+
+      <Card>
+        <template #content>
+          <div class="flex flex-col items-center gap-6 py-8">
+            <div class="w-16 h-16 rounded-full bg-primary-50 flex items-center justify-center">
+              <i class="pi pi-spin pi-spinner text-primary text-2xl"></i>
+            </div>
+            <div class="text-center">
+              <h2 class="text-lg font-semibold text-surface-800 mb-1">Waiting for a request</h2>
+              <p class="text-sm text-surface-500">Keep this window open. A request will appear here once the application sends one.</p>
+            </div>
+            <div class="w-full border border-surface-200 rounded-lg p-3 bg-surface-50">
+              <div class="flex items-center gap-2 text-xs text-surface-500">
+                <i class="pi pi-server"></i>
+                <span class="font-mono truncate">{{ relay }}</span>
+              </div>
+            </div>
+          </div>
+        </template>
+      </Card>
+
+    </div>
   </div>
 </template>

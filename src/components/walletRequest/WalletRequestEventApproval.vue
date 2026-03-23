@@ -4,6 +4,7 @@ import {
   BytesToBase64Encoder,
   CryptoEncoderFactory, EncoderFactory, HCVPkeEncoder, Microblock, ProviderFactory,
   PublicKeyEncryptionSchemeId,
+  SectionLabel,
   SeedEncoder,
   SignatureSchemeId,
   WalletCrypto, WalletInteractiveAnchoringRequestType, WalletInteractiveAnchoringResponseApprovalData,
@@ -13,6 +14,13 @@ import {
 } from "@cmts-dev/carmentis-sdk/client";
 import axios from "axios";
 import Card from "primevue/card";
+import Button from "primevue/button";
+import Skeleton from "primevue/skeleton";
+import Divider from "primevue/divider";
+import Accordion from "primevue/accordion";
+import AccordionPanel from "primevue/accordionpanel";
+import AccordionHeader from "primevue/accordionheader";
+import AccordionContent from "primevue/accordioncontent";
 import {computed, onMounted, ref} from "vue";
 import {useStorageStore} from "../../stores/storage.ts";
 import {storeToRefs} from "pinia";
@@ -32,7 +40,6 @@ const props = defineProps<{
   walletRequest: WalletRequestDataApproval
 }>();
 
-
 // we use two emits here: approve and reject.
 const emit = defineEmits<{
   approve: []
@@ -40,6 +47,8 @@ const emit = defineEmits<{
 }>();
 
 // we define below the state of the component
+const isLoading = ref(true);
+const loadError = ref<string | null>(null);
 const isProcessing = ref(false);
 const approvalData = ref<WalletInteractiveAnchoringResponseApprovalData | null>(null);
 const microblockToApprove = ref<Microblock | null>(null);
@@ -146,8 +155,6 @@ onMounted(async () => {
     microblockToApprove.value = mb;
     console.log("Approval data:", approvalData.value);
 
-
-
     // we compute the application ledger
     const nodeUrl = 'https://ares.testnet.carmentis.io'
     const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(nodeUrl);
@@ -163,84 +170,249 @@ onMounted(async () => {
     await applicationLedger.appendMicroBlock(mb);
     virtualBlockchainContainingMicroblock.value = applicationLedger;
 
+    isLoading.value = false;
   } catch (e) {
     console.error("Error obtaining approval data:", e);
-    reject()
+    loadError.value = e instanceof Error ? e.message : String(e);
+    isLoading.value = false;
   }
 })
 </script>
 
 <template>
-  <Card>
-    <template #content>
-      <h1>Event approval request</h1>
-      <p>You have received an event approval request {{props.walletRequest.serverUrl}}</p>
-      <p>{{props.walletRequest.anchorRequestId}}</p>
-    </template>
-  </Card>
+  <div class="min-h-screen bg-surface-50 flex flex-col">
 
-
-
-  <div class="flex flex-col gap-2">
-    <div>
-      <WalletRequestEventApprovalWallet/>
+    <!-- Top bar -->
+    <div class="bg-white border-b border-surface-200 px-6 py-4 flex items-center justify-between gap-4 flex-shrink-0">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-9 h-9 rounded-full bg-primary-50 flex items-center justify-center flex-shrink-0">
+          <i class="pi pi-file-check text-primary"></i>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-sm font-semibold text-surface-800">Event Approval Request</h1>
+          <div class="flex items-center gap-3 mt-0.5">
+            <span class="text-xs text-surface-500 font-mono truncate">{{ props.walletRequest.serverUrl }}</span>
+            <span class="text-surface-300">·</span>
+            <span class="text-xs text-surface-400 font-mono truncate">{{ props.walletRequest.anchorRequestId }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <span class="hidden sm:inline-flex text-xs font-medium px-2 py-1 rounded-full bg-amber-100 text-amber-700">Pending</span>
+        <Button label="Reject" icon="pi pi-times" severity="secondary" size="small" outlined :disabled="isProcessing || isLoading" @click="reject" />
+        <Button label="Approve" icon="pi pi-check" size="small" :loading="isProcessing" :disabled="!microblockToApprove || !!loadError" @click="approve" />
+      </div>
     </div>
 
-    <div v-if="microblockToApprove">
-      <Card>
-        <template #content >
-          <div class="flex gap-4 flex-col">
-            <div>
-              <h1 class="text-xl font-bold">Microblock to approve</h1>
-              <p>Below is presented the microblock the application wants you to approve.</p>
-            </div>
+    <!-- Body -->
+    <div class="flex-1 overflow-auto p-6">
 
-            <div>
-              <h2 class="text-lg font-bold">Microblock Header</h2>
-              <p>Hash: {{microblockToApprove.getHash().encode()}}</p>
-              <p>Height: {{microblockToApprove.getHeight()}}</p>
+      <!-- Loading -->
+      <div v-if="isLoading" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <template #content>
+            <div class="flex items-center gap-2 mb-4">
+              <i class="pi pi-spin pi-spinner text-primary text-sm"></i>
+              <span class="text-sm text-surface-500">Fetching approval data…</span>
             </div>
+            <div class="flex flex-col gap-2">
+              <Skeleton height="1.5rem" width="50%" />
+              <Skeleton height="1rem" width="80%" />
+              <Skeleton height="1rem" width="65%" />
+              <Skeleton height="4rem" class="mt-2" />
+            </div>
+          </template>
+        </Card>
+        <Card>
+          <template #content>
+            <div class="flex flex-col gap-2">
+              <Skeleton height="1.5rem" width="40%" />
+              <Skeleton height="1rem" width="70%" />
+              <Skeleton height="1rem" width="55%" />
+            </div>
+          </template>
+        </Card>
+      </div>
 
+      <!-- Error -->
+      <Card v-else-if="loadError">
+        <template #content>
+          <div class="flex items-start gap-3 text-red-700 py-2">
+            <i class="pi pi-times-circle text-xl flex-shrink-0 mt-0.5"></i>
             <div>
-              <h2 class="text-lg font-bold">Microblock Body</h2>
-              <div class="flex flex-col gap-2">
-                <div v-for="section of microblockToApprove.getAllSections()">
-                  <code class="block p-2 bg-gray-100 rounded-md overflow-hidden">
-                    {{JSON.stringify(section)}}
-                  </code>
+              <p class="font-semibold text-sm">Failed to load approval data</p>
+              <p class="text-xs mt-1 text-red-600 font-mono break-all">{{ loadError }}</p>
+            </div>
+          </div>
+        </template>
+      </Card>
+
+      <!-- Main content -->
+      <div v-else-if="microblockToApprove" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+
+        <!-- Left column: wallet + microblock sections -->
+        <div class="flex flex-col gap-4">
+
+          <!-- Wallet selector -->
+          <WalletRequestEventApprovalWallet />
+
+          <!-- Microblock card -->
+          <Card>
+            <template #content>
+              <div class="flex flex-col gap-4">
+
+                <!-- Microblock metadata -->
+                <div>
+                  <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide mb-3">Microblock</p>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="bg-surface-50 rounded-lg p-3">
+                      <p class="text-xs text-surface-400 mb-1">Height</p>
+                      <p class="text-sm font-bold text-surface-800">{{ microblockToApprove.getHeight() }}</p>
+                    </div>
+                    <div class="bg-surface-50 rounded-lg p-3 col-span-2">
+                      <p class="text-xs text-surface-400 mb-1">Hash</p>
+                      <p class="text-xs font-mono text-surface-600 break-all">{{ microblockToApprove.getHash().encode() }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Divider class="my-0" />
+
+                <!-- Sections accordion -->
+                <div>
+                  <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide mb-3">
+                    Sections
+                    <span class="ml-2 text-xs font-normal bg-surface-100 text-surface-600 px-1.5 py-0.5 rounded-full">
+                      {{ microblockToApprove.getAllSections().length }}
+                    </span>
+                  </p>
+                  <Accordion>
+                    <AccordionPanel
+                      v-for="(section, i) of microblockToApprove.getAllSections()"
+                      :key="i"
+                      :value="String(i)"
+                    >
+                      <AccordionHeader>
+                        <div class="flex items-center gap-2">
+                          <span class="w-5 h-5 rounded-full bg-primary-50 text-primary text-xs flex items-center justify-center font-semibold flex-shrink-0">
+                            {{ i + 1 }}
+                          </span>
+                          <span class="text-sm font-medium text-surface-700">
+                            {{ SectionLabel.getSectionLabelFromSection(section) }}
+                          </span>
+                          <span class="ml-auto text-xs text-surface-400 font-mono mr-2">type {{ section.type }}</span>
+                        </div>
+                      </AccordionHeader>
+                      <AccordionContent>
+                        <pre class="text-xs font-mono text-surface-600 whitespace-pre-wrap break-all bg-surface-50 rounded-lg p-3">{{ JSON.stringify(section, null, 2) }}</pre>
+                      </AccordionContent>
+                    </AccordionPanel>
+                  </Accordion>
+                </div>
+
+              </div>
+            </template>
+          </Card>
+        </div>
+
+        <!-- Right column: virtual blockchain info + navigator -->
+        <div class="flex flex-col gap-4" v-if="virtualBlockchainContainingMicroblock">
+
+          <!-- VB identity card -->
+          <Card>
+            <template #content>
+              <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide mb-3">Virtual Blockchain</p>
+              <div class="bg-surface-50 rounded-lg p-3 mb-4">
+                <p class="text-xs text-surface-400 mb-1">Identifier</p>
+                <p class="text-xs font-mono text-surface-600 break-all">{{ virtualBlockchainContainingMicroblock.getId() }}</p>
+              </div>
+
+              <!-- Actors -->
+              <div class="mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="pi pi-users text-surface-400 text-xs"></i>
+                  <p class="text-xs font-semibold text-surface-600">
+                    Actors
+                    <span class="ml-1.5 text-xs font-normal bg-surface-100 text-surface-500 px-1.5 py-0.5 rounded-full">
+                      {{ virtualBlockchainContainingMicroblock.getAllActors().length }}
+                    </span>
+                  </p>
+                </div>
+                <div v-if="virtualBlockchainContainingMicroblock.getAllActors().length === 0" class="text-xs text-surface-400 italic pl-2">
+                  No actors defined
+                </div>
+                <div v-else class="flex flex-col gap-1.5">
+                  <div
+                    v-for="(actor, idx) of virtualBlockchainContainingMicroblock.getAllActors()"
+                    :key="idx"
+                    class="flex items-center justify-between px-3 py-2 bg-surface-50 rounded-lg border border-surface-100"
+                  >
+                    <div class="flex items-center gap-2">
+                      <div class="w-6 h-6 rounded-full bg-primary-100 text-primary text-xs flex items-center justify-center font-bold flex-shrink-0">
+                        {{ String(actor.name).charAt(0).toUpperCase() }}
+                      </div>
+                      <span class="text-sm font-medium text-surface-700">{{ actor.name }}</span>
+                    </div>
+                    <span
+                      class="text-xs px-2 py-0.5 rounded-full"
+                      :class="actor.subscribed ? 'bg-green-100 text-green-700' : 'bg-surface-100 text-surface-500'"
+                    >
+                      {{ actor.subscribed ? 'Subscribed' : 'Unsubscribed' }}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-        </template>
-      </Card>
+              <!-- Channels -->
+              <div>
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="pi pi-comments text-surface-400 text-xs"></i>
+                  <p class="text-xs font-semibold text-surface-600">
+                    Channels
+                    <span class="ml-1.5 text-xs font-normal bg-surface-100 text-surface-500 px-1.5 py-0.5 rounded-full">
+                      {{ virtualBlockchainContainingMicroblock.getAllChannels().length }}
+                    </span>
+                  </p>
+                </div>
+                <div v-if="virtualBlockchainContainingMicroblock.getAllChannels().length === 0" class="text-xs text-surface-400 italic pl-2">
+                  No channels defined
+                </div>
+                <div v-else class="flex flex-col gap-1.5">
+                  <div
+                    v-for="(channel, idx) of virtualBlockchainContainingMicroblock.getAllChannels()"
+                    :key="idx"
+                    class="flex items-center justify-between px-3 py-2 bg-surface-50 rounded-lg border border-surface-100"
+                  >
+                    <div class="flex items-center gap-2">
+                      <i class="pi text-sm" :class="channel.isPrivate ? 'pi-lock text-amber-500' : 'pi-lock-open text-green-500'"></i>
+                      <span class="text-sm font-medium text-surface-700">{{ channel.name }}</span>
+                    </div>
+                    <span
+                      class="text-xs px-2 py-0.5 rounded-full"
+                      :class="channel.isPrivate ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'"
+                    >
+                      {{ channel.isPrivate ? 'Private' : 'Public' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </Card>
 
+          <!-- Record navigator card -->
+          <Card>
+            <template #content>
+              <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide mb-3">History</p>
+              <VirtualBlockchainRecordNavigator
+                :application-ledger="virtualBlockchainContainingMicroblock"
+                :account-crypto="accountCrypto"
+              />
+            </template>
+          </Card>
+        </div>
+
+      </div>
     </div>
 
-    <div v-if="virtualBlockchainContainingMicroblock">
-      <Card>
-        <template #title>
-          <h1 class="text-xl font-bold">Virtual Blockchain</h1>
-        </template>
-        <template #subtitle>
-          <p class="text-sm text-gray-600">ID: {{ virtualBlockchainContainingMicroblock.getId() }}</p>
-        </template>
-        <template #content>
-          <div class="flex flex-col gap-4">
-            <div>
-              <h2 class="text-lg font-bold mb-2">Records</h2>
-              <p class="text-sm text-gray-600 mb-4">
-                Navigate through the microblocks to view the records stored in this virtual blockchain.
-              </p>
-            </div>
-            <VirtualBlockchainRecordNavigator
-              :application-ledger="virtualBlockchainContainingMicroblock"
-              :account-crypto="accountCrypto"
-            />
-          </div>
-        </template>
-      </Card>
-    </div>
   </div>
 </template>
