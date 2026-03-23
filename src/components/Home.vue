@@ -14,6 +14,7 @@
   import Menubar from "primevue/menubar";
   import type { MenuItem } from "primevue/menuitem";
   import { useTheme } from "../composables/useTheme";
+  import HelpDialog from "./HelpDialog.vue";
 
 
   const store = useStorageStore();
@@ -31,6 +32,9 @@
   const showOperatorDialog = ref(false);
   const newOperatorName = ref('');
   const newOperatorEndpoint = ref('');
+
+  // Help dialog
+  const showHelpDialog = ref(false);
 
   // Search filter
   const searchQuery = ref('');
@@ -178,6 +182,11 @@
           visible: operators.value.length > 0
         }
       ]
+    },
+    {
+      label: 'Help',
+      icon: 'pi pi-question-circle',
+      command: () => { showHelpDialog.value = true; }
     },
     {
       label: 'Settings',
@@ -376,6 +385,8 @@
         </template>
       </Card>
     </div>
+
+    <HelpDialog v-model:visible="showHelpDialog" />
 
     <!-- Operator Creation Dialog -->
     <Dialog v-model:visible="showOperatorDialog" modal header="Add Operator" :style="{ width: '450px' }">
