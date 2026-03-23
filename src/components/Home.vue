@@ -184,10 +184,11 @@
       ]
     },
     {
-      label: 'Help',
-      icon: 'pi pi-question-circle',
-      command: () => { showHelpDialog.value = true; }
+      label: 'Proof Checker',
+      icon: 'pi pi-verified',
+      command: () => router.push('/proof-checker')
     },
+
     {
       label: 'Settings',
       icon: 'pi pi-cog',
@@ -206,7 +207,12 @@
           command: () => checkForUpdate()
         }
       ]
-    }
+    },
+    {
+      label: 'Help',
+      icon: 'pi pi-question-circle',
+      command: () => { showHelpDialog.value = true; }
+    },
   ]);
 
   const isSearchingForUpdate = ref(false);

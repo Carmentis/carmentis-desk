@@ -10,6 +10,7 @@ import WalletAppLedgerExplorer from '../components/WalletAppLedgerExplorer.vue'
 import OperatorDetail from '../components/operator/OperatorDetail.vue'
 import Connect from "../components/Connect.vue";
 import WalletRequest from "../components/walletRequest/WalletRequest.vue";
+import ProofChecker from "../components/checker/ProofChecker.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -23,6 +24,11 @@ const router = createRouter({
       path: '/connect/walletRequest',
       name: 'connect/walletRequest',
       component: WalletRequest
+    },
+    {
+      path: '/proof-checker',
+      name: 'proof-checker',
+      component: ProofChecker
     },
     {
       path: '/wallet/new',
