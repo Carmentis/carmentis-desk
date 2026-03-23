@@ -172,29 +172,31 @@ function shortId(id: string) {
         <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide px-1 mb-1">
           App Ledgers
         </p>
-        <div
+        <Card
           v-for="(ledger, idx) in participation.appLedgers"
           :key="ledger.id"
-          class="border rounded-lg p-3 cursor-pointer transition-all"
+          class="rounded-lg cursor-pointer transition-all"
           :class="selectedIdx === idx
             ? 'border-primary bg-primary-50 shadow-sm'
             : 'border-surface-200 bg-white hover:border-surface-300 hover:bg-surface-50'"
           @click="selectLedger(idx)"
         >
-          <div class="flex items-center gap-2 mb-2">
-            <div
-              class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-              :class="selectedIdx === idx ? 'bg-primary text-white' : 'bg-surface-100 text-surface-500'"
-            >
-              {{ idx + 1 }}
-            </div>
-            <span class="text-xs font-mono text-surface-700 truncate">{{ shortId(ledger.id) }}</span>
-          </div>
-          <div v-if="ledger.operatorEndpoint" class="flex items-center gap-1.5 text-xs text-surface-500 truncate">
-            <i class="pi pi-server text-surface-300 flex-shrink-0"></i>
-            <span class="truncate">{{ ledger.operatorEndpoint }}</span>
-          </div>
-        </div>
+         <template #content>
+           <div class="flex items-center gap-2 mb-2">
+             <div
+                 class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                 :class="'bg-surface-100 text-surface-500'"
+             >
+               {{ idx + 1 }}
+             </div>
+             <span class="text-xs font-mono text-surface-700 truncate">{{ shortId(ledger.id) }}</span>
+           </div>
+           <div v-if="ledger.operatorEndpoint" class="flex items-center gap-1.5 text-xs text-surface-500 truncate">
+             <i class="pi pi-server text-surface-300 flex-shrink-0"></i>
+             <span class="truncate">{{ ledger.operatorEndpoint }}</span>
+           </div>
+         </template>
+        </Card>
       </div>
 
       <!-- Detail panel (right, 2 cols) -->

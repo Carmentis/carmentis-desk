@@ -99,7 +99,7 @@ const expandedStrings = ref(new Set<string>());
 </script>
 
 <template>
-  <div class="font-mono text-xs rounded-lg border border-surface-200 overflow-auto bg-surface-50">
+  <div class="font-mono text-xs rounded-lg shadow border-surface-200 overflow-auto bg-surface-50">
     <template v-if="nodes.length === 0">
       <span class="block px-3 py-2 text-surface-400 italic">empty</span>
     </template>
