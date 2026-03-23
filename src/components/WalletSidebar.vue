@@ -8,6 +8,10 @@ const props = defineProps<{
   walletId: number;
 }>();
 
+const emit = defineEmits<{
+  (e: 'navigate'): void;
+}>();
+
 const route = useRoute();
 const router = useRouter();
 const storageStore = useStorageStore();
@@ -41,22 +45,27 @@ function isOrgExpanded(orgId: number) {
 }
 
 function navigateToHome() {
+  emit('navigate');
   router.push(`/`);
 }
 
 function navigateToWallet() {
+  emit('navigate');
   router.push(`/wallet/${props.walletId}`);
 }
 
 function navigateToOrganization(orgId: number) {
+  emit('navigate');
   router.push(`/wallet/${props.walletId}/organization/${orgId}`);
 }
 
 function navigateToApplication(orgId: number, appId: number) {
+  emit('navigate');
   router.push(`/wallet/${props.walletId}/organization/${orgId}/application/${appId}`);
 }
 
 function navigateToNode(orgId: number, nodeId: number) {
+  emit('navigate');
   router.push(`/wallet/${props.walletId}/organization/${orgId}/node/${nodeId}`);
 }
 
@@ -80,7 +89,7 @@ function isApplicationActive(orgId: number, appId: number) {
 </script>
 
 <template>
-  <div v-if="wallet" class="h-screen bg-gray-50 border-r border-gray-200 overflow-y-auto flex flex-col fixed w-64">
+  <div v-if="wallet" class="h-full bg-gray-50 border-r border-gray-200 overflow-y-auto flex flex-col">
     <div class="flex-1 py-4 pr-4">
       <!-- Chain Connection Card at Top -->
       <div class="mb-4">

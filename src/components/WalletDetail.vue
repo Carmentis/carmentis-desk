@@ -382,12 +382,12 @@ const menuItems = computed<MenuItem[]>(() => [
           <!-- Balance Card -->
           <Card v-else-if="breakdownQuery.data.value">
             <template #title>
-              <div class="flex items-center justify-between">
+              <div class="flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-2">
                   <i class="pi pi-wallet text-xl"></i>
                   <span>Balance</span>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                   <span v-if="breakdownQuery.dataUpdatedAt.value" class="text-xs text-gray-500">
                     {{ new Date(breakdownQuery.dataUpdatedAt.value).toLocaleString() }}
                   </span>
@@ -399,7 +399,7 @@ const menuItems = computed<MenuItem[]>(() => [
               <p class="text-sm text-surface-500">Your on-chain token holdings broken down by spendable, vested, and staked amounts.</p>
             </template>
             <template #content>
-              <div class="grid grid-cols-1 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div class="bg-gray-50 rounded-lg p-4">
                   <div class="text-sm text-gray-600 font-medium mb-1">Spendable</div>
                   <div class="text-2xl font-bold text-gray-900">{{ breakdownQuery.data.value.getSpendable() }}</div>
@@ -420,12 +420,12 @@ const menuItems = computed<MenuItem[]>(() => [
         <!-- Organizations Card -->
         <Card>
           <template #title>
-            <div class="flex items-center justify-between">
+            <div class="flex flex-wrap items-center justify-between gap-2">
               <div class="flex items-center gap-2">
                 <i class="pi pi-building text-xl"></i>
                 <span>Organizations ({{ wallet.organizations.length }})</span>
               </div>
-              <div class="flex gap-2">
+              <div class="flex flex-wrap gap-2">
                 <Button @click="openCreateOrgDialog" label="Create Org" icon="pi pi-plus" size="small" />
                 <Button @click="openImportOrgDialog" label="Import Org" icon="pi pi-download" size="small" outlined />
               </div>
