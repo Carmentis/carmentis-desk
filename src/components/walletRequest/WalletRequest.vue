@@ -22,6 +22,7 @@ const query = route.query;
 const symKey: string = query.symKey as string;
 const relay: string = query.relay as string;
 const sessionId: string = query.sessionId as string;
+const wantsToClose = ref(false);
 
 
 const responder = Responder.create(
@@ -31,6 +32,7 @@ const responder = Responder.create(
 );
 
 function closeConnect() {
+  wantsToClose.value = true;
   responder.close();
   router.push('/')
 }
@@ -38,6 +40,10 @@ function closeConnect() {
 
 const walletRequest = ref<WalletRequest | null>(null);
 responder.onClose(() => {
+  // we want to display a particular message if the connection with the relay is broken due to unexpected reasons.
+  if (!wantsToClose.value) {
+    toast.add({severity: 'error', summary: 'Connection with relay lost', detail: "The connection with the "});
+  }
   router.push('/')
 })
 
