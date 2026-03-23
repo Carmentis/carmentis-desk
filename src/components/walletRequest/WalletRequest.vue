@@ -10,6 +10,7 @@ import {
   WalletRequestSchema,
   WalletRequestType,
   WalletResponseAuthByPublicKey,
+  WalletResponseDataApproval,
   WalletResponseType
 } from "@cmts-dev/carmentis-sdk/client";
 import WalletRequestAuthByPublicKey from "./WalletRequestAuthByPublicKey.vue";
@@ -58,6 +59,13 @@ responder.onMessage((message) => {
 
 
 
+async function approveEventRequest(response: WalletResponseDataApproval) {
+  console.log("Approving event request with response:", response);
+  await responder.send(response);
+  toast.add({severity: 'success', summary: 'Event approved', detail: 'The event has been approved and signed', life: 3000});
+  closeConnect();
+}
+
 async function approveAuthenticationRequest(publicKey: string, challenge: string, signature: string) {
   // we construct the response
   console.log("Approving authentication request for public key:", publicKey, challenge, signature);
@@ -94,6 +102,8 @@ onMounted(async () => {
     <WalletRequestEventApproval
         :wallet-request="walletRequest"
         v-else-if="walletRequest.type === WalletRequestType.DATA_APPROVAL"
+        @approve="approveEventRequest"
+        @reject="closeConnect"
     />
   </div>
 

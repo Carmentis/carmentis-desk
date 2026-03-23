@@ -37,12 +37,22 @@ export interface OperatorEntity {
 	pseudo?: string,
 }
 
+export interface AppLedgerParticipation {
+	id: string  // VB id in hex
+}
+
+export interface ApplicationParticipation {
+	id: string  // application id in hex
+	appLedgers: AppLedgerParticipation[]
+}
+
 export interface WalletEntity {
 	id: number,
 	name: string,
 	seed: string,
 	nodeEndpoint: string,
-	organizations: OrganizationEntity[]
+	organizations: OrganizationEntity[],
+	participations: ApplicationParticipation[]
 }
 
 export const useStorageStore = defineStore('storage', () => {
@@ -303,6 +313,32 @@ export const useStorageStore = defineStore('storage', () => {
 		organizations.value = updatedWallets;
 	}
 
+	async function addAppLedgerParticipation(walletId: number, appId: string, vbId: string) {
+		const currentWallets = await loadOrganizations();
+		const wallet = currentWallets.find(w => w.id === walletId);
+		if (!wallet) return;
+
+		const participations = wallet.participations ?? [];
+		const existingApp = participations.find(p => p.id === appId);
+
+		let updatedParticipations: ApplicationParticipation[];
+		if (existingApp) {
+			const alreadyRegistered = existingApp.appLedgers.some(al => al.id === vbId);
+			if (alreadyRegistered) return;
+			updatedParticipations = participations.map(p =>
+				p.id === appId ? { ...p, appLedgers: [...p.appLedgers, { id: vbId }] } : p
+			);
+		} else {
+			updatedParticipations = [...participations, { id: appId, appLedgers: [{ id: vbId }] }];
+		}
+
+		const updatedWallet = { ...wallet, participations: updatedParticipations };
+		const updatedWallets = currentWallets.map(w => w.id === walletId ? updatedWallet : w);
+		const storage = getStorage();
+		await storage.set('organizations', updatedWallets);
+		organizations.value = updatedWallets;
+	}
+
 	async function loadOperators() {
 		const storage = getStorage();
 		return await storage.get<OperatorEntity[]>('operators') || [];
@@ -348,6 +384,7 @@ export const useStorageStore = defineStore('storage', () => {
 		addApplicationToOrganization,
 		updateApplication,
 		deleteApplicationById,
+		addAppLedgerParticipation,
 
 		// operators
 		operators,

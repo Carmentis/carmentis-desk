@@ -10,7 +10,7 @@ import {
   WalletCrypto, WalletInteractiveAnchoringRequestType, WalletInteractiveAnchoringResponseApprovalData,
   WalletInteractiveAnchoringResponseType,
   WalletInteractiveAnchoringValidation,
-  WalletRequestDataApproval
+  WalletRequestDataApproval, WalletResponseDataApproval, WalletResponseType
 } from "@cmts-dev/carmentis-sdk/client";
 import axios from "axios";
 import Card from "primevue/card";
@@ -42,7 +42,7 @@ const props = defineProps<{
 
 // we use two emits here: approve and reject.
 const emit = defineEmits<{
-  approve: []
+  approve: [response: WalletResponseDataApproval]
   reject: []
 }>();
 
@@ -55,7 +55,53 @@ const microblockToApprove = ref<Microblock | null>(null);
 const virtualBlockchainContainingMicroblock = ref<ApplicationLedgerVb | null>(null);
 
 async function approve() {
+  if (!microblockToApprove.value || !virtualBlockchainContainingMicroblock.value) return;
+  isProcessing.value = true;
+  try {
+    // derive the actor crypto from the virtual blockchain genesis seed
+    const genesisSeed = await virtualBlockchainContainingMicroblock.value.getGenesisSeed();
+    const actorCrypto = accountCrypto.value.deriveActorFromVbSeed(genesisSeed.toBytes());
+    const actorPrivateSignatureKey = await actorCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
 
+    // sign the microblock
+    const signature = await microblockToApprove.value.sign(actorPrivateSignatureKey, false);
+
+    // send the approval signature to the operator
+    const b64Encoder = EncoderFactory.bytesToBase64Encoder();
+    const approvalSignatureResponse = await sendRequestToOperator(props.walletRequest.serverUrl, {
+      type: WalletInteractiveAnchoringRequestType.APPROVAL_SIGNATURE,
+      anchorRequestId: props.walletRequest.anchorRequestId,
+      b64Signature: b64Encoder.encode(signature),
+    });
+
+    if (approvalSignatureResponse.type === WalletInteractiveAnchoringResponseType.ERROR) {
+      throw new Error(approvalSignatureResponse.errorMessage);
+    } else if (approvalSignatureResponse.type !== WalletInteractiveAnchoringResponseType.APPROVAL_SIGNATURE) {
+      throw new Error(`Unexpected response type: ${approvalSignatureResponse.type}`);
+    }
+
+    // store the app ledger participation in the wallet
+    const sigResponse = approvalSignatureResponse as any;
+    const hexEncoder = EncoderFactory.bytesToHexEncoder();
+    const vbId = hexEncoder.encode(b64Encoder.decode(sigResponse.b64VbHash));
+    const appId = virtualBlockchainContainingMicroblock.value.getApplicationId().encode();
+    await store.addAppLedgerParticipation(chosenWallet.value.id, appId, vbId);
+    console.log(`Stored app ledger participation: app=${appId}, vb=${vbId}`);
+
+    const walletResponse: WalletResponseDataApproval = {
+      type: WalletResponseType.DATA_APPROVAL,
+      b64VbHash: sigResponse.b64VbHash,
+      b64MbHash: sigResponse.b64MbHash,
+      height: sigResponse.height,
+    };
+    emit('approve', walletResponse);
+  } catch (e) {
+    console.error("Error during approval:", e);
+    loadError.value = e instanceof Error ? e.message : String(e);
+    console.error(loadError.value);
+  } finally {
+    isProcessing.value = false;
+  }
 }
 
 function reject() {
