@@ -6,6 +6,7 @@ import WalletDetail from '../components/WalletDetail.vue'
 import OrganizationDetailNew from '../components/OrganizationDetailNew.vue'
 import NodeDetail from '../components/NodeDetail.vue'
 import ApplicationDetail from '../components/ApplicationDetail.vue'
+import WalletAppLedgerExplorer from '../components/WalletAppLedgerExplorer.vue'
 import OperatorDetail from '../components/operator/OperatorDetail.vue'
 import Connect from "../components/Connect.vue";
 import WalletRequest from "../components/walletRequest/WalletRequest.vue";
@@ -56,6 +57,11 @@ const router = createRouter({
           path: 'organization/:orgId/application/:appId',
           name: 'application-detail',
           component: ApplicationDetail
+        },
+        {
+          path: 'participation/:appId',
+          name: 'app-ledger-explorer',
+          component: WalletAppLedgerExplorer
         }
       ]
     },

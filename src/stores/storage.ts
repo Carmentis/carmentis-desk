@@ -38,7 +38,9 @@ export interface OperatorEntity {
 }
 
 export interface AppLedgerParticipation {
-	id: string  // VB id in hex
+	id: string               // VB id in hex
+	operatorEndpoint: string // operator HTTP endpoint used during approval
+	b64EncodedMicroblock: string  // base64-encoded validated microblock
 }
 
 export interface ApplicationParticipation {
@@ -313,23 +315,30 @@ export const useStorageStore = defineStore('storage', () => {
 		organizations.value = updatedWallets;
 	}
 
-	async function addAppLedgerParticipation(walletId: number, appId: string, vbId: string) {
+	async function addAppLedgerParticipation(
+		walletId: number,
+		appId: string,
+		vbId: string,
+		operatorEndpoint: string,
+		b64EncodedMicroblock: string
+	) {
 		const currentWallets = await loadOrganizations();
 		const wallet = currentWallets.find(w => w.id === walletId);
 		if (!wallet) return;
 
 		const participations = wallet.participations ?? [];
 		const existingApp = participations.find(p => p.id === appId);
+		const newEntry: AppLedgerParticipation = { id: vbId, operatorEndpoint, b64EncodedMicroblock };
 
 		let updatedParticipations: ApplicationParticipation[];
 		if (existingApp) {
 			const alreadyRegistered = existingApp.appLedgers.some(al => al.id === vbId);
 			if (alreadyRegistered) return;
 			updatedParticipations = participations.map(p =>
-				p.id === appId ? { ...p, appLedgers: [...p.appLedgers, { id: vbId }] } : p
+				p.id === appId ? { ...p, appLedgers: [...p.appLedgers, newEntry] } : p
 			);
 		} else {
-			updatedParticipations = [...participations, { id: appId, appLedgers: [{ id: vbId }] }];
+			updatedParticipations = [...participations, { id: appId, appLedgers: [newEntry] }];
 		}
 
 		const updatedWallet = { ...wallet, participations: updatedParticipations };

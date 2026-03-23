@@ -26,6 +26,7 @@ import {
   useAccountTransactionsHistory
 } from "../composables/useAccountBreakdown.ts";
 import WalletDetailTransactionsHistory from "./WalletDetailTransactionsHistory.vue";
+import WalletDetailAppParticipationCard from "./WalletDetailAppParticipationCard.vue";
 import {useWalletStore} from "../stores/walletStore.ts";
 import Message from 'primevue/message'
 import {useConfirm} from 'primevue/useconfirm';
@@ -460,6 +461,27 @@ const menuItems = computed<MenuItem[]>(() => [
                   <i class="pi pi-chevron-right text-gray-400"></i>
                 </div>
               </div>
+            </div>
+          </template>
+        </Card>
+
+        <!-- Application Participations -->
+        <Card v-if="(wallet.participations ?? []).length > 0">
+          <template #title>
+            <div class="flex items-center gap-2">
+              <i class="pi pi-box text-xl"></i>
+              <span>Applications ({{ (wallet.participations ?? []).length }})</span>
+            </div>
+          </template>
+          <template #content>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              <WalletDetailAppParticipationCard
+                v-for="participation in (wallet.participations ?? [])"
+                :key="participation.id"
+                :participation="participation"
+                :node-endpoint="wallet.nodeEndpoint"
+                :wallet-id="walletId"
+              />
             </div>
           </template>
         </Card>

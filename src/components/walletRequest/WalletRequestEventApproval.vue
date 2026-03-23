@@ -93,7 +93,13 @@ async function approve() {
     const hexEncoder = EncoderFactory.bytesToHexEncoder();
     const vbId = hexEncoder.encode(b64Encoder.decode(sigResponse.b64VbHash));
     const appId = virtualBlockchainContainingMicroblock.value.getApplicationId().encode();
-    await store.addAppLedgerParticipation(chosenWallet.value.id, appId, vbId);
+    await store.addAppLedgerParticipation(
+      chosenWallet.value.id,
+      appId,
+      vbId,
+      props.walletRequest.serverUrl,
+      approvalData.value!.b64SerializedMicroblock,
+    );
     console.log(`Stored app ledger participation: app=${appId}, vb=${vbId}`);
 
     const walletResponse: WalletResponseDataApproval = {
