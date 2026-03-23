@@ -470,8 +470,11 @@ const menuItems = computed<MenuItem[]>(() => [
           <template #title>
             <div class="flex items-center gap-2">
               <i class="pi pi-box text-xl"></i>
-              <span>Applications ({{ (wallet.participations ?? []).length }})</span>
+              <span>Application Ledgers ({{ (wallet.participations ?? []).length }})</span>
             </div>
+          </template>
+          <template #subtitle>
+            <p class="text-sm text-surface-500">Applications this wallet has interacted with through the anchoring protocol. Click on a card to explore the associated virtual blockchain records.</p>
           </template>
           <template #content>
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

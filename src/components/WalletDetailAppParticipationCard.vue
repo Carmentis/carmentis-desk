@@ -84,38 +84,18 @@ onMounted(async () => {
           <p class="text-xs font-mono text-surface-600 truncate">{{ participation.id }}</p>
         </div>
 
-        <!-- App ledgers -->
-        <div>
-          <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide mb-2">
-            Validated ledgers
-            <span class="ml-1.5 font-normal bg-surface-100 text-surface-500 px-1.5 py-0.5 rounded-full">
-              {{ participation.appLedgers.length }}
+        <!-- Ledger summary -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i class="pi pi-database text-surface-400 text-sm"></i>
+            <span class="text-sm text-surface-600">
+              <span class="font-semibold text-surface-800">{{ participation.appLedgers.length }}</span>
+              validated ledger{{ participation.appLedgers.length !== 1 ? 's' : '' }}
             </span>
-          </p>
-          <div class="flex flex-col gap-2">
-            <div
-              v-for="(ledger, idx) in participation.appLedgers"
-              :key="idx"
-              class="border border-surface-100 rounded-lg p-3 bg-surface-50 flex flex-col gap-1.5"
-            >
-              <div class="flex items-center gap-1.5">
-                <i class="pi pi-database text-surface-400 text-xs"></i>
-                <span class="text-xs text-surface-400 flex-shrink-0">VB</span>
-                <span class="text-xs font-mono text-surface-700 truncate">{{ ledger.id }}</span>
-              </div>
-              <div v-if="ledger.operatorEndpoint" class="flex items-center gap-1.5">
-                <i class="pi pi-server text-surface-400 text-xs"></i>
-                <span class="text-xs text-surface-400 flex-shrink-0">Operator</span>
-                <span class="text-xs font-mono text-surface-600 truncate">{{ ledger.operatorEndpoint }}</span>
-              </div>
-              <div v-if="ledger.b64EncodedMicroblock" class="flex items-center gap-1.5">
-                <i class="pi pi-file text-surface-400 text-xs"></i>
-                <span class="text-xs text-surface-400 flex-shrink-0">Microblock</span>
-                <span class="text-xs font-mono text-surface-600 truncate flex-1">{{ ledger.b64EncodedMicroblock.slice(0, 24) }}…</span>
-              </div>
-            </div>
           </div>
+          <i class="pi pi-chevron-right text-surface-300 text-sm"></i>
         </div>
+
 
       </div>
     </template>
