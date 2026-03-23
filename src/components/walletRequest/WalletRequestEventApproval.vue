@@ -46,6 +46,13 @@ const emit = defineEmits<{
   reject: []
 }>();
 
+interface ApplicationDescription {
+  name: string;
+  logoUrl: string;
+  homepageUrl: string;
+  description: string;
+}
+
 // we define below the state of the component
 const isLoading = ref(true);
 const loadError = ref<string | null>(null);
@@ -53,6 +60,7 @@ const isProcessing = ref(false);
 const approvalData = ref<WalletInteractiveAnchoringResponseApprovalData | null>(null);
 const microblockToApprove = ref<Microblock | null>(null);
 const virtualBlockchainContainingMicroblock = ref<ApplicationLedgerVb | null>(null);
+const applicationDescription = ref<ApplicationDescription | null>(null);
 
 async function approve() {
   if (!microblockToApprove.value || !virtualBlockchainContainingMicroblock.value) return;
@@ -216,6 +224,14 @@ onMounted(async () => {
     await applicationLedger.appendMicroBlock(mb);
     virtualBlockchainContainingMicroblock.value = applicationLedger;
 
+    // load the application description
+    try {
+      const appVb = await provider.loadApplicationVirtualBlockchain(applicationLedger.getApplicationId());
+      applicationDescription.value = await appVb.getApplicationDescription() as ApplicationDescription;
+    } catch (e) {
+      console.warn("Could not load application description:", e);
+    }
+
     isLoading.value = false;
   } catch (e) {
     console.error("Error obtaining approval data:", e);
@@ -363,6 +379,40 @@ onMounted(async () => {
 
         <!-- Right column: virtual blockchain info + navigator -->
         <div class="flex flex-col gap-4" v-if="virtualBlockchainContainingMicroblock">
+
+          <!-- Application description card -->
+          <Card v-if="applicationDescription">
+            <template #content>
+              <div class="flex items-start gap-4">
+                <img
+                  v-if="applicationDescription.logoUrl"
+                  :src="applicationDescription.logoUrl"
+                  :alt="applicationDescription.name"
+                  class="w-12 h-12 rounded-xl object-contain flex-shrink-0 border border-surface-100 p-1"
+                />
+                <div v-else class="w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center flex-shrink-0">
+                  <i class="pi pi-box text-primary text-lg"></i>
+                </div>
+                <div class="min-w-0">
+                  <h3 class="text-sm font-semibold text-surface-800">{{ applicationDescription.name }}</h3>
+                  <a
+                    v-if="applicationDescription.homepageUrl"
+                    :href="applicationDescription.homepageUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-xs text-primary hover:underline truncate block mt-0.5"
+                  >{{ applicationDescription.homepageUrl }}</a>
+                </div>
+              </div>
+              <p v-if="applicationDescription.description" class="text-xs text-surface-600 mt-3 leading-relaxed">
+                {{ applicationDescription.description }}
+              </p>
+              <div class="mt-3 bg-surface-50 rounded-lg p-2">
+                <p class="text-xs text-surface-400 mb-1">Application ID</p>
+                <p class="text-xs font-mono text-surface-600 break-all">{{ virtualBlockchainContainingMicroblock.getApplicationId().encode() }}</p>
+              </div>
+            </template>
+          </Card>
 
           <!-- VB identity card -->
           <Card>
