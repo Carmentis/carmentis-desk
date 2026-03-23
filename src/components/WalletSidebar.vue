@@ -60,10 +60,7 @@ function navigateToNode(orgId: number, nodeId: number) {
   router.push(`/wallet/${props.walletId}/organization/${orgId}/node/${nodeId}`);
 }
 
-// Check if current route matches
-function isWalletActive() {
-  return route.name === 'wallet-detail'
-}
+const isWalletActive = computed(() => route.name === 'wallet-detail');
 
 function isOrganizationActive(orgId: number) {
   return route.name === 'organization-detail' && Number(route.params.orgId) === orgId;
@@ -118,7 +115,7 @@ function isApplicationActive(orgId: number, appId: number) {
       <!-- Wallet Item -->
       <div
         class="flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors mb-1"
-        :class="isWalletActive() ? 'bg-blue-100 text-blue-900 font-semibold' : 'hover:bg-gray-100 text-gray-700'"
+        :class="isWalletActive ? 'bg-blue-100 text-blue-900 font-semibold' : 'hover:bg-gray-100 text-gray-700'"
       >
         <div @click="navigateToWallet" class="flex items-center gap-2 flex-1 min-w-0">
           <i class="pi pi-wallet text-base flex-shrink-0"></i>

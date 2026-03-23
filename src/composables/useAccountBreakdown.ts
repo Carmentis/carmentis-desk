@@ -1,33 +1,32 @@
 import {useQuery} from "@tanstack/vue-query";
 import {useWalletStore} from "../stores/walletStore.ts";
 import {BalanceAvailability, Utils} from "@cmts-dev/carmentis-sdk/client";
-import {computed, ref} from "vue";
+import {type MaybeRefOrGetter, computed, ref, toValue} from "vue";
 
-export function useAccountIdQuery(walletId: number) {
+export function useAccountIdQuery(walletId: MaybeRefOrGetter<number>) {
 	const store = useWalletStore();
 	return useQuery({
-		queryKey: ['account-id', walletId],
+		queryKey: computed(() => ['account-id', toValue(walletId)]),
 		queryFn: async () => {
-			console.log("Fetching account ID for walletId: ", walletId, " ...")
-			return await store.getAccountId(walletId);
+			const id = toValue(walletId);
+			console.log("Fetching account ID for walletId: ", id, " ...")
+			return await store.getAccountId(id);
 		},
 		retry: 1
 	})
 }
 
-export function useAccountStateQuery(walletId: number) {
+export function useAccountStateQuery(walletId: MaybeRefOrGetter<number>) {
 	const store = useWalletStore();
 	const accountIdQuery = useAccountIdQuery(walletId);
 	const enabled = computed(() => !!accountIdQuery.data.value);
 	return useQuery({
 		enabled,
-		queryKey: ['account-state', walletId, accountIdQuery.data.value],
+		queryKey: computed(() => ['account-state', toValue(walletId), accountIdQuery.data.value]),
 		queryFn: async () => {
-			console.log("Fetching account state for walletId")
 			const accountId = accountIdQuery.data.value;
 			if (accountId) {
-				const state = await store.fetchAccountStateByAccountId(walletId, accountId);
-				return state;
+				return await store.fetchAccountStateByAccountId(toValue(walletId), accountId);
 			} else {
 				throw new Error('Account ID is undefined');
 			}
@@ -39,25 +38,19 @@ export function useAccountStateQuery(walletId: number) {
 	})
 }
 
-export function useAccountTransactionsHistory(walletId: number) {
+export function useAccountTransactionsHistory(walletId: MaybeRefOrGetter<number>) {
 	const store = useWalletStore();
 	const accountIdQuery = useAccountIdQuery(walletId);
 	const accountStateQuery = useAccountStateQuery(walletId);
 
 	const limit = ref(10);
-	const lastAccountHistoryHash = computed({
-		get: () => {
-			if (accountStateQuery.data.value) {
-				return accountStateQuery.data.value.lastHistoryHash;
-			}
-			console.log("Account state query data is undefined")
-			return undefined;
-		},
-		set: (newValue: Uint8Array) => {
-			lastAccountHistoryHash.value = newValue;
+	const lastAccountHistoryHashOverride = ref<Uint8Array | undefined>(undefined);
+	const lastAccountHistoryHash = computed(() => {
+		if (lastAccountHistoryHashOverride.value !== undefined) {
+			return lastAccountHistoryHashOverride.value;
 		}
+		return accountStateQuery.data.value?.lastHistoryHash;
 	});
-
 
 	const enabled = computed(() =>
 		!!accountIdQuery.data.value &&
@@ -65,7 +58,7 @@ export function useAccountTransactionsHistory(walletId: number) {
 	);
 	const accountHistoryQuery = useQuery({
 		enabled,
-		queryKey: ['account-transactions-history', walletId, accountIdQuery.data.value],
+		queryKey: computed(() => ['account-transactions-history', toValue(walletId), accountIdQuery.data.value]),
 		queryFn: async () => {
 			const accountId = accountIdQuery.data.value;
 			const lastHistoryHash = lastAccountHistoryHash.value;
@@ -73,7 +66,7 @@ export function useAccountTransactionsHistory(walletId: number) {
 			if (accountId && lastHistoryHash !== undefined) {
 				try {
 					return await store.fetchAccountTransactionsHistory(
-						walletId,
+						toValue(walletId),
 						accountId,
 						lastHistoryHash,
 						limit.value
@@ -89,7 +82,7 @@ export function useAccountTransactionsHistory(walletId: number) {
 	})
 
 	function setLastAccountHistoryHash(hash: Uint8Array) {
-		lastAccountHistoryHash.value = hash;
+		lastAccountHistoryHashOverride.value = hash;
 	}
 
 	function setLimit(newLimit: number) {
@@ -99,27 +92,26 @@ export function useAccountTransactionsHistory(walletId: number) {
 	return { accountHistoryQuery, setLastAccountHistoryHash, setLimit, limit }
 }
 
-export function useAccountBreakdownQuery(walletId: number) {
+export function useAccountBreakdownQuery(walletId: MaybeRefOrGetter<number>) {
 	const accountStateQuery = useAccountStateQuery(walletId);
 	const enabled = computed(() => !!accountStateQuery.data.value)
 	return useQuery({
 		enabled,
-		queryKey: ['account-breakdown', walletId, accountStateQuery.data.value],
+		queryKey: computed(() => ['account-breakdown', toValue(walletId), accountStateQuery.data.value]),
 		queryFn: async () => {
-			console.log("Fetching account breakdown for walletId")
 			const accountState = accountStateQuery.data.value;
 			if (accountState) {
 				return BalanceAvailability.createFromAccountStateAbciResponse(accountState);
 			} else {
-				throw new Error('Account ID is undefined');
+				throw new Error('Account state is undefined');
 			}
 		},
 	})
 }
 
-export function useHasAccountOnChainQuery(walletId: number) {
+export function useHasAccountOnChainQuery(walletId: MaybeRefOrGetter<number>) {
 	const accountIdQuery = useAccountIdQuery(walletId);
-	return computed( () =>
+	return computed(() =>
 		accountIdQuery.isSuccess.value &&
 		accountIdQuery.data.value !== undefined
 	);

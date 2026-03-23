@@ -194,8 +194,8 @@
       icon: 'pi pi-cog',
       items: [
         {
-          label: computed(() => currentTheme.value === 'light' ? 'Dark Mode' : 'Light Mode').value,
-          icon: computed(() => currentTheme.value === 'light' ? 'pi pi-moon' : 'pi pi-sun').value,
+          label: currentTheme.value === 'light' ? 'Dark Mode' : 'Light Mode',
+          icon: currentTheme.value === 'light' ? 'pi pi-moon' : 'pi pi-sun',
           command: () => toggleTheme()
         },
         {

@@ -76,7 +76,7 @@ const currentPageContext = computed(() => {
 });
 
 // Account balance for wallet pages
-const accountBalanceQuery = useAccountBreakdownQuery(walletId.value);
+const accountBalanceQuery = useAccountBreakdownQuery(walletId);
 const accountBalance = computed(() => {
   let message = "";
   if (accountBalanceQuery.isFetching.value) message = 'Loading...'

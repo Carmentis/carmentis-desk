@@ -42,14 +42,7 @@ export const useOperatorAuthStore = defineStore('operatorAuth', () => {
 
 	function getValidToken(operatorId: number) {
 		const operator = authStore.value.authenticatedOperators.find(op => op.operatorId === operatorId);
-		if (!operator) {
-			return undefined;
-		}
-		const credential = operator.credentials.find(cred => cred.walletId === operator.credentials[0].walletId);
-		if (!credential) {
-			return undefined;
-		}
-		return credential.authToken;
+		return operator?.credentials[0]?.authToken;
 	}
 
 	return { authStore, addCredential, isAuthenticatedToOperator, disconnectFromOperator, getValidToken };
