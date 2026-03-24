@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import {computed, onMounted, ref, shallowRef, watch} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
@@ -52,7 +52,7 @@ const isLoadingDescription = ref(true);
 
 // selected ledger + lazy-loaded VB
 const selectedIdx = ref<number | null>(null);
-const selectedVb = ref<ApplicationLedgerVb | null>(null);
+const selectedVb = shallowRef<ApplicationLedgerVb | null>(null);
 const isLoadingVb = ref(false);
 const vbError = ref<string | null>(null);
 

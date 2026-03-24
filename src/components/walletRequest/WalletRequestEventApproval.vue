@@ -21,7 +21,7 @@ import Accordion from "primevue/accordion";
 import AccordionPanel from "primevue/accordionpanel";
 import AccordionHeader from "primevue/accordionheader";
 import AccordionContent from "primevue/accordioncontent";
-import {computed, onMounted, ref} from "vue";
+import {computed, onMounted, ref, shallowRef} from "vue";
 import {useStorageStore} from "../../stores/storage.ts";
 import {storeToRefs} from "pinia";
 import WalletRequestEventApprovalWallet from "./WalletRequestEventApprovalWallet.vue";
@@ -59,7 +59,7 @@ const loadError = ref<string | null>(null);
 const isProcessing = ref(false);
 const approvalData = ref<WalletInteractiveAnchoringResponseApprovalData | null>(null);
 const microblockToApprove = ref<Microblock | null>(null);
-const virtualBlockchainContainingMicroblock = ref<ApplicationLedgerVb | null>(null);
+const virtualBlockchainContainingMicroblock = shallowRef<ApplicationLedgerVb | null>(null);
 const applicationDescription = ref<ApplicationDescription | null>(null);
 
 async function approve() {
