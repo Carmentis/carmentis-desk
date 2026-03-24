@@ -1,3 +1,28 @@
+# [1.8.0](https://github.com/Carmentis/carmentis-desk/compare/v1.7.0...v1.8.0) (2026-03-24)
+
+
+### Bug Fixes
+
+* building errors ([c3d2df5](https://github.com/Carmentis/carmentis-desk/commit/c3d2df58029367b33ee5e6b749b107d12e7af2f4))
+
+
+### Features
+
+* add app ledger participation storage and enhance WalletRequest approval flow ([49e9fec](https://github.com/Carmentis/carmentis-desk/commit/49e9fecc2d487cd10530f11b750e76618f735697))
+* add application ledger exploration and participation overview in WalletDetail ([d5e76e8](https://github.com/Carmentis/carmentis-desk/commit/d5e76e8b4bc73cf24ff8b51b039f08b3f48aee36))
+* add coding standards documentation for Vue 3 with PrimeVue, VueUse, and Pinia ([79b18da](https://github.com/Carmentis/carmentis-desk/commit/79b18dae38d7a41e732be86deebafc8ac00c63eb))
+* add HelpDialog component and integrate it into Home menu ([04867f0](https://github.com/Carmentis/carmentis-desk/commit/04867f0c50dee50801a4b373d987d30e6540cf64))
+* add JsonViewer and VirtualBlockchainRecordNavigator components ([9b03cff](https://github.com/Carmentis/carmentis-desk/commit/9b03cff3c6c40d7d347f4e810ed480cdac781ff9))
+* add responsive sidebar with mobile toggle and navigation handling ([78142d9](https://github.com/Carmentis/carmentis-desk/commit/78142d9fe9523d72dba00f1f302c052333be34fa))
+* add serverUrl and anchorRequestId to WalletRequestEventApproval, log incoming messages in WalletRequest ([f33fa09](https://github.com/Carmentis/carmentis-desk/commit/f33fa09da04df85a27859d7bda56cf2f041e9370))
+* add theme management composable and integrate with Home component ([ca6dad2](https://github.com/Carmentis/carmentis-desk/commit/ca6dad2d60ae89175635fd45d141a7564441a0af))
+* add wallet collapse/expand functionality in WalletSidebar ([dfdb054](https://github.com/Carmentis/carmentis-desk/commit/dfdb0548bb5768eb8ac1d8e25e66836fc1e0d8d0))
+* add wallet selection Dropdown and enhance WalletRequest approval flow ([66162fa](https://github.com/Carmentis/carmentis-desk/commit/66162fa8c1158dcd00607294aea2ec32e2b9db30))
+* display application details in WalletRequestEventApproval ([dcf31c7](https://github.com/Carmentis/carmentis-desk/commit/dcf31c7439ea158296c4a31d30835e0a35e0d1fd))
+* implement WalletRequest flow and deep linking support ([ec25874](https://github.com/Carmentis/carmentis-desk/commit/ec25874cb5e3f11dcdb1c6881a304980b945a07c))
+* introduce Proof Checker module with JSON proof upload, verification, and visualization ([8593342](https://github.com/Carmentis/carmentis-desk/commit/8593342ec5ef347cc478e239955c9c8abdef3fa9))
+* redesign WalletRequest event approval UI with loading, error, and detail states ([c845232](https://github.com/Carmentis/carmentis-desk/commit/c84523282fd106c557d37292d874aedc9d2d0a54))
+
 # [1.7.0](https://github.com/Carmentis/carmentis-desk/compare/v1.6.1...v1.7.0) (2026-03-05)
 
 
