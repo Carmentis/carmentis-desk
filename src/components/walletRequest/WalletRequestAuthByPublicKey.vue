@@ -3,7 +3,6 @@ import {
   CryptoEncoderFactory,
   SeedEncoder,
   WalletCrypto,
-  WalletRequestAuthByPublicKey
 } from "@cmts-dev/carmentis-sdk/client";
 import { ref } from "vue";
 import Card from "primevue/card";
@@ -17,9 +16,13 @@ const store = useStorageStore();
 const {wallets} = storeToRefs(store);
 const chosenWallet = ref(wallets.value[0]);
 
+interface AuthByPublicKeyRequest {
+  base64EncodedChallenge: string;
+}
+
 // define the prop for the vue
 const props = defineProps<{
-  walletRequest: WalletRequestAuthByPublicKey
+  walletRequest: AuthByPublicKeyRequest
 }>();
 
 

@@ -10,7 +10,7 @@ import {
   WalletCrypto, WalletInteractiveAnchoringRequestType, WalletInteractiveAnchoringResponseApprovalData,
   WalletInteractiveAnchoringResponseType,
   WalletInteractiveAnchoringValidation,
-  WalletRequestDataApproval, WalletResponseDataApproval, WalletResponseType
+  WalletRequestDataApproval
 } from "@cmts-dev/carmentis-sdk/client";
 import axios from "axios";
 import Card from "primevue/card";
@@ -42,7 +42,7 @@ const props = defineProps<{
 
 // we use two emits here: approve and reject.
 const emit = defineEmits<{
-  approve: [response: WalletResponseDataApproval]
+  approve: [b64VbHash: string, b64MbHash: string, height: number]
   reject: []
 }>();
 
@@ -102,13 +102,7 @@ async function approve() {
     );
     console.log(`Stored app ledger participation: app=${appId}, vb=${vbId}`);
 
-    const walletResponse: WalletResponseDataApproval = {
-      type: WalletResponseType.DATA_APPROVAL,
-      b64VbHash: sigResponse.b64VbHash,
-      b64MbHash: sigResponse.b64MbHash,
-      height: sigResponse.height,
-    };
-    emit('approve', walletResponse);
+    emit('approve', sigResponse.b64VbHash, sigResponse.b64MbHash, sigResponse.height);
   } catch (e) {
     console.error("Error during approval:", e);
     loadError.value = e instanceof Error ? e.message : String(e);
