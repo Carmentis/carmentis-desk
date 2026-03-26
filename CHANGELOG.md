@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/Carmentis/carmentis-desk/compare/v1.8.0...v1.9.0) (2026-03-26)
+
+
+### Features
+
+* integrate JSON-RPC support for wallet requests and handle new request methods ([a8064dc](https://github.com/Carmentis/carmentis-desk/commit/a8064dca3429a1e3aa6dce4c1bb9ca68a9f2e51c))
+
 # [1.8.0](https://github.com/Carmentis/carmentis-desk/compare/v1.7.0...v1.8.0) (2026-03-24)
 
 
