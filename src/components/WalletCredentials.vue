@@ -9,6 +9,7 @@ import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
 import type { MenuItem } from 'primevue/menuitem';
+import CredentialCard from './credentials/CredentialCard.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -19,16 +20,48 @@ const walletId = computed(() => Number(route.params.walletId));
 const wallet = computed(() =>
   storageStore.organizations.find(w => w.id === walletId.value)
 );
+const credentials = computed(() => wallet.value?.credentials ?? []);
 
-// Add credential dialog
+// --- Add credential dialog ---
 const showAddDialog = ref(false);
 const credentialName = ref('');
 const credentialData = ref('');
+const fileInputRef = ref<HTMLInputElement | null>(null);
 
 function openAddDialog() {
   credentialName.value = '';
   credentialData.value = '';
   showAddDialog.value = true;
+}
+
+function triggerFileInput() {
+  fileInputRef.value?.click();
+}
+
+function handleFileUpload(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+
+  if (!credentialName.value) {
+    // Pre-fill name from filename (strip extension)
+    credentialName.value = file.name.replace(/\.[^.]+$/, '');
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target?.result as string;
+    try {
+      // Validate and normalise indentation
+      JSON.parse(text);
+      credentialData.value = text;
+    } catch {
+      toast.add({ severity: 'error', summary: 'Invalid file', detail: 'The selected file does not contain valid JSON', life: 3000 });
+    }
+  };
+  reader.readAsText(file);
+
+  // Reset so the same file can be re-selected if needed
+  if (fileInputRef.value) fileInputRef.value.value = '';
 }
 
 async function submitAddDialog() {
@@ -50,10 +83,17 @@ async function submitAddDialog() {
     name: credentialName.value,
     data: credentialData.value,
   });
-  toast.add({ severity: 'success', summary: 'Credential added', detail: `Credential "${credentialName.value}" added successfully`, life: 3000 });
+  toast.add({ severity: 'success', summary: 'Credential added', detail: `"${credentialName.value}" added successfully`, life: 3000 });
   showAddDialog.value = false;
 }
 
+// --- Delete credential ---
+async function deleteCredential(credentialId: number) {
+  await storageStore.deleteCredentialById(walletId.value, credentialId);
+  toast.add({ severity: 'success', summary: 'Credential deleted', life: 2000 });
+}
+
+// --- Menubar ---
 const menuItems = computed<MenuItem[]>(() => [
   {
     label: 'Add Credential',
@@ -61,8 +101,6 @@ const menuItems = computed<MenuItem[]>(() => [
     command: openAddDialog,
   },
 ]);
-
-const credentials = computed(() => wallet.value?.credentials ?? []);
 </script>
 
 <template>
@@ -71,27 +109,32 @@ const credentials = computed(() => wallet.value?.credentials ?? []);
       <div class="space-y-4">
         <MenuBar :model="menuItems" />
 
-        <div class="px-1">
-          <div v-if="credentials.length === 0" class="text-center py-12">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
-              <i class="pi pi-id-card text-2xl text-gray-400"></i>
-            </div>
-            <p class="text-gray-500 text-sm mb-4">No credentials yet</p>
-            <Button @click="openAddDialog" label="Add Credential" icon="pi pi-plus" size="small" />
-          </div>
+        <!-- Hidden file input -->
+        <input
+          ref="fileInputRef"
+          type="file"
+          accept=".json,application/json"
+          class="hidden"
+          @change="handleFileUpload"
+        />
 
-          <div v-else class="space-y-3">
-            <div
-              v-for="credential in credentials"
-              :key="credential.id"
-              class="border border-gray-200 rounded-lg p-4"
-            >
-              <div class="flex items-center gap-2">
-                <i class="pi pi-id-card text-gray-500"></i>
-                <span class="font-medium text-gray-900">{{ credential.name }}</span>
-              </div>
-            </div>
+        <!-- Empty state -->
+        <div v-if="credentials.length === 0" class="text-center py-12">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
+            <i class="pi pi-id-card text-2xl text-gray-400"></i>
           </div>
+          <p class="text-gray-500 text-sm mb-4">No credentials yet</p>
+          <Button @click="openAddDialog" label="Add Credential" icon="pi pi-plus" size="small" />
+        </div>
+
+        <!-- Credentials grid -->
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <CredentialCard
+            v-for="credential in credentials"
+            :key="credential.id"
+            :credential="credential"
+            @delete="deleteCredential"
+          />
         </div>
       </div>
 
@@ -102,13 +145,34 @@ const credentials = computed(() => wallet.value?.credentials ?? []);
             <label for="credential-name" class="block text-sm font-medium text-gray-700 mb-2">
               Name <span class="text-red-500">*</span>
             </label>
-            <InputText id="credential-name" v-model="credentialName" placeholder="Enter credential name" class="w-full" />
+            <InputText
+              id="credential-name"
+              v-model="credentialName"
+              placeholder="Enter credential name"
+              class="w-full"
+            />
           </div>
           <div>
-            <label for="credential-data" class="block text-sm font-medium text-gray-700 mb-2">
-              JSON Data <span class="text-red-500">*</span>
-            </label>
-            <Textarea id="credential-data" v-model="credentialData" placeholder='{"key": "value"}' class="w-full" rows="8" />
+            <div class="flex items-center justify-between mb-2">
+              <label for="credential-data" class="block text-sm font-medium text-gray-700">
+                JSON Data <span class="text-red-500">*</span>
+              </label>
+              <Button
+                label="Upload file"
+                icon="pi pi-upload"
+                size="small"
+                severity="secondary"
+                outlined
+                @click="triggerFileInput"
+              />
+            </div>
+            <Textarea
+              id="credential-data"
+              v-model="credentialData"
+              placeholder='{"key": "value"}'
+              class="w-full font-mono text-sm"
+              rows="10"
+            />
           </div>
         </div>
         <template #footer>
