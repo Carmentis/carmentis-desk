@@ -264,6 +264,11 @@ const menuItems = computed<MenuItem[]>(() => [
     ]
   },
   {
+    label: 'Credentials',
+    icon: 'pi pi-id-card',
+    command: () => router.push(`/wallet/${walletId.value}/credentials`)
+  },
+  {
     label: 'Transfer',
     icon: 'pi pi-send',
     command: openTransferDialog

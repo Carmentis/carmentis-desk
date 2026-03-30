@@ -69,7 +69,13 @@ function navigateToNode(orgId: number, nodeId: number) {
   router.push(`/wallet/${props.walletId}/organization/${orgId}/node/${nodeId}`);
 }
 
+function navigateToCredentials() {
+  emit('navigate');
+  router.push(`/wallet/${props.walletId}/credentials`);
+}
+
 const isWalletActive = computed(() => route.name === 'wallet-detail');
+const isCredentialsActive = computed(() => route.name === 'wallet-credentials');
 
 function isOrganizationActive(orgId: number) {
   return route.name === 'organization-detail' && Number(route.params.orgId) === orgId;
@@ -142,8 +148,21 @@ function isApplicationActive(orgId: number, appId: number) {
         </button>
       </div>
 
+
+
       <!-- Organizations (children of wallet) -->
       <div v-if="walletExpanded" class="ml-3 border-l-2 border-gray-200 pl-2 space-y-1 mb-1">
+
+        <!-- Credentials (child of wallet) -->
+        <div
+            @click="navigateToCredentials"
+            class="flex items-center gap-2 py-2 px-3  rounded-lg cursor-pointer transition-colors mb-1"
+            :class="isCredentialsActive ? 'bg-blue-100 text-blue-900 font-semibold' : 'hover:bg-gray-100 text-gray-700'"
+        >
+          <i class="pi pi-id-card text-base flex-shrink-0"></i>
+          <span class="text-sm">Credentials</span>
+        </div>
+
         <div v-for="org in wallet.organizations" :key="org.id" class="space-y-1">
 
           <!-- Organization Header -->

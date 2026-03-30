@@ -74,6 +74,7 @@ function handleJsonRpcRequest(request: JsonRpcRequest<JsonRpcParams> | JsonRpcNo
 }
 
 responder.onMessage((message) => {
+  console.log("Received message from relay:", message);
   const jsonRpcParseResult = JsonRpc.parseRequest(message);
   if (jsonRpcParseResult.ok) {
     const response = handleJsonRpcRequest(jsonRpcParseResult.value);
@@ -81,6 +82,9 @@ responder.onMessage((message) => {
       responder.send(response)
           .then(closeConnect);
     }
+  } else {
+    console.warn("Invalid JSON-RPC request received:", message);
+    console.warn("Error details:", jsonRpcParseResult.error);
   }
 })
 

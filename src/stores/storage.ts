@@ -48,13 +48,20 @@ export interface ApplicationParticipation {
 	appLedgers: AppLedgerParticipation[]
 }
 
+export interface CredentialEntity {
+	id: number,
+	name: string,
+	data: string, // raw JSON string
+}
+
 export interface WalletEntity {
 	id: number,
 	name: string,
 	seed: string,
 	nodeEndpoint: string,
 	organizations: OrganizationEntity[],
-	participations: ApplicationParticipation[]
+	participations: ApplicationParticipation[],
+	credentials?: CredentialEntity[],
 }
 
 export const useStorageStore = defineStore('storage', () => {
@@ -348,6 +355,34 @@ export const useStorageStore = defineStore('storage', () => {
 		organizations.value = updatedWallets;
 	}
 
+	async function addCredential(walletId: number, credential: Omit<CredentialEntity, 'id'>) {
+		const currentWallets = await loadOrganizations();
+		const wallet = currentWallets.find(w => w.id === walletId);
+		if (!wallet) return;
+
+		const credentials = wallet.credentials ?? [];
+		const nextId = credentials.length > 0 ? Math.max(...credentials.map(c => c.id)) + 1 : 1;
+		const newCredential = { ...credential, id: nextId };
+		const updatedWallet = { ...wallet, credentials: [...credentials, newCredential] };
+		const updatedWallets = currentWallets.map(w => w.id === walletId ? updatedWallet : w);
+		const storage = getStorage();
+		await storage.set('organizations', updatedWallets);
+		organizations.value = updatedWallets;
+	}
+
+	async function deleteCredentialById(walletId: number, credentialId: number) {
+		const currentWallets = await loadOrganizations();
+		const wallet = currentWallets.find(w => w.id === walletId);
+		if (!wallet) return;
+
+		const updatedCredentials = (wallet.credentials ?? []).filter(c => c.id !== credentialId);
+		const updatedWallet = { ...wallet, credentials: updatedCredentials };
+		const updatedWallets = currentWallets.map(w => w.id === walletId ? updatedWallet : w);
+		const storage = getStorage();
+		await storage.set('organizations', updatedWallets);
+		organizations.value = updatedWallets;
+	}
+
 	async function loadOperators() {
 		const storage = getStorage();
 		return await storage.get<OperatorEntity[]>('operators') || [];
@@ -394,6 +429,8 @@ export const useStorageStore = defineStore('storage', () => {
 		updateApplication,
 		deleteApplicationById,
 		addAppLedgerParticipation,
+		addCredential,
+		deleteCredentialById,
 
 		// operators
 		operators,
