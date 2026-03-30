@@ -5,6 +5,10 @@ import Button from 'primevue/button';
 import { useConfirm } from 'primevue/useconfirm';
 import type { CredentialEntity } from '../../stores/storage';
 import CredentialCardUnrecognized from './CredentialCardUnrecognized.vue';
+import { digest, generateSalt, ES256 } from '@sd-jwt/crypto-browser';
+import {SDJwtInstance} from "@sd-jwt/core";
+import {SDJwtVcInstance} from "@sd-jwt/sd-jwt-vc";
+import {DisclosureFrame} from "@sd-jwt/types";
 
 const props = defineProps<{
   credential: CredentialEntity;
@@ -47,6 +51,70 @@ const prettyJson = computed(() => {
     return props.credential.data;
   }
 });
+
+async function generateSdJwt() {
+  const { privateKey, publicKey } = await ES256.generateKeyPair();
+  const signer = await await ES256.getSigner(privateKey)
+  const sdjwt = new SDJwtVcInstance({
+    signer,
+    signAlg: ES256.alg,
+    hasher: digest,
+    hashAlg: 'sha-256',
+    saltGenerator: generateSalt,
+  });
+// Issuer Define the claims object with the user's information
+  const claims = {
+    firstname: 'John',
+    lastname: 'Doe',
+    ssn: '123-45-6789',
+    id: '1234',
+    data: {
+      firstname: 'John',
+      lastname: 'Doe',
+      ssn: '123-45-6789',
+      list: [{ r: '1' }, 'b', 'c'],
+    },
+    data2: {
+      hi: 'bye',
+    },
+  };
+
+  // Issuer Define the disclosure frame to specify which claims can be disclosed
+  const disclosureFrame: DisclosureFrame<typeof claims> = {
+    _sd: ['firstname', 'id', 'data2'],
+    data: {
+      _sd: ['list'],
+      _sd_decoy: 2,
+      list: {
+        _sd: [0, 2],
+        _sd_decoy: 1,
+        0: {
+          _sd: ['r'],
+        },
+      },
+    },
+    data2: {
+      _sd: ['hi'],
+    },
+  };
+
+  // Issue a signed JWT credential with the specified claims and disclosures
+  // Return a Encoded SD JWT. Issuer send the credential to the holder
+  const credential = await sdjwt.issue(
+      {
+        iss: 'Issuer',
+        iat: Math.floor(Date.now() / 1000),
+        vct: 'ExampleCredentials',
+        ...claims,
+      },
+      disclosureFrame,
+  );
+  console.log('encodedJwt:', credential);
+
+  const sdJwtToken = await sdjwt.decode(credential);
+  console.log(JSON.stringify(sdJwtToken));
+
+}
 </script>
 
 <template>
