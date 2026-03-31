@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useStorageStore } from '../stores/storage';
+import { useStorageStore, type CredentialEntity } from '../stores/storage';
 import MenuBar from 'primevue/menubar';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
 import type { MenuItem } from 'primevue/menuitem';
 import CredentialCard from './credentials/CredentialCard.vue';
 
@@ -15,6 +16,7 @@ const route = useRoute();
 const router = useRouter();
 const storageStore = useStorageStore();
 const toast = useToast();
+const confirm = useConfirm();
 
 const walletId = computed(() => Number(route.params.walletId));
 const wallet = computed(() =>
@@ -22,7 +24,9 @@ const wallet = computed(() =>
 );
 const credentials = computed(() => wallet.value?.credentials ?? []);
 
-// --- Add credential dialog ---
+// ---------------------------------------------------------------------------
+// Add credential
+// ---------------------------------------------------------------------------
 const showAddDialog = ref(false);
 const credentialName = ref('');
 const credentialData = ref('');
@@ -43,7 +47,6 @@ function handleFileUpload(event: Event) {
   if (!file) return;
 
   if (!credentialName.value) {
-    // Pre-fill name from filename (strip extension)
     credentialName.value = file.name.replace(/\.[^.]+$/, '');
   }
 
@@ -51,7 +54,6 @@ function handleFileUpload(event: Event) {
   reader.onload = (e) => {
     const text = e.target?.result as string;
     try {
-      // Validate and normalise indentation
       JSON.parse(text);
       credentialData.value = text;
     } catch {
@@ -60,7 +62,6 @@ function handleFileUpload(event: Event) {
   };
   reader.readAsText(file);
 
-  // Reset so the same file can be re-selected if needed
   if (fileInputRef.value) fileInputRef.value.value = '';
 }
 
@@ -87,13 +88,56 @@ async function submitAddDialog() {
   showAddDialog.value = false;
 }
 
-// --- Delete credential ---
-async function deleteCredential(credentialId: number) {
-  await storageStore.deleteCredentialById(walletId.value, credentialId);
-  toast.add({ severity: 'success', summary: 'Credential deleted', life: 2000 });
+// ---------------------------------------------------------------------------
+// Delete credential (confirmation owned here)
+// ---------------------------------------------------------------------------
+function requestDelete(credentialId: number) {
+  const credential = credentials.value.find(c => c.id === credentialId);
+  if (!credential) return;
+  confirm.require({
+    message: `Are you sure you want to delete "${credential.name}"? This cannot be undone.`,
+    header: 'Delete Credential',
+    icon: 'pi pi-exclamation-triangle',
+    rejectClass: 'p-button-secondary p-button-outlined',
+    rejectLabel: 'Cancel',
+    acceptLabel: 'Delete',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      await storageStore.deleteCredentialById(walletId.value, credentialId);
+      toast.add({ severity: 'success', summary: 'Credential deleted', life: 2000 });
+    },
+  });
 }
 
-// --- Menubar ---
+// ---------------------------------------------------------------------------
+// Browse credential (dialog owned here)
+// ---------------------------------------------------------------------------
+const showBrowseDialog = ref(false);
+const browsingCredential = ref<CredentialEntity | null>(null);
+
+const MAX_BROWSE_LENGTH = 100_000;
+
+const prettyBrowseJson = computed(() => {
+  if (!browsingCredential.value) return '';
+  try {
+    const parsed = JSON.parse(browsingCredential.value.data);
+    const full = JSON.stringify(parsed, null, 2);
+    return full.length > MAX_BROWSE_LENGTH
+      ? full.slice(0, MAX_BROWSE_LENGTH) + '\n\n… (truncated)'
+      : full;
+  } catch {
+    return browsingCredential.value.data;
+  }
+});
+
+function requestBrowse(credentialId: number) {
+  browsingCredential.value = credentials.value.find(c => c.id === credentialId) ?? null;
+  if (browsingCredential.value) showBrowseDialog.value = true;
+}
+
+// ---------------------------------------------------------------------------
+// Menubar
+// ---------------------------------------------------------------------------
 const menuItems = computed<MenuItem[]>(() => [
   {
     label: 'Add Credential',
@@ -133,7 +177,8 @@ const menuItems = computed<MenuItem[]>(() => [
             v-for="credential in credentials"
             :key="credential.id"
             :credential="credential"
-            @delete="deleteCredential"
+            @delete="requestDelete"
+            @browse="requestBrowse"
           />
         </div>
       </div>
@@ -179,6 +224,22 @@ const menuItems = computed<MenuItem[]>(() => [
           <div class="flex justify-end gap-2">
             <Button label="Cancel" @click="showAddDialog = false" severity="secondary" outlined />
             <Button label="Add" @click="submitAddDialog" icon="pi pi-check" />
+          </div>
+        </template>
+      </Dialog>
+
+      <!-- Browse Credential Dialog -->
+      <Dialog
+        v-model:visible="showBrowseDialog"
+        :header="browsingCredential?.name ?? 'Credential'"
+        modal
+        class="w-full max-w-2xl"
+        @after-hide="browsingCredential = null"
+      >
+        <pre class="text-xs font-mono bg-gray-50 rounded p-4 overflow-auto max-h-[60vh] whitespace-pre-wrap break-all">{{ prettyBrowseJson }}</pre>
+        <template #footer>
+          <div class="flex justify-end">
+            <Button label="Close" @click="showBrowseDialog = false" severity="secondary" outlined />
           </div>
         </template>
       </Dialog>
