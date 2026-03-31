@@ -33,6 +33,7 @@ export const SdJwtPayloadSchema = v.looseObject({
   iat: v.number(),
   vct: v.string(),
   exp: v.number(),
+  sub: v.string(),
   _sd_alg: v.string(),
 });
 

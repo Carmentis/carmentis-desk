@@ -40,6 +40,12 @@ const expireAt = computed(() => {
   });
 });
 
+const subject = computed(() => {
+  const sub = sdJwt.value?.jwt.payload.sub;
+  if (!sub) return null;
+  return sub;
+});
+
 /**
  * Collect disclosed claims (disclosures that have a `key`, meaning they map
  * to a named payload claim). Array-element disclosures have no key and are
@@ -88,7 +94,11 @@ function formatValue(v: unknown): string {
           <span class="text-gray-500 font-medium">Issuer</span>
           <span class="text-gray-800 truncate font-mono text-xs">{{ sdJwt.jwt.payload.iss }}</span>
 
-          <span class="text-gray-500 font-medium">Issued</span>
+          <span class="text-gray-500 font-medium">Subject</span>
+          <span class="text-gray-800">{{ subject ?? '—' }}</span>
+
+
+          <span class="text-gray-500 font-medium">Issued at</span>
           <span class="text-gray-800">{{ issuedAt ?? '—' }}</span>
 
           <span class="text-gray-500 font-medium">Expire at</span>
