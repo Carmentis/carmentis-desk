@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import type { CredentialEntity } from '../../stores/storage';
 import { parseSdJwt } from '../../composables/credentials/useCredentialType';
+import SdJwtPresentationDialog from './SdJwtPresentationDialog.vue';
 
 const props = defineProps<{
   credential: CredentialEntity;
@@ -16,6 +17,8 @@ const emit = defineEmits<{
 }>();
 
 const sdJwt = computed(() => parseSdJwt(props.credential.data));
+
+const showPresentDialog = ref(false);
 
 const issuedAt = computed(() => {
   const iat = sdJwt.value?.jwt.payload.iat;
@@ -130,6 +133,14 @@ function formatValue(v: unknown): string {
     <template #footer>
       <div class="flex items-center gap-2 pt-2 border-t border-gray-100">
         <Button
+          label="Present"
+          icon="pi pi-share-alt"
+          size="small"
+          severity="primary"
+          outlined
+          @click="showPresentDialog = true"
+        />
+        <Button
           label="Browse"
           icon="pi pi-search"
           size="small"
@@ -148,4 +159,9 @@ function formatValue(v: unknown): string {
       </div>
     </template>
   </Card>
+
+  <SdJwtPresentationDialog
+    v-model:visible="showPresentDialog"
+    :credential="credential"
+  />
 </template>
