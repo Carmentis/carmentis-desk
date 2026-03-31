@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import type { CredentialEntity } from '../../stores/storage';
@@ -13,36 +13,61 @@ const emit = defineEmits<{
   (e: 'delete'): void;
 }>();
 
-interface PreviewEntry {
-  key: string;
-  value: string;
+// ---------------------------------------------------------------------------
+// Expanded rows
+// ---------------------------------------------------------------------------
+
+const expandedEntries = ref<Set<string>>(new Set());
+
+function toggleExpand(key: string) {
+  const next = new Set(expandedEntries.value);
+  if (next.has(key)) next.delete(key);
+  else next.add(key);
+  expandedEntries.value = next;
 }
 
-const MAX_PREVIEW_KEYS = 5;
-const MAX_VALUE_LENGTH = 50;
+// ---------------------------------------------------------------------------
+// JSON preview
+// ---------------------------------------------------------------------------
+
+const MAX_PREVIEW_KEYS = 6;
+const PREVIEW_LENGTH = 60;
+
+interface PreviewEntry {
+  key: string;
+  preview: string;
+  full: string;
+  expandable: boolean;
+}
 
 const jsonPreview = computed<PreviewEntry[] | null>(() => {
   try {
     const parsed = JSON.parse(props.credential.data);
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      return [{ key: '(value)', value: String(props.credential.data).slice(0, MAX_VALUE_LENGTH) }];
+      const s = String(props.credential.data);
+      return [{ key: '(value)', preview: s.slice(0, PREVIEW_LENGTH), full: s, expandable: s.length > PREVIEW_LENGTH }];
     }
     return Object.keys(parsed)
       .slice(0, MAX_PREVIEW_KEYS)
       .map(k => {
         const v = parsed[k];
-        let display: string;
+        let preview: string;
+        let full: string;
+        let expandable = false;
+
         if (v === null) {
-          display = 'null';
+          preview = full = 'null';
         } else if (Array.isArray(v)) {
-          display = `[ ${v.length} item${v.length !== 1 ? 's' : ''} ]`;
+          preview = full = `[ ${v.length} item${v.length !== 1 ? 's' : ''} ]`;
         } else if (typeof v === 'object') {
-          display = `{ ${Object.keys(v).length} key${Object.keys(v).length !== 1 ? 's' : ''} }`;
+          const n = Object.keys(v).length;
+          preview = full = `{ ${n} key${n !== 1 ? 's' : ''} }`;
         } else {
-          const str = String(v);
-          display = str.length > MAX_VALUE_LENGTH ? str.slice(0, MAX_VALUE_LENGTH) + '…' : str;
+          full = String(v);
+          expandable = full.length > PREVIEW_LENGTH;
+          preview = expandable ? full.slice(0, PREVIEW_LENGTH) + '…' : full;
         }
-        return { key: k, value: display };
+        return { key: k, preview, full, expandable };
       });
   } catch {
     return null;
@@ -61,47 +86,82 @@ const totalKeys = computed<number | null>(() => {
   }
 });
 
-const hasMoreKeys = computed(
-  () => totalKeys.value !== null && totalKeys.value > MAX_PREVIEW_KEYS
+const hiddenKeyCount = computed(() =>
+  totalKeys.value !== null ? Math.max(0, totalKeys.value - MAX_PREVIEW_KEYS) : 0,
 );
 </script>
 
 <template>
-  <Card class="h-full flex flex-col">
-    <template #title>
-      <div class="flex items-center gap-2">
-        <i class="pi pi-id-card text-gray-500"></i>
-        <span class="text-base font-semibold text-gray-900 truncate">{{ credential.name }}</span>
-      </div>
-    </template>
+  <Card class="overflow-hidden shadow-sm border border-gray-200">
 
-    <template #subtitle>
-      <span class="text-xs text-gray-400 uppercase tracking-wider">Unrecognized credential</span>
+    <!-- Neutral header band -->
+    <template #header>
+      <div class="bg-gradient-to-br from-gray-600 to-gray-500 px-4 py-3">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <i class="pi pi-id-card text-white/90 text-sm shrink-0"></i>
+              <span class="text-white font-semibold text-sm leading-tight break-words">
+                {{ credential.name }}
+              </span>
+            </div>
+          </div>
+          <span class="shrink-0 text-xs text-gray-200 font-medium uppercase tracking-wide pt-0.5">
+            Unknown
+          </span>
+        </div>
+      </div>
     </template>
 
     <template #content>
-      <div v-if="jsonPreview" class="space-y-1">
-        <div
-          v-for="entry in jsonPreview"
-          :key="entry.key"
-          class="flex items-baseline gap-2 text-sm"
-        >
-          <span class="font-mono text-xs text-blue-600 shrink-0">{{ entry.key }}</span>
-          <span class="text-gray-400">:</span>
-          <span class="text-gray-700 truncate">{{ entry.value }}</span>
-        </div>
-        <div v-if="hasMoreKeys" class="text-xs text-gray-400 pt-1">
-          … and {{ totalKeys! - MAX_PREVIEW_KEYS }} more key{{ totalKeys! - MAX_PREVIEW_KEYS !== 1 ? 's' : '' }}
-        </div>
+      <div v-if="jsonPreview">
+        <dl class="rounded-md border border-gray-100 divide-y divide-gray-100 overflow-hidden">
+          <div
+            v-for="entry in jsonPreview"
+            :key="entry.key"
+            class="flex gap-3 px-3 py-2 bg-white hover:bg-gray-50/50"
+          >
+            <!-- Key: fixed width, truncated with tooltip -->
+            <dt
+              class="w-24 shrink-0 text-xs font-mono font-medium text-gray-500 pt-0.5 truncate"
+              :title="entry.key"
+            >
+              {{ entry.key }}
+            </dt>
+
+            <!-- Value: truncated or expanded -->
+            <dd class="min-w-0 flex-1">
+              <span
+                class="text-sm text-gray-700 leading-snug"
+                :class="expandedEntries.has(entry.key) ? 'break-all whitespace-pre-wrap' : 'block truncate'"
+                :title="!expandedEntries.has(entry.key) && !entry.expandable ? undefined : entry.full"
+              >
+                {{ expandedEntries.has(entry.key) ? entry.full : entry.preview }}
+              </span>
+              <button
+                v-if="entry.expandable"
+                class="text-xs text-blue-500 hover:text-blue-700 hover:underline mt-0.5 block"
+                @click="toggleExpand(entry.key)"
+              >
+                {{ expandedEntries.has(entry.key) ? 'Show less' : 'Show more' }}
+              </button>
+            </dd>
+          </div>
+        </dl>
+
+        <p v-if="hiddenKeyCount > 0" class="text-xs text-gray-400 mt-2 px-1">
+          … and {{ hiddenKeyCount }} more key{{ hiddenKeyCount !== 1 ? 's' : '' }}
+        </p>
       </div>
-      <div v-else class="text-sm text-red-500 flex items-center gap-2">
-        <i class="pi pi-exclamation-circle"></i>
+
+      <div v-else class="flex items-center gap-2 text-sm text-red-500 py-2">
+        <i class="pi pi-exclamation-circle shrink-0"></i>
         <span>Invalid JSON</span>
       </div>
     </template>
 
     <template #footer>
-      <div class="flex items-center gap-2 pt-2 border-t border-gray-100">
+      <div class="flex items-center gap-2 pt-3 border-t border-gray-100">
         <Button
           label="Browse"
           icon="pi pi-search"
@@ -115,7 +175,8 @@ const hasMoreKeys = computed(
           icon="pi pi-trash"
           size="small"
           severity="danger"
-          outlined
+          text
+          class="ml-auto"
           @click="emit('delete')"
         />
       </div>

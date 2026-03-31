@@ -17,131 +17,201 @@ const emit = defineEmits<{
 }>();
 
 const sdJwt = computed(() => parseSdJwt(props.credential.data));
-
 const showPresentDialog = ref(false);
+
+// ---------------------------------------------------------------------------
+// Expanded rows — tracks which claim rows have been expanded by the user
+// ---------------------------------------------------------------------------
+const expandedClaims = ref<Set<string>>(new Set());
+
+function toggleExpand(id: string) {
+  const next = new Set(expandedClaims.value);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  expandedClaims.value = next;
+}
+
+// ---------------------------------------------------------------------------
+// Metadata
+// ---------------------------------------------------------------------------
 
 const issuedAt = computed(() => {
   const iat = sdJwt.value?.jwt.payload.iat;
-  if (!iat) return null;
-  return new Date(iat * 1000).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  return iat ? new Date(iat * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : null;
 });
 
 const expireAt = computed(() => {
   const exp = sdJwt.value?.jwt.payload.exp;
-  if (!exp) return null;
-  return new Date(exp * 1000).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  return exp ? new Date(exp * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : null;
 });
 
-const subject = computed(() => {
-  const sub = sdJwt.value?.jwt.payload.sub;
-  if (!sub) return null;
-  return sub;
-});
+const subject = computed(() => sdJwt.value?.jwt.payload.sub ?? null);
 
-/**
- * Collect disclosed claims (disclosures that have a `key`, meaning they map
- * to a named payload claim). Array-element disclosures have no key and are
- * omitted from this summary.
- */
-const disclosedClaims = computed(() => {
-  return (sdJwt.value?.disclosures ?? [])
-    .filter(d => d.key !== undefined)
-    .map(d => ({
-      key: d.key as string,
-      value: formatValue(d.value),
-    }));
-});
+// ---------------------------------------------------------------------------
+// Disclosed claims with expandable values
+// ---------------------------------------------------------------------------
 
-function formatValue(v: unknown): string {
+const PREVIEW_LENGTH = 60;
+
+function previewValue(v: unknown): string {
   if (v === null || v === undefined) return 'null';
   if (typeof v === 'object') {
     if (Array.isArray(v)) return `[ ${v.length} item${v.length !== 1 ? 's' : ''} ]`;
-    return `{ ${Object.keys(v as object).length} key${Object.keys(v as object).length !== 1 ? 's' : ''} }`;
+    const n = Object.keys(v as object).length;
+    return `{ ${n} key${n !== 1 ? 's' : ''} }`;
   }
-  const str = String(v);
-  return str.length > 50 ? str.slice(0, 50) + '…' : str;
+  const s = String(v);
+  return s.length > PREVIEW_LENGTH ? s.slice(0, PREVIEW_LENGTH) + '…' : s;
 }
+
+function fullValue(v: unknown): string {
+  if (v === null || v === undefined) return 'null';
+  if (typeof v === 'object') return JSON.stringify(v, null, 2);
+  return String(v);
+}
+
+function isExpandable(v: unknown): boolean {
+  return typeof v === 'string' && v.length > PREVIEW_LENGTH;
+}
+
+const disclosedClaims = computed(() =>
+  (sdJwt.value?.disclosures ?? [])
+    .filter(d => d.key !== undefined)
+    .map(d => ({
+      id: d._digest,
+      key: d.key as string,
+      preview: previewValue(d.value),
+      full: fullValue(d.value),
+      expandable: isExpandable(d.value),
+    })),
+);
+
+const arrayDisclosureCount = computed(() =>
+  (sdJwt.value?.disclosures ?? []).filter(d => d.key === undefined).length,
+);
 </script>
 
 <template>
-  <Card class="h-full flex flex-col">
-    <template #title>
-      <div class="flex items-center gap-2 min-w-0">
-        <i class="pi pi-shield text-blue-500 flex-shrink-0"></i>
-        <span class="text-base font-semibold text-gray-900 truncate">{{ credential.name }}</span>
-      </div>
-    </template>
+  <Card class="overflow-hidden shadow-sm border border-gray-200">
 
-    <template #subtitle>
-      <div class="flex flex-wrap items-center gap-2 mt-1">
-        <Tag value="SD-JWT" severity="info" />
-        <span v-if="sdJwt" class="text-xs text-gray-500 font-mono truncate">{{ sdJwt.jwt.payload.vct }}</span>
+    <!-- Colored header band -->
+    <template #header>
+      <div class="bg-gradient-to-br from-blue-600 to-blue-500 px-4 py-3">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 mb-1">
+              <i class="pi pi-shield text-white/90 text-sm shrink-0"></i>
+              <span class="text-white font-semibold text-sm leading-tight break-words">
+                {{ credential.name }}
+              </span>
+            </div>
+            <span
+              v-if="sdJwt"
+              class="font-mono text-xs text-blue-100 block truncate"
+              :title="sdJwt.jwt.payload.vct"
+            >
+              {{ sdJwt.jwt.payload.vct }}
+            </span>
+          </div>
+          <Tag
+            value="SD-JWT"
+            class="shrink-0 !bg-white/20 !text-white !border-white/30 text-xs"
+          />
+        </div>
       </div>
     </template>
 
     <template #content>
-      <div v-if="sdJwt" class="space-y-3">
-        <!-- Metadata -->
-        <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-          <span class="text-gray-500 font-medium">Issuer</span>
-          <span class="text-gray-800 truncate font-mono text-xs">{{ sdJwt.jwt.payload.iss }}</span>
+      <div v-if="sdJwt" class="space-y-4">
 
-          <span class="text-gray-500 font-medium">Subject</span>
-          <span class="text-gray-800">{{ subject ?? '—' }}</span>
-
-
-          <span class="text-gray-500 font-medium">Issued at</span>
-          <span class="text-gray-800">{{ issuedAt ?? '—' }}</span>
-
-          <span class="text-gray-500 font-medium">Expire at</span>
-          <span class="text-gray-800">{{ expireAt ?? '—' }}</span>
-
-          <span class="text-gray-500 font-medium">Algorithm</span>
-          <span class="text-gray-800 font-mono text-xs">
-            {{ sdJwt.jwt.header.alg }} / {{ sdJwt.jwt.payload._sd_alg }}
-          </span>
-        </div>
+        <!-- Core metadata -->
+        <dl class="space-y-0 divide-y divide-gray-50">
+          <div class="flex gap-3 py-1.5">
+            <dt class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5">Issuer</dt>
+            <dd class="min-w-0 flex-1 text-xs font-mono text-gray-700 break-all leading-snug">
+              {{ sdJwt.jwt.payload.iss }}
+            </dd>
+          </div>
+          <div v-if="subject" class="flex gap-3 py-1.5">
+            <dt class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5">Subject</dt>
+            <dd class="min-w-0 flex-1 text-xs font-mono text-gray-700 break-all leading-snug">
+              {{ subject }}
+            </dd>
+          </div>
+          <div class="flex gap-3 py-1.5">
+            <dt class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5">Issued</dt>
+            <dd class="min-w-0 flex-1 text-sm text-gray-700">{{ issuedAt ?? '—' }}</dd>
+          </div>
+          <div class="flex gap-3 py-1.5">
+            <dt class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5">Expires</dt>
+            <dd class="min-w-0 flex-1 text-sm text-gray-700">{{ expireAt ?? '—' }}</dd>
+          </div>
+          <div class="flex gap-3 py-1.5">
+            <dt class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5">Algorithm</dt>
+            <dd class="min-w-0 flex-1 text-xs font-mono text-gray-500">
+              {{ sdJwt.jwt.header.alg }} / {{ sdJwt.jwt.payload._sd_alg }}
+            </dd>
+          </div>
+        </dl>
 
         <!-- Disclosed claims -->
         <div v-if="disclosedClaims.length > 0">
-          <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-            Disclosed claims ({{ disclosedClaims.length }})
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              Disclosed claims
+            </span>
+            <span class="text-xs text-gray-300">{{ disclosedClaims.length }}</span>
           </div>
-          <div class="space-y-1">
+
+          <dl class="rounded-md border border-gray-100 divide-y divide-gray-100 overflow-hidden">
             <div
               v-for="claim in disclosedClaims"
-              :key="claim.key"
-              class="flex items-baseline gap-2 text-sm"
+              :key="claim.id"
+              class="flex gap-3 px-3 py-2 bg-white hover:bg-gray-50/50"
             >
-              <span class="font-mono text-xs text-blue-600 shrink-0">{{ claim.key }}</span>
-              <span class="text-gray-400">:</span>
-              <span class="text-gray-700 truncate">{{ claim.value }}</span>
-            </div>
-          </div>
-        </div>
+              <!-- Key: fixed width, truncated with tooltip -->
+              <dt
+                class="w-24 shrink-0 text-xs font-mono font-medium text-blue-600 pt-0.5 truncate"
+                :title="claim.key"
+              >
+                {{ claim.key }}
+              </dt>
 
-        <div v-if="sdJwt.disclosures.length - disclosedClaims.length > 0" class="text-xs text-gray-400">
-          + {{ sdJwt.disclosures.length - disclosedClaims.length }} array-element
-          disclosure{{ sdJwt.disclosures.length - disclosedClaims.length !== 1 ? 's' : '' }}
+              <!-- Value: truncated or expanded -->
+              <dd class="min-w-0 flex-1">
+                <span
+                  class="text-sm text-gray-700 leading-snug"
+                  :class="expandedClaims.has(claim.id) ? 'break-all whitespace-pre-wrap' : 'block truncate'"
+                  :title="!expandedClaims.has(claim.id) && !claim.expandable ? undefined : claim.full"
+                >
+                  {{ expandedClaims.has(claim.id) ? claim.full : claim.preview }}
+                </span>
+                <button
+                  v-if="claim.expandable"
+                  class="text-xs text-blue-500 hover:text-blue-700 hover:underline mt-0.5 block"
+                  @click="toggleExpand(claim.id)"
+                >
+                  {{ expandedClaims.has(claim.id) ? 'Show less' : 'Show more' }}
+                </button>
+              </dd>
+            </div>
+          </dl>
+
+          <p v-if="arrayDisclosureCount > 0" class="text-xs text-gray-400 mt-1.5">
+            + {{ arrayDisclosureCount }} array-element
+            disclosure{{ arrayDisclosureCount !== 1 ? 's' : '' }}
+          </p>
         </div>
       </div>
 
-      <div v-else class="text-sm text-red-500 flex items-center gap-2">
-        <i class="pi pi-exclamation-circle"></i>
+      <div v-else class="flex items-center gap-2 text-sm text-red-500 py-2">
+        <i class="pi pi-exclamation-circle shrink-0"></i>
         <span>Could not parse SD-JWT</span>
       </div>
     </template>
 
     <template #footer>
-      <div class="flex items-center gap-2 pt-2 border-t border-gray-100">
+      <div class="flex items-center gap-2 pt-3 border-t border-gray-100">
         <Button
           label="Present"
           icon="pi pi-share-alt"
@@ -163,7 +233,8 @@ function formatValue(v: unknown): string {
           icon="pi pi-trash"
           size="small"
           severity="danger"
-          outlined
+          text
+          class="ml-auto"
           @click="emit('delete')"
         />
       </div>
