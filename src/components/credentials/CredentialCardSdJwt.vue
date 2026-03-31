@@ -27,6 +27,16 @@ const issuedAt = computed(() => {
   });
 });
 
+const expireAt = computed(() => {
+  const exp = sdJwt.value?.jwt.payload.exp;
+  if (!exp) return null;
+  return new Date(exp * 1000).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+});
+
 /**
  * Collect disclosed claims (disclosures that have a `key`, meaning they map
  * to a named payload claim). Array-element disclosures have no key and are
@@ -77,6 +87,9 @@ function formatValue(v: unknown): string {
 
           <span class="text-gray-500 font-medium">Issued</span>
           <span class="text-gray-800">{{ issuedAt ?? '—' }}</span>
+
+          <span class="text-gray-500 font-medium">Expire at</span>
+          <span class="text-gray-800">{{ expireAt ?? '—' }}</span>
 
           <span class="text-gray-500 font-medium">Algorithm</span>
           <span class="text-gray-800 font-mono text-xs">

@@ -7,10 +7,16 @@ import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
+import Tabs from 'primevue/tabs';
+import TabList from 'primevue/tablist';
+import Tab from 'primevue/tab';
+import TabPanels from 'primevue/tabpanels';
+import TabPanel from 'primevue/tabpanel';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import type { MenuItem } from 'primevue/menuitem';
 import CredentialCard from './credentials/CredentialCard.vue';
+import { parseCompactSdJwt, SdJwtParseError } from '../composables/credentials/parseSdJwtToken';
 
 const route = useRoute();
 const router = useRouter();
@@ -25,18 +31,31 @@ const wallet = computed(() =>
 const credentials = computed(() => wallet.value?.credentials ?? []);
 
 // ---------------------------------------------------------------------------
-// Add credential
+// Add credential dialog
 // ---------------------------------------------------------------------------
 const showAddDialog = ref(false);
+const addTab = ref<'json' | 'sd-jwt'>('json');
+
+// JSON tab state
 const credentialName = ref('');
 const credentialData = ref('');
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
+// SD-JWT tab state
+const sdJwtName = ref('');
+const sdJwtToken = ref('');
+const sdJwtParsing = ref(false);
+
 function openAddDialog() {
+  addTab.value = 'json';
   credentialName.value = '';
   credentialData.value = '';
+  sdJwtName.value = '';
+  sdJwtToken.value = '';
   showAddDialog.value = true;
 }
+
+// --- JSON tab helpers ---
 
 function triggerFileInput() {
   fileInputRef.value?.click();
@@ -57,7 +76,7 @@ function handleFileUpload(event: Event) {
       JSON.parse(text);
       credentialData.value = text;
     } catch {
-      toast.add({ severity: 'error', summary: 'Invalid file', detail: 'The selected file does not contain valid JSON', life: 3000 });
+      toast.add({ severity: 'error', summary: 'Invalid file', detail: 'The file does not contain valid JSON', life: 3000 });
     }
   };
   reader.readAsText(file);
@@ -65,7 +84,7 @@ function handleFileUpload(event: Event) {
   if (fileInputRef.value) fileInputRef.value.value = '';
 }
 
-async function submitAddDialog() {
+async function submitJsonTab() {
   if (!credentialName.value) {
     toast.add({ severity: 'error', summary: 'Validation error', detail: 'Credential name is required', life: 3000 });
     return;
@@ -86,6 +105,39 @@ async function submitAddDialog() {
   });
   toast.add({ severity: 'success', summary: 'Credential added', detail: `"${credentialName.value}" added successfully`, life: 3000 });
   showAddDialog.value = false;
+}
+
+// --- SD-JWT tab helpers ---
+
+async function submitSdJwtTab() {
+  if (!sdJwtToken.value.trim()) {
+    toast.add({ severity: 'error', summary: 'Validation error', detail: 'SD-JWT token is required', life: 3000 });
+    return;
+  }
+
+  sdJwtParsing.value = true;
+  try {
+    const parsed = await parseCompactSdJwt(sdJwtToken.value);
+
+    const name = sdJwtName.value.trim() || parsed.jwt.payload.vct;
+    const data = JSON.stringify(parsed);
+
+    await storageStore.addCredential(walletId.value, { name, data });
+    toast.add({ severity: 'success', summary: 'Credential added', detail: `"${name}" added successfully`, life: 3000 });
+    showAddDialog.value = false;
+  } catch (err) {
+    const detail = err instanceof SdJwtParseError
+      ? err.message
+      : 'An unexpected error occurred while parsing the token.';
+    toast.add({ severity: 'error', summary: 'Parse error', detail, life: 5000 });
+  } finally {
+    sdJwtParsing.value = false;
+  }
+}
+
+function handleAddSubmit() {
+  if (addTab.value === 'json') submitJsonTab();
+  else submitSdJwtTab();
 }
 
 // ---------------------------------------------------------------------------
@@ -153,7 +205,7 @@ const menuItems = computed<MenuItem[]>(() => [
       <div class="space-y-4">
         <MenuBar :model="menuItems" />
 
-        <!-- Hidden file input -->
+        <!-- Hidden file input for JSON upload -->
         <input
           ref="fileInputRef"
           type="file"
@@ -184,46 +236,106 @@ const menuItems = computed<MenuItem[]>(() => [
       </div>
 
       <!-- Add Credential Dialog -->
-      <Dialog v-model:visible="showAddDialog" header="Add Credential" modal class="w-full max-w-lg">
-        <div class="space-y-4">
-          <div>
-            <label for="credential-name" class="block text-sm font-medium text-gray-700 mb-2">
-              Name <span class="text-red-500">*</span>
-            </label>
-            <InputText
-              id="credential-name"
-              v-model="credentialName"
-              placeholder="Enter credential name"
-              class="w-full"
-            />
-          </div>
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label for="credential-data" class="block text-sm font-medium text-gray-700">
-                JSON Data <span class="text-red-500">*</span>
-              </label>
-              <Button
-                label="Upload file"
-                icon="pi pi-upload"
-                size="small"
-                severity="secondary"
-                outlined
-                @click="triggerFileInput"
-              />
-            </div>
-            <Textarea
-              id="credential-data"
-              v-model="credentialData"
-              placeholder='{"key": "value"}'
-              class="w-full font-mono text-sm"
-              rows="10"
-            />
-          </div>
-        </div>
+      <Dialog
+        v-model:visible="showAddDialog"
+        header="Add Credential"
+        modal
+        class="w-full max-w-lg"
+      >
+        <Tabs v-model:value="addTab">
+          <TabList>
+            <Tab value="json">
+              <i class="pi pi-file mr-2" />JSON
+            </Tab>
+            <Tab value="sd-jwt">
+              <i class="pi pi-shield mr-2" />SD-JWT Token
+            </Tab>
+          </TabList>
+
+          <TabPanels>
+            <!-- JSON tab -->
+            <TabPanel value="json">
+              <div class="space-y-4 pt-4">
+                <div>
+                  <label for="credential-name" class="block text-sm font-medium text-gray-700 mb-2">
+                    Name <span class="text-red-500">*</span>
+                  </label>
+                  <InputText
+                    id="credential-name"
+                    v-model="credentialName"
+                    placeholder="Enter credential name"
+                    class="w-full"
+                  />
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <label for="credential-data" class="block text-sm font-medium text-gray-700">
+                      JSON Data <span class="text-red-500">*</span>
+                    </label>
+                    <Button
+                      label="Upload file"
+                      icon="pi pi-upload"
+                      size="small"
+                      severity="secondary"
+                      outlined
+                      @click="triggerFileInput"
+                    />
+                  </div>
+                  <Textarea
+                    id="credential-data"
+                    v-model="credentialData"
+                    placeholder='{"key": "value"}'
+                    class="w-full font-mono text-sm"
+                    rows="10"
+                  />
+                </div>
+              </div>
+            </TabPanel>
+
+            <!-- SD-JWT Token tab -->
+            <TabPanel value="sd-jwt">
+              <div class="space-y-4 pt-4">
+                <div>
+                  <label for="sd-jwt-name" class="block text-sm font-medium text-gray-700 mb-2">
+                    Name
+                    <span class="text-gray-400 font-normal">(optional — defaults to credential type)</span>
+                  </label>
+                  <InputText
+                    id="sd-jwt-name"
+                    v-model="sdJwtName"
+                    placeholder="Leave blank to use credential type (vct)"
+                    class="w-full"
+                  />
+                </div>
+                <div>
+                  <label for="sd-jwt-token" class="block text-sm font-medium text-gray-700 mb-2">
+                    Compact SD-JWT-VC Token <span class="text-red-500">*</span>
+                  </label>
+                  <Textarea
+                    id="sd-jwt-token"
+                    v-model="sdJwtToken"
+                    placeholder="eyJ...eyJ...~WyJ...~WyJ...~"
+                    class="w-full font-mono text-xs"
+                    rows="8"
+                  />
+                  <p class="text-xs text-gray-400 mt-1">
+                    Format: <code class="bg-gray-100 px-1 rounded">header.payload.signature~disclosure1~disclosure2~</code>
+                  </p>
+                </div>
+              </div>
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
+
         <template #footer>
           <div class="flex justify-end gap-2">
             <Button label="Cancel" @click="showAddDialog = false" severity="secondary" outlined />
-            <Button label="Add" @click="submitAddDialog" icon="pi pi-check" />
+            <Button
+              label="Add"
+              icon="pi pi-check"
+              :loading="sdJwtParsing"
+              @click="handleAddSubmit"
+            />
           </div>
         </template>
       </Dialog>
