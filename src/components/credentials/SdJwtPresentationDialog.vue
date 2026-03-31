@@ -178,14 +178,6 @@ function formatValue(v: unknown): string {
           disclosure{{ arrayDisclosures.length !== 1 ? 's' : '' }} always included.
         </p>
       </div>
-
-      <!-- Token preview (non-interactive, truncated for readability) -->
-      <div>
-        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Token preview</span>
-        <div class="mt-1 bg-gray-50 rounded px-3 py-2 font-mono text-xs text-gray-500 break-all line-clamp-4 overflow-hidden leading-relaxed">
-          {{ compactToken }}
-        </div>
-      </div>
     </div>
 
     <div v-else class="text-sm text-red-500 flex items-center gap-2">
