@@ -17,7 +17,7 @@ const emit = defineEmits<{
 }>();
 
 const sdJwtVc = computed(() => parseSdJwtVc(props.credential.data));
-const showPresentDialog = ref(false);
+const showDeriveDialog = ref(false);
 
 // ---------------------------------------------------------------------------
 // Expanded rows
@@ -215,12 +215,12 @@ const arrayDisclosureCount = computed(() =>
     <template #footer>
       <div class="flex items-center gap-2 pt-3 border-t border-gray-100">
         <Button
-          label="Present"
+          label="Derive"
           icon="pi pi-share-alt"
           size="small"
           severity="primary"
           outlined
-          @click="showPresentDialog = true"
+          @click="showDeriveDialog = true"
         />
         <Button
           label="Browse"
@@ -244,7 +244,7 @@ const arrayDisclosureCount = computed(() =>
   </Card>
 
   <SdJwtVcPresentationDialog
-    v-model:visible="showPresentDialog"
+    v-model:visible="showDeriveDialog"
     :credential="credential"
   />
 </template>

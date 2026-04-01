@@ -16,10 +16,19 @@ const visible = defineModel<boolean>('visible', { default: false });
 
 const toast = useToast();
 
-// parseSdJwtEnvelope works for both SD-JWT and SD-JWT-VC since they share
-// the same envelope structure (jwt.encoded + disclosures).
-const sdJwt = computed(() =>
+const envelope = computed(() =>
   props.credential ? parseSdJwtEnvelope(props.credential.data) : null,
+);
+
+// Extract optional display fields from the loose payload without template casts
+const payload = computed(() =>
+  envelope.value?.jwt.payload as Record<string, unknown> | undefined,
+);
+const vct = computed(() =>
+  typeof payload.value?.['vct'] === 'string' ? payload.value['vct'] as string : null,
+);
+const iss = computed(() =>
+  typeof payload.value?.['iss'] === 'string' ? payload.value['iss'] as string : null,
 );
 
 // ---------------------------------------------------------------------------
@@ -27,20 +36,19 @@ const sdJwt = computed(() =>
 // ---------------------------------------------------------------------------
 
 const namedDisclosures = computed(() =>
-  (sdJwt.value?.disclosures ?? []).filter(d => d.key !== undefined),
+  (envelope.value?.disclosures ?? []).filter(d => d.key !== undefined),
 );
 
 const arrayDisclosures = computed(() =>
-  (sdJwt.value?.disclosures ?? []).filter(d => d.key === undefined),
+  (envelope.value?.disclosures ?? []).filter(d => d.key === undefined),
 );
 
 // ---------------------------------------------------------------------------
-// Selection state — Set of _digest strings for selected named disclosures
+// Selection state
 // ---------------------------------------------------------------------------
 
 const selectedDigests = ref<Set<string>>(new Set());
 
-// Pre-select all named disclosures whenever the credential changes
 watch(
   () => props.credential,
   () => {
@@ -68,27 +76,25 @@ function selectNone() {
   selectedDigests.value = new Set();
 }
 
-// ---------------------------------------------------------------------------
-// Compact token construction
-// Included disclosures = selected named disclosures + all array-element
-// disclosures (array-element disclosures have no standalone identity so
-// they are always bundled).
-// ---------------------------------------------------------------------------
-
-const compactToken = computed(() => {
-  if (!sdJwt.value) return '';
-  const { jwt, disclosures } = sdJwt.value;
-  const included = disclosures.filter(
-    d => d.key === undefined || selectedDigests.value.has(d._digest),
-  );
-  const discPart = included.map(d => d._encoded).join('~');
-  return `${jwt.encoded}~${discPart}~`;
-});
-
 const selectedCount = computed(() => selectedDigests.value.size);
 
 // ---------------------------------------------------------------------------
-// Copy helpers
+// Compact token
+// Build: jwt.encoded ~ [selected disclosures joined by ~] ~
+// Using spread+join avoids a double "~~" when no disclosures are included.
+// ---------------------------------------------------------------------------
+
+const compactToken = computed(() => {
+  if (!envelope.value) return '';
+  const { jwt, disclosures } = envelope.value;
+  const included = disclosures.filter(
+    d => d.key === undefined || selectedDigests.value.has(d._digest),
+  );
+  return [jwt.encoded, ...included.map(d => d._encoded)].join('~') + '~';
+});
+
+// ---------------------------------------------------------------------------
+// Copy
 // ---------------------------------------------------------------------------
 
 async function copyEncoded() {
@@ -123,25 +129,19 @@ function formatValue(v: unknown): string {
     modal
     class="w-full max-w-lg"
   >
-    <div v-if="sdJwt" class="space-y-5">
+    <div v-if="envelope" class="space-y-5">
 
-      <!-- Credential summary — payload fields are read loosely since the
-           envelope type only guarantees _sd_alg; vct/iss are optional. -->
+      <!-- Credential summary -->
       <div class="flex flex-wrap items-center gap-2">
-        <Tag :value="credential?.name ?? 'Credential'" severity="info" />
+        <Tag value="SD-JWT" severity="info" />
         <span
-          v-if="(sdJwt.jwt.payload as Record<string, unknown>)['vct']"
+          v-if="vct"
           class="font-mono text-xs text-gray-500 truncate max-w-xs"
-          :title="String((sdJwt.jwt.payload as Record<string, unknown>)['vct'])"
+          :title="vct"
         >
-          {{ (sdJwt.jwt.payload as Record<string, unknown>)['vct'] }}
+          {{ vct }}
         </span>
-        <span
-          v-if="(sdJwt.jwt.payload as Record<string, unknown>)['iss']"
-          class="text-xs text-gray-400"
-        >
-          · {{ (sdJwt.jwt.payload as Record<string, unknown>)['iss'] }}
-        </span>
+        <span v-if="iss" class="text-xs text-gray-400">· {{ iss }}</span>
       </div>
 
       <!-- Claims selector -->
@@ -172,7 +172,7 @@ function formatValue(v: unknown): string {
             <span class="font-mono text-sm text-blue-700 shrink-0">{{ disc.key }}</span>
             <span class="text-gray-400 text-xs">:</span>
             <span
-              class="text-sm truncate"
+              class="text-sm truncate flex-1 min-w-0"
               :class="isSelected(disc._digest) ? 'text-gray-700' : 'text-gray-400 line-through'"
             >
               {{ formatValue(disc.value) }}
@@ -205,7 +205,7 @@ function formatValue(v: unknown): string {
         <Button
           label="Copy Encoded"
           icon="pi pi-copy"
-          :disabled="!sdJwt"
+          :disabled="!envelope"
           @click="copyEncoded"
         />
       </div>

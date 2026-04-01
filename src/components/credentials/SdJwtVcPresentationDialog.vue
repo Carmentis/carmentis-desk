@@ -158,7 +158,7 @@ const compactToken = computed(() => {
   const included = disclosures.filter(
     d => d.key === undefined || selectedDigests.value.has(d._digest),
   );
-  return `${jwt.encoded}~${included.map(d => d._encoded).join('~')}~`;
+  return [jwt.encoded, ...included.map(d => d._encoded)].join('~') + '~';
 });
 
 // ---------------------------------------------------------------------------
@@ -215,7 +215,7 @@ const contextClass: Record<DisclosureContext, string> = {
 <template>
   <Dialog
     v-model:visible="visible"
-    :header="`Present — ${credential?.name ?? ''}`"
+    :header="`Derive — ${credential?.name ?? ''}`"
     modal
     class="w-full max-w-lg"
   >
