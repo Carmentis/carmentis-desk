@@ -6,7 +6,7 @@ import Checkbox from 'primevue/checkbox';
 import Tag from 'primevue/tag';
 import { useToast } from 'primevue/usetoast';
 import type { CredentialEntity } from '../../stores/storage';
-import { parseSdJwt } from '../../composables/credentials/useCredentialType';
+import { parseSdJwtEnvelope } from '../../composables/credentials/useCredentialType';
 
 const props = defineProps<{
   credential: CredentialEntity | null;
@@ -16,8 +16,10 @@ const visible = defineModel<boolean>('visible', { default: false });
 
 const toast = useToast();
 
+// parseSdJwtEnvelope works for both SD-JWT and SD-JWT-VC since they share
+// the same envelope structure (jwt.encoded + disclosures).
 const sdJwt = computed(() =>
-  props.credential ? parseSdJwt(props.credential.data) : null,
+  props.credential ? parseSdJwtEnvelope(props.credential.data) : null,
 );
 
 // ---------------------------------------------------------------------------
@@ -123,11 +125,23 @@ function formatValue(v: unknown): string {
   >
     <div v-if="sdJwt" class="space-y-5">
 
-      <!-- Credential summary -->
+      <!-- Credential summary — payload fields are read loosely since the
+           envelope type only guarantees _sd_alg; vct/iss are optional. -->
       <div class="flex flex-wrap items-center gap-2">
-        <Tag value="SD-JWT" severity="info" />
-        <span class="font-mono text-xs text-gray-500">{{ sdJwt.jwt.payload.vct }}</span>
-        <span class="text-xs text-gray-400">· {{ sdJwt.jwt.payload.iss }}</span>
+        <Tag :value="credential?.name ?? 'Credential'" severity="info" />
+        <span
+          v-if="(sdJwt.jwt.payload as Record<string, unknown>)['vct']"
+          class="font-mono text-xs text-gray-500 truncate max-w-xs"
+          :title="String((sdJwt.jwt.payload as Record<string, unknown>)['vct'])"
+        >
+          {{ (sdJwt.jwt.payload as Record<string, unknown>)['vct'] }}
+        </span>
+        <span
+          v-if="(sdJwt.jwt.payload as Record<string, unknown>)['iss']"
+          class="text-xs text-gray-400"
+        >
+          · {{ (sdJwt.jwt.payload as Record<string, unknown>)['iss'] }}
+        </span>
       </div>
 
       <!-- Claims selector -->
@@ -188,14 +202,6 @@ function formatValue(v: unknown): string {
     <template #footer>
       <div class="flex justify-end gap-2">
         <Button label="Close" severity="secondary" outlined @click="visible = false" />
-        <Button
-          label="Copy JSON"
-          icon="pi pi-copy"
-          severity="secondary"
-          outlined
-          disabled
-          v-tooltip.top="'Coming soon'"
-        />
         <Button
           label="Copy Encoded"
           icon="pi pi-copy"
