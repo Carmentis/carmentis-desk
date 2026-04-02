@@ -1,3 +1,23 @@
+# [1.10.0](https://github.com/Carmentis/carmentis-desk/compare/v1.9.0...v1.10.0) (2026-04-02)
+
+
+### Bug Fixes
+
+* add [@ts-ignore](https://github.com/ts-ignore) for accessing private `encoded` property in SD-JWT parsing ([c7c1cd5](https://github.com/Carmentis/carmentis-desk/commit/c7c1cd542b4aaaff2d2b81c074b1f5e2337e6f1d))
+
+
+### Features
+
+* add `CredentialCardSdJwt` component and SD-JWT schema handling ([59ced04](https://github.com/Carmentis/carmentis-desk/commit/59ced04ae02e56501b58379692dac05a7b0ac939))
+* add `CredentialCardSdJwtVc` for managing SD-JWT-VC credentials ([7fe3a5e](https://github.com/Carmentis/carmentis-desk/commit/7fe3a5e435a4ed6ad98e8fbb02c3975c2a49770a))
+* add `SdJwtPresentationDialog` for SD-JWT presentation and claim management ([3f7e4f5](https://github.com/Carmentis/carmentis-desk/commit/3f7e4f553ee7e11d9e152bda166736d226e96356))
+* add CredentialCard components with browse and delete functionality ([43c6586](https://github.com/Carmentis/carmentis-desk/commit/43c65866239bcb670a7959d048dfc1db5b9d800c))
+* add Credentials management with UI and API integration ([23cf4d7](https://github.com/Carmentis/carmentis-desk/commit/23cf4d7512f07477a2e099d41f40fa8686584a0e))
+* add SD-JWT token parsing and integration with credential management UI ([b28bca5](https://github.com/Carmentis/carmentis-desk/commit/b28bca56802d90c182a89e72cd1946cdf76d9298))
+* display SD-JWT subject in `CredentialCardSdJwt` and update schema ([0f4e255](https://github.com/Carmentis/carmentis-desk/commit/0f4e255a33ecd4ee392ebde47dfd6934a703ea18))
+* enhance credential cards with expandable fields and improved UI layout ([1a83632](https://github.com/Carmentis/carmentis-desk/commit/1a83632a146aaff8cf465c99469e94a56eeed537))
+* integrate SD-JWT library and add `generateSdJwt` function in CredentialCard ([6d790b4](https://github.com/Carmentis/carmentis-desk/commit/6d790b4464edb086eec6a53f4bf16cf692e15dec))
+
 # [1.9.0](https://github.com/Carmentis/carmentis-desk/compare/v1.8.0...v1.9.0) (2026-03-26)
 
 
