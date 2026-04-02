@@ -83,6 +83,7 @@ export async function parseCompactSdJwt(token: string): Promise<SdJwtCredential>
       signature: jwt.signature ?? '',
       // jwt.encoded holds the bare JWT (header.payload.signature), identical to
       // the first segment before the first "~".
+      // @ts-ignore encoded is private but is accessed
       encoded: jwt.encoded ?? trimmed.split('~')[0],
     },
     disclosures: mappedDisclosures,
