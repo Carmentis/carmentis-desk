@@ -50,13 +50,8 @@ export async function parseCompactSdJwt(token: string): Promise<SdJwtCredential>
   const header = jwt.header as Record<string, unknown>;
   const payload = jwt.payload as Record<string, unknown>;
 
-  // Validate the token is actually an SD-JWT
-  if (typeof header.typ !== 'string' || !header.typ.toLowerCase().includes('sd-jwt')) {
-    throw new SdJwtParseError(
-      `Unexpected token type "${header.typ ?? '(none)'}". ` +
-        'Expected an SD-JWT (typ must contain "sd-jwt").',
-    );
-  }
+  // Validate the token is actually an SD-JWT.
+  // `typ` is optional in some SD-JWT issuers — presence of `_sd_alg` is sufficient.
   if (typeof payload._sd_alg !== 'string') {
     throw new SdJwtParseError(
       'Missing "_sd_alg" in payload — this does not appear to be an SD-JWT.',
@@ -76,7 +71,7 @@ export async function parseCompactSdJwt(token: string): Promise<SdJwtCredential>
   return {
     jwt: {
       header: {
-        typ: header.typ as string,
+        typ: typeof header.typ === 'string' ? header.typ : '',
         alg: typeof header.alg === 'string' ? header.alg : '',
       },
       payload: payload as SdJwtCredential['jwt']['payload'],

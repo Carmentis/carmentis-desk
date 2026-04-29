@@ -1,123 +1,175 @@
 <script setup lang="ts">
-import {useRoute, useRouter} from "vue-router";
-import Button from 'primevue/button';
-import Card from 'primevue/card';
-import {onMounted, ref} from "vue";
-import {Responder} from "@cmts-dev/carmentis-relay-client";
-import * as v from 'valibot';
+import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import Button from 'primevue/button'
+import Card from 'primevue/card'
+import { useToast } from 'primevue/usetoast'
+import * as v from 'valibot'
+import { Responder } from '@cmts-dev/carmentis-relay-client'
 import {
   WalletRequestAuthByPublicKey,
   WalletRequestAuthByPublicKeySchema,
   WalletRequestDataApproval,
   WalletRequestDataApprovalSchema,
   WalletRequestType,
-} from "@cmts-dev/carmentis-sdk/client";
-import WalletRequestAuthByPublicKeyVue from "./WalletRequestAuthByPublicKey.vue";
-import {useToast} from "primevue/usetoast";
-import WalletRequestEventApproval from "./WalletRequestEventApproval.vue";
-import {JsonRpc, JsonRpcNotification, JsonRpcParams, JsonRpcRequest} from "@cmts-dev/carmentis-sdk-json-rpc";
+} from '@cmts-dev/carmentis-sdk/client'
+import { JsonRpc, JsonRpcNotification, JsonRpcParams, JsonRpcRequest } from '@cmts-dev/carmentis-sdk-json-rpc'
 
-const toast = useToast();
-const route = useRoute();
-const router = useRouter();
-const query = route.query;
-const symKey: string = query.symKey as string;
-const relay: string = query.relay as string;
-const sessionId: string = query.sessionId as string;
-const wantsToClose = ref(false);
+import WalletRequestDeprecatedAuthByPublicKey from './WalletRequestDeprecatedAuthByPublicKey.vue'
+import WalletRequestV1AuthByPublicKey from './v1/auth/WalletRequestAuthByPublicKey.vue'
+import WalletRequestEventApproval from './WalletRequestEventApproval.vue'
+import * as timers from "node:timers";
 
-const responder = Responder.create(relay, sessionId, symKey);
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type RequestId = number | string | null
+
+const V1AuthPkParamsSchema = v.object({
+  origin: v.string(),
+  b64Challenge: v.string(),
+  pkFormat: v.optional(v.picklist(['did', 'cmts']), 'cmts'),
+  sigFormat: v.optional(v.literal('jws'), 'jws'),
+})
+type V1AuthPkParams = v.InferOutput<typeof V1AuthPkParamsSchema>
+
+type ActiveRequest =
+  | { kind: '/v1/auth/pk'; id: RequestId; params: V1AuthPkParams }
+  | { kind: 'wr-auth-pk'; id: RequestId; params: WalletRequestAuthByPublicKey }
+  | { kind: 'wr-data-approval'; id: RequestId; params: WalletRequestDataApproval }
+
+// ── Setup ─────────────────────────────────────────────────────────────────────
+
+const toast = useToast()
+const route = useRoute()
+const router = useRouter()
+
+const symKey = route.query.symKey as string
+const relay = route.query.relay as string
+const sessionId = route.query.sessionId as string
+
+const responder = Responder.create(relay, sessionId, symKey)
+const wantsToClose = ref(false)
+const activeRequest = ref<ActiveRequest | null>(null)
 
 function closeConnect() {
-  wantsToClose.value = true;
-  responder.close();
-  router.push('/')
-}
+  setTimeout(() => {
+    wantsToClose.value = true
+    responder.close()
+    router.push('/')
+  }, 300)
 
-const walletRequest = ref<WalletRequestAuthByPublicKey | WalletRequestDataApproval | null>(null);
-const jsonRpcRequestId = ref<number | string | null>(null);
+}
 
 responder.onClose(() => {
   if (!wantsToClose.value) {
-    toast.add({severity: 'error', summary: 'Connection with relay lost', detail: 'The connection with the relay was lost unexpectedly.'});
+    toast.add({ severity: 'error', summary: 'Connection with relay lost', detail: 'The connection with the relay was lost unexpectedly.' })
   }
   router.push('/')
 })
 
-function handleJsonRpcRequest(request: JsonRpcRequest<JsonRpcParams> | JsonRpcNotification<JsonRpcParams>) {
-  const requestId = 'id' in request ? request.id : null;
+// ── Method handler registry ───────────────────────────────────────────────────
 
-  if (request.method === 'wr-auth-pk') {
-    const authRequest = { type: WalletRequestType.AUTH_BY_PUBLIC_KEY, ...request.params };
-    const result = v.safeParse(WalletRequestAuthByPublicKeySchema, authRequest);
-    if (result.success) {
-      jsonRpcRequestId.value = requestId;
-      walletRequest.value = result.output;
-    } else {
-      console.warn("Invalid parameters received for authentication request")
-      return JsonRpc.invalidParams(requestId, 'Invalid parameters for authentication request');
-    }
-  } else if (request.method === 'wr-data-approval') {
-    const approvalRequest = { type: WalletRequestType.DATA_APPROVAL, ...request.params };
-    const result = v.safeParse(WalletRequestDataApprovalSchema, approvalRequest);
-    if (result.success) {
-      jsonRpcRequestId.value = requestId;
-      walletRequest.value = result.output;
-    } else {
-      return JsonRpc.invalidParams(requestId, 'Invalid parameters for data approval request');
-    }
-  } else if (request.method === 'ping') {
-    return JsonRpc.success(requestId, { ts: Date.now() });
-  } else {
-    return JsonRpc.methodNotFound(requestId, 'Method not found');
-  }
+type Handler = (id: RequestId, params: unknown) => ReturnType<typeof JsonRpc.success> | void
+
+const methodHandlers: Record<string, Handler> = {
+  'ping': (id) => JsonRpc.success(id, { ts: Date.now() }),
+
+  '/v1/auth/pk': (id, params) => {
+    const result = v.safeParse(V1AuthPkParamsSchema, params)
+    if (!result.success) return JsonRpc.invalidParams(id, 'Invalid parameters for /v1/auth/pk')
+    activeRequest.value = { kind: '/v1/auth/pk', id, params: result.output }
+  },
+
+  'wr-auth-pk': (id, params) => {
+    const result = v.safeParse(WalletRequestAuthByPublicKeySchema, {
+      type: WalletRequestType.AUTH_BY_PUBLIC_KEY,
+      ...params as object,
+    })
+    if (!result.success) return JsonRpc.invalidParams(id, 'Invalid parameters for wr-auth-pk')
+    activeRequest.value = { kind: 'wr-auth-pk', id, params: result.output }
+  },
+
+  'wr-data-approval': (id, params) => {
+    const result = v.safeParse(WalletRequestDataApprovalSchema, {
+      type: WalletRequestType.DATA_APPROVAL,
+      ...params as object,
+    })
+    if (!result.success) return JsonRpc.invalidParams(id, 'Invalid parameters for wr-data-approval')
+    activeRequest.value = { kind: 'wr-data-approval', id, params: result.output }
+  },
+}
+
+function handleJsonRpcRequest(
+  request: JsonRpcRequest<JsonRpcParams> | JsonRpcNotification<JsonRpcParams>,
+) {
+  const id: RequestId = 'id' in request ? request.id : null
+  const handler = methodHandlers[request.method]
+  if (!handler) return JsonRpc.methodNotFound(id, 'Method not found')
+  return handler(id, request.params)
 }
 
 responder.onMessage((message) => {
-  console.log("Received message from relay:", message);
-  const jsonRpcParseResult = JsonRpc.parseRequest(message);
-  if (jsonRpcParseResult.ok) {
-    const response = handleJsonRpcRequest(jsonRpcParseResult.value);
-    if (response) {
-      responder.send(response)
-          .then(closeConnect);
-    }
-  } else {
-    console.warn("Invalid JSON-RPC request received:", message);
-    console.warn("Error details:", jsonRpcParseResult.error);
+  const parsed = JsonRpc.parseRequest(message)
+  if (!parsed.ok) {
+    console.warn('Invalid JSON-RPC request received:', message, parsed.error)
+    return
   }
+  const response = handleJsonRpcRequest(parsed.value)
+  if (response) responder.send(response).then(closeConnect)
 })
 
-async function approveEventRequest(b64VbHash: string, b64MbHash: string, height: number) {
-  await responder.send(JsonRpc.success(jsonRpcRequestId.value, { b64VbHash, b64MbHash, height }));
-  toast.add({severity: 'success', summary: 'Event approved', detail: 'The event has been approved and signed', life: 3000});
-  closeConnect();
+// ── Approve / reject handlers ─────────────────────────────────────────────────
+
+async function onApproveV1AuthPk(pk: string | object, signature: string) {
+  if (activeRequest.value?.kind !== '/v1/auth/pk') return
+  await responder.send(JsonRpc.success(activeRequest.value.id, { pk, signature }))
+  toast.add({ severity: 'success', summary: 'Authentication successful', detail: 'You are authenticated', life: 3000 })
+  closeConnect()
 }
 
-async function approveAuthenticationRequest(publicKey: string, challenge: string, signature: string) {
-  await responder.send(JsonRpc.success(jsonRpcRequestId.value, { publicKey, signature }));
-  toast.add({severity: 'success', summary: 'Authentication successful', detail: 'You are authenticated', life: 3000});
-  closeConnect();
+async function onApproveWrAuthPk(publicKey: string, challenge: string, signature: string) {
+  if (activeRequest.value?.kind !== 'wr-auth-pk') return
+  await responder.send(JsonRpc.success(activeRequest.value.id, { publicKey, signature }))
+  toast.add({ severity: 'success', summary: 'Authentication successful', detail: 'You are authenticated', life: 3000 })
+  closeConnect()
+}
+
+async function onApproveDataApproval(b64VbHash: string, b64MbHash: string, height: number) {
+  if (activeRequest.value?.kind !== 'wr-data-approval') return
+  await responder.send(JsonRpc.success(activeRequest.value.id, { b64VbHash, b64MbHash, height }))
+  toast.add({ severity: 'success', summary: 'Event approved', detail: 'The event has been approved and signed', life: 3000 })
+  closeConnect()
 }
 
 onMounted(async () => {
-  wantsToClose.value = false;
-  await responder.join();
+  wantsToClose.value = false
+  await responder.join()
 })
 </script>
+
 <template>
-  <!-- Full-page layout when a request is active -->
-  <div v-if="walletRequest" class="min-h-screen">
-    <WalletRequestAuthByPublicKeyVue
-        @approve="(pk, sig, chal) => approveAuthenticationRequest(pk, chal, sig)"
-        :wallet-request="walletRequest"
-        v-if="walletRequest.type === WalletRequestType.AUTH_BY_PUBLIC_KEY"
+  <!-- Active request view -->
+  <div v-if="activeRequest" class="min-h-screen">
+    <WalletRequestV1AuthByPublicKey
+      v-if="activeRequest.kind === '/v1/auth/pk'"
+      :origin="activeRequest.params.origin"
+      :b64-challenge="activeRequest.params.b64Challenge"
+      :pk-format="activeRequest.params.pkFormat"
+      :sig-format="activeRequest.params.sigFormat"
+      @approve="onApproveV1AuthPk"
+      @reject="closeConnect"
+    />
+    <WalletRequestDeprecatedAuthByPublicKey
+      v-else-if="activeRequest.kind === 'wr-auth-pk'"
+      :wallet-request="activeRequest.params"
+      @approve="(pk, sig, chal) => onApproveWrAuthPk(pk, chal, sig)"
+      @reject="closeConnect"
     />
     <WalletRequestEventApproval
-        :wallet-request="walletRequest"
-        v-else-if="walletRequest.type === WalletRequestType.DATA_APPROVAL"
-        @approve="approveEventRequest"
-        @reject="closeConnect"
+      v-else-if="activeRequest.kind === 'wr-data-approval'"
+      :wallet-request="activeRequest.params"
+      @approve="onApproveDataApproval"
+      @reject="closeConnect"
     />
   </div>
 

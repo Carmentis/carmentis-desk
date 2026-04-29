@@ -7,6 +7,11 @@ const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
+  define: {
+    'process.env': {},
+    'process.version': '"v18.0.0"',
+    global: 'globalThis',
+  },
   plugins: [
     vue(),
     viteStaticCopy({

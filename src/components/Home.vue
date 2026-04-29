@@ -188,6 +188,11 @@
       icon: 'pi pi-verified',
       command: () => router.push('/proof-checker')
     },
+    {
+      label: 'API Docs',
+      icon: 'pi pi-book',
+      command: () => router.push('/wallet-request-docs')
+    },
 
     {
       label: 'Settings',

@@ -16,42 +16,6 @@ export const DisclosureSchema = v.looseObject({
 export type Disclosure = v.InferOutput<typeof DisclosureSchema>;
 
 // ---------------------------------------------------------------------------
-// SD-JWT-VC (W3C Verifiable Credential 2.0 over SD-JWT)
-//
-// Discriminating fields that are ABSENT from classic SD-JWT:
-//   - payload["@context"]    — W3C VC context array
-//   - payload.credentialSubject — subject claims object
-//
-// Detection checks these two fields BEFORE the classic SD-JWT check so the
-// more-specific type wins. Adding future VC subtypes follows the same pattern:
-//   1. Define a payload schema with its unique discriminators.
-//   2. Add a detection guard that runs before the classic SD-JWT guard.
-// ---------------------------------------------------------------------------
-
-export const SdJwtVcPayloadSchema = v.looseObject({
-  '@context': v.array(v.string()),
-  type: v.array(v.string()),
-  credentialSubject: v.looseObject({}),
-  _sd_alg: v.string(),
-  // Optional W3C VC 2.0 fields
-  vct: v.optional(v.string()),
-  validFrom: v.optional(v.string()),
-  validUntil: v.optional(v.string()),
-});
-
-export const SdJwtVcSchema = v.looseObject({
-  jwt: v.looseObject({
-    header: v.looseObject({ typ: v.string(), alg: v.string() }),
-    payload: SdJwtVcPayloadSchema,
-    signature: v.string(),
-    encoded: v.string(),
-  }),
-  disclosures: v.array(DisclosureSchema),
-});
-
-export type SdJwtVcCredential = v.InferOutput<typeof SdJwtVcSchema>;
-
-// ---------------------------------------------------------------------------
 // SD-JWT (classic — IETF draft)
 //
 // Discriminating fields: `iss` (issuer string) + `iat` (issued-at timestamp).
@@ -70,7 +34,7 @@ export const SdJwtPayloadSchema = v.looseObject({
 
 export const SdJwtSchema = v.looseObject({
   jwt: v.looseObject({
-    header: v.looseObject({ typ: v.string(), alg: v.string() }),
+    header: v.looseObject({ typ: v.optional(v.string()), alg: v.string() }),
     payload: SdJwtPayloadSchema,
     signature: v.string(),
     encoded: v.string(),
@@ -89,7 +53,7 @@ export type SdJwtCredential = v.InferOutput<typeof SdJwtSchema>;
 
 export const SdJwtEnvelopeSchema = v.looseObject({
   jwt: v.looseObject({
-    header: v.looseObject({ typ: v.string(), alg: v.string() }),
+    header: v.looseObject({ typ: v.optional(v.string()), alg: v.string() }),
     payload: v.looseObject({ _sd_alg: v.string() }),
     signature: v.string(),
     encoded: v.string(),
@@ -99,19 +63,7 @@ export const SdJwtEnvelopeSchema = v.looseObject({
 
 export type SdJwtEnvelope = v.InferOutput<typeof SdJwtEnvelopeSchema>;
 
-// ---------------------------------------------------------------------------
-// Credential type registry
-//
-// To add a new type:
-//   1. Define its payload schema above (with unique discriminating fields).
-//   2. Add it to CredentialType.
-//   3. Add a detection guard in detectCredentialType (more-specific types first).
-//   4. Add a parse helper below.
-//   5. Create a CredentialCard<Type>.vue component.
-//   6. Register the component in CredentialCard.vue.
-// ---------------------------------------------------------------------------
-
-export type CredentialType = 'sd-jwt-vc' | 'sd-jwt' | 'unrecognized';
+export type CredentialType = 'sd-jwt' | 'unrecognized';
 
 export function detectCredentialType(data: string): CredentialType {
   let parsed: unknown;
@@ -121,16 +73,6 @@ export function detectCredentialType(data: string): CredentialType {
     return 'unrecognized';
   }
 
-  // Guard: typ must contain "sd-jwt" for all SD-JWT family types.
-  const envelopeResult = v.safeParse(SdJwtEnvelopeSchema, parsed);
-  if (!envelopeResult.success) return 'unrecognized';
-  if (!envelopeResult.output.jwt.header.typ.toLowerCase().includes('sd-jwt')) return 'unrecognized';
-
-  // SD-JWT-VC: checked first because it is a strict superset of classic SD-JWT.
-  const vcResult = v.safeParse(SdJwtVcSchema, parsed);
-  if (vcResult.success) return 'sd-jwt-vc';
-
-  // Classic SD-JWT.
   const jwtResult = v.safeParse(SdJwtSchema, parsed);
   if (jwtResult.success) return 'sd-jwt';
 
@@ -140,15 +82,6 @@ export function detectCredentialType(data: string): CredentialType {
 // ---------------------------------------------------------------------------
 // Parse helpers
 // ---------------------------------------------------------------------------
-
-export function parseSdJwtVc(data: string): SdJwtVcCredential | null {
-  try {
-    const result = v.safeParse(SdJwtVcSchema, JSON.parse(data));
-    return result.success ? result.output : null;
-  } catch {
-    return null;
-  }
-}
 
 export function parseSdJwt(data: string): SdJwtCredential | null {
   try {
@@ -160,8 +93,8 @@ export function parseSdJwt(data: string): SdJwtCredential | null {
 }
 
 /**
- * Parses either an SD-JWT or SD-JWT-VC credential into the shared envelope
- * type. Use this in contexts that only need `jwt.encoded` + `disclosures`
+ * Parses an SD-JWT credential into the shared envelope type.
+ * Use this in contexts that only need `jwt.encoded` + `disclosures`
  * (e.g. the presentation dialog).
  */
 export function parseSdJwtEnvelope(data: string): SdJwtEnvelope | null {

@@ -2,18 +2,24 @@
 import Toast from 'primevue/toast';
 import ConfirmDialog from 'primevue/confirmdialog';
 
-import { onMounted } from 'vue';
+import {onMounted, ref} from 'vue';
 import { useRouter } from 'vue-router';
 import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link';
-import { getCurrentWindow } from '@tauri-apps/api/window'; // Import important
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import OpenIdDeepLinkHandler from "./components/openid/OpenIdDeepLinkHandler.vue";
+import OpenIdCredentialOfferDeepLinkHandler from "./components/openid/OpenIdCredentialOfferDeepLinkHandler.vue"; // Import important
 
 const appWindow = getCurrentWindow();
 const router = useRouter();
+const openidQuery = ref<string>('');
+const openidCredentialOfferQuery = ref<string>('');
 
 // On définit la logique de redirection
 async function handleDeepLink(urls: string[]) {
+  console.log("Handling deep link:", urls);
   for (const url of urls) {
     console.log(`Handling deep link: ${url}`);
+    // handling carmentis-specific URL
     if (url.startsWith('cmts://connect/carmentis-relay')) {
       await appWindow.unminimize(); // Au cas où elle est réduite
       await appWindow.show();       // S'assurer qu'elle est visible
@@ -22,6 +28,19 @@ async function handleDeepLink(urls: string[]) {
       // On extrait le chemin après le protocole
       const path = url.replace('cmts://connect/carmentis-relay', '');
       await router.push(`/connect/walletRequest${path}`);
+    }
+
+
+    // handling openid-specific URL
+    if (url.startsWith("openid://")) {
+      console.log("Handling OpenID URL:", url);
+      openidQuery.value = url;
+    }
+
+    // handling openid-credential-offer-specific URL
+    if (url.startsWith("openid-credential-offer://")) {
+      console.log("Handling OpenID Credential Offer URL:", url);
+      openidCredentialOfferQuery.value = url;
     }
   }
 }
@@ -51,12 +70,19 @@ onMounted(async () => {
     <ConfirmDialog/>
     <Toast position="top-center"/>
 
+
+
     <!-- Main Content -->
     <main class="mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <OpenIdDeepLinkHandler :uri="openidQuery" />
+      <OpenIdCredentialOfferDeepLinkHandler :uri="openidCredentialOfferQuery"/>
       <Suspense>
         <router-view />
         <template #fallback>
-          Loading...
+          <div class="w-full h-full flex items-center justify-center">
+            <ProgressSpinner/>
+          </div>
+
         </template>
       </Suspense>
     </main>
