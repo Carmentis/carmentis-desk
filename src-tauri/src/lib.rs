@@ -28,6 +28,8 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_deep_link::init())
          .setup(|app| {
+
+
              #[cfg(any(target_os = "linux", all(debug_assertions, windows)))]
              {
                use tauri_plugin_deep_link::DeepLinkExt;
@@ -35,7 +37,14 @@ pub fn run() {
              }
 
             #[cfg(desktop)]
+            {
             app.deep_link().register("cmts")?;
+            app.deep_link().register("openid")?;
+            app.deep_link().register("openid-credential-offer")?;
+            }
+
+
+
             Ok(())
         })
         .plugin(tauri_plugin_store::Builder::new().build())
