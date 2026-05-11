@@ -7,11 +7,10 @@ import Tag from 'primevue/tag';
 import { useToast } from 'primevue/usetoast';
 import type { CredentialEntity } from '../../stores/storage';
 import { parseSdJwtEnvelope } from '../../composables/credentials/useCredentialType';
-
+import {} from '@sd-jwt/core';
 const props = defineProps<{
   credential: CredentialEntity | null;
 }>();
-
 const visible = defineModel<boolean>('visible', { default: false });
 
 const toast = useToast();
@@ -85,6 +84,7 @@ const selectedCount = computed(() => selectedDigests.value.size);
 // ---------------------------------------------------------------------------
 
 const compactToken = computed(() => {
+
   if (!envelope.value) return '';
   const { jwt, disclosures } = envelope.value;
   const included = disclosures.filter(
