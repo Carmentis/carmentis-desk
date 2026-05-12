@@ -6,6 +6,8 @@ import Button from 'primevue/button';
 import Breadcrumb from 'primevue/breadcrumb';
 import Skeleton from 'primevue/skeleton';
 import Divider from 'primevue/divider';
+import Tag from 'primevue/tag';
+import Textarea from 'primevue/textarea';
 import {
     AccountCrypto,
     ApplicationLedgerVb,
@@ -128,68 +130,80 @@ function shortId(id: string) {
         <!-- App header -->
         <Card>
             <template #content>
-                <div class="flex items-start gap-4">
-                    <div
-                        v-if="isLoadingDescription"
-                        class="w-12 h-12 rounded-xl bg-surface-100 animate-pulse flex-shrink-0"
-                    ></div>
-                    <img
-                        v-else-if="appDescription?.logoUrl"
-                        :src="appDescription.logoUrl"
-                        :alt="appDescription.name"
-                        class="w-12 h-12 rounded-xl object-contain border border-surface-100 p-1 flex-shrink-0"
-                    />
-                    <div
-                        v-else
-                        class="w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center flex-shrink-0"
-                    >
-                        <i class="pi pi-box text-primary text-xl"></i>
+                <!-- Loading state -->
+                <div v-if="isLoadingDescription" class="flex items-center gap-4">
+                    <Skeleton shape="circle" size="3.5rem" />
+                    <div class="flex-1">
+                        <Skeleton height="1.5rem" width="35%" class="mb-2" />
+                        <Skeleton height="1rem" width="55%" />
                     </div>
+                </div>
 
-                    <div class="flex-1 min-w-0">
-                        <div v-if="isLoadingDescription">
-                            <Skeleton height="1.25rem" width="40%" class="mb-2" />
-                            <Skeleton height="0.875rem" width="60%" />
-                        </div>
-                        <div v-else>
-                            <div class="flex items-center gap-3 flex-wrap">
-                                <h1 class="text-lg font-semibold text-surface-800">
-                                    {{ appDescription?.name ?? 'Unknown Application' }}
-                                </h1>
-                                <span
-                                    class="text-xs font-medium px-2 py-0.5 rounded-full bg-surface-100 text-surface-600"
-                                >
-                                    {{ participation?.appLedgers.length ?? 0 }}
-                                    ledger{{ (participation?.appLedgers.length ?? 0) !== 1 ? 's' : '' }}
-                                </span>
+                <!-- Loaded state -->
+                <div v-else class="flex flex-col gap-3">
+                    <!-- Top row: logo + name + actions -->
+                    <div class="flex items-center justify-between gap-4">
+                        <!-- Left: logo + name + tag -->
+                        <div class="flex items-center gap-3 min-w-0">
+                            <img
+                                v-if="appDescription?.logoUrl"
+                                :src="appDescription.logoUrl"
+                                :alt="appDescription.name"
+                                class="w-8 h-8 rounded-lg object-contain border border-surface-200 flex-shrink-0"
+                            />
+                            <div
+                                v-else
+                                class="w-8 h-8 rounded-lg bg-primary-50  flex items-center justify-center flex-shrink-0"
+                                aria-hidden="true"
+                            >
+                                <i class="pi pi-box text-primary-400 text-sm"></i>
                             </div>
-                            <a
+                            <h1 class="text-xl font-semibold text-surface-900 truncate">
+                                {{ appDescription?.name ?? 'Unknown Application' }}
+                            </h1>
+                            <Tag
+                                :value="`${participation?.appLedgers.length ?? 0} ledger${(participation?.appLedgers.length ?? 0) !== 1 ? 's' : ''}`"
+                                severity="secondary"
+                                class="flex-shrink-0"
+                            />
+                        </div>
+
+                        <!-- Right: action buttons -->
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <Button
                                 v-if="appDescription?.homepageUrl"
+                                icon="pi pi-external-link"
+                                label="Website"
+                                size="small"
+                                outlined
+                                as="a"
                                 :href="appDescription.homepageUrl"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="text-sm text-primary hover:underline"
-                            >
-                                {{ appDescription.homepageUrl }}
-                            </a>
-                            <p v-if="appDescription?.description" class="text-sm text-surface-600 mt-1">
-                                {{ appDescription.description }}
-                            </p>
-                        </div>
-                        <div class="mt-2 flex items-center gap-1">
-                            <span class="text-xs text-surface-400 font-mono">
-                                {{ shortId(appParticipationId) }}
-                            </span>
+                                aria-label="Open application homepage"
+                            />
                             <Button
                                 icon="pi pi-copy"
+                                label="Copy ID"
                                 size="small"
-                                text
-                                rounded
+                                outlined
                                 @click="copyToClipboard(appParticipationId)"
-                                v-tooltip="'Copy Application ID'"
+                                v-tooltip="appParticipationId"
+                                aria-label="Copy Application ID"
                             />
                         </div>
                     </div>
+
+                    <!-- Description -->
+                    <Textarea
+                        v-if="appDescription?.description"
+                        :value="appDescription.description"
+                        readonly
+                        auto-resize
+                        rows="2"
+                        class="w-full text-sm text-surface-700 resize-none"
+                        aria-label="Application description"
+                    />
                 </div>
             </template>
         </Card>
@@ -243,7 +257,8 @@ function shortId(id: string) {
             </div>
 
             <!-- Detail panel (right, 2 cols) -->
-            <div class="lg:col-span-2">
+            <div class="lg:col-span-2 flex flex-col gap-2">
+                <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide px-1 mb-1">App Ledger Details</p>
                 <!-- Nothing selected -->
                 <div
                     v-if="selectedIdx === null"
@@ -258,10 +273,16 @@ function shortId(id: string) {
                     <template #content>
                         <div class="flex flex-col gap-4">
                             <!-- Metadata -->
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div class="bg-surface-50 rounded-lg p-3 col-span-1 sm:col-span-2">
-                                    <div class="flex items-center justify-between mb-1">
-                                        <p class="text-xs text-surface-400">Virtual Blockchain ID</p>
+                            <div class="flex flex-col gap-2">
+                                <!-- Virtual Blockchain ID -->
+                                <div class="border border-surface-200 rounded-lg p-3">
+                                    <div class="flex items-center justify-between mb-1.5">
+                                        <div class="flex items-center gap-1.5">
+                                            <i class="pi pi-box text-primary-400 text-xs"></i>
+                                            <span class="text-xs font-semibold text-surface-500 uppercase tracking-wide">
+                                                Virtual Blockchain ID
+                                            </span>
+                                        </div>
                                         <Button
                                             icon="pi pi-copy"
                                             size="small"
@@ -272,42 +293,50 @@ function shortId(id: string) {
                                             v-tooltip="'Copy VB ID'"
                                         />
                                     </div>
-                                    <p class="text-xs font-mono text-surface-700 break-all">
+                                    <p class="text-sm font-mono text-surface-800 break-all leading-relaxed">
                                         {{ participation.appLedgers[selectedIdx].id }}
                                     </p>
                                 </div>
 
+                                <!-- Operator URL -->
                                 <div
                                     v-if="participation.appLedgers[selectedIdx].operatorEndpoint"
-                                    class="bg-surface-50 rounded-lg p-3"
+                                    class="border border-surface-200 rounded-lg p-3"
                                 >
-                                    <p class="text-xs text-surface-400 mb-1">Operator</p>
-                                    <p class="text-xs font-mono text-surface-700 truncate">
+                                    <div class="flex items-center gap-1.5 mb-1.5">
+                                        <i class="pi pi-server text-primary-400 text-xs"></i>
+                                        <span class="text-xs font-semibold text-surface-500 uppercase tracking-wide">
+                                            Operator URL
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-surface-800 break-all">
                                         {{ participation.appLedgers[selectedIdx].operatorEndpoint }}
                                     </p>
                                 </div>
 
+                                <!-- Validated microblock -->
                                 <div
                                     v-if="participation.appLedgers[selectedIdx].b64EncodedMicroblock"
-                                    class="bg-surface-50 rounded-lg p-3"
+                                    class="border border-surface-200 rounded-lg p-3"
                                 >
-                                    <div class="flex items-center justify-between mb-1">
-                                        <p class="text-xs text-surface-400">Validated microblock</p>
+                                    <div class="flex items-center justify-between mb-1.5">
+                                        <div class="flex items-center gap-1.5">
+                                            <i class="pi pi-check-circle text-green-400 text-xs"></i>
+                                            <span class="text-xs font-semibold text-surface-500 uppercase tracking-wide">
+                                                Validated Microblock
+                                            </span>
+                                        </div>
                                         <Button
                                             icon="pi pi-copy"
                                             size="small"
                                             text
                                             rounded
                                             class="-mt-0.5 -mr-1"
-                                            @click="
-                                                copyToClipboard(
-                                                    participation.appLedgers[selectedIdx].b64EncodedMicroblock,
-                                                )
-                                            "
+                                            @click="copyToClipboard(participation.appLedgers[selectedIdx].b64EncodedMicroblock)"
                                             v-tooltip="'Copy full microblock'"
                                         />
                                     </div>
-                                    <p class="text-xs font-mono text-surface-600 truncate">
+                                    <p class="text-sm font-mono text-surface-800 truncate">
                                         {{ participation.appLedgers[selectedIdx].b64EncodedMicroblock.slice(0, 48) }}…
                                     </p>
                                 </div>
