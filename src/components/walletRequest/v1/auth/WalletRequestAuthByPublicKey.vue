@@ -14,6 +14,7 @@ import {useStorageStore} from '../../../../stores/storage.ts'
 import {storeToRefs} from 'pinia'
 import * as jose from 'jose';
 import {base64url} from "jose";
+import {JwkSignatureKeyExporter} from "../../../jwk-signature-key-exporter.ts";
 
 const store = useStorageStore()
 const { wallets } = storeToRefs(store)
@@ -36,9 +37,7 @@ const emit = defineEmits<{
 const isProcessing = ref(false)
 
 async function exportPublicKeyIntoFormat( publicSignatureKey: Ed25519PublicSignatureKey, format: SupportedPkFormat ) {
-  const jwk = await jose.exportJWK(
-      await JwkSignatureEncoder.exportPublicSignatureKey(publicSignatureKey)
-  )
+  const jwk = await JwkSignatureKeyExporter.exportPublicKey(publicSignatureKey);
   if (format === 'jwk') {
     return jwk
   }
@@ -55,16 +54,14 @@ async function approve() {
   isProcessing.value = true
   try {
     const seed = chosenWallet.value.seed
-    const walletSeed = WalletCrypto.fromSeed(new SeedEncoder().decode(seed))
-    // TODO: use derived private key instead of a random one
-    const privateSignatureKey = Ed25519PrivateSignatureKey.gen();
-    const publicKey = await privateSignatureKey.getPublicKey() as Ed25519PublicSignatureKey
-    if (!(privateSignatureKey instanceof Ed25519PrivateSignatureKey)) {
-      throw new Error('Unsupported private key type')
-    }
-    const skJwk = await JwkSignatureEncoder.exportPrivateSignatureKey(privateSignatureKey);
+
+    // TODO: use the wallet crypto instead of generating the signature key directly
+    const sk = Ed25519PrivateSignatureKey.genFromSeed(new SeedEncoder().decode(seed).slice(0,32))
+    const pk = await sk.getPublicKey() as Ed25519PublicSignatureKey
+    const skJwk = await JwkSignatureKeyExporter.exportPrivateKey(sk)
+    const pkJwk = await JwkSignatureKeyExporter.exportPublicKey(pk);
     const pkFormat = props.pkFormat ?? 'did'
-    let pk: string | object = await exportPublicKeyIntoFormat(publicKey, pkFormat)
+    let encoderPk: string | object = await exportPublicKeyIntoFormat(pk, pkFormat)
     const signature = await new jose.SignJWT({
       sub: props.b64Challenge,
       iss: pkFormat,
@@ -75,7 +72,7 @@ async function approve() {
         .setProtectedHeader({ alg: 'EdDSA' })
         .sign(skJwk)
 
-    emit('approve', pk, signature)
+    emit('approve', encoderPk, signature)
   } catch (e) {
     console.error('Error approving authentication request:', e)
     throw e;
