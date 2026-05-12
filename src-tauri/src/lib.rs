@@ -1,9 +1,20 @@
+use tauri::Manager;
 use tauri_plugin_deep_link::DeepLinkExt;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+/// Saves `content` as `filename` in the user's Downloads directory.
+/// Returns the absolute path of the written file.
+#[tauri::command]
+fn save_file(app: tauri::AppHandle, filename: String, content: String) -> Result<String, String> {
+    let downloads_dir = app.path().download_dir().map_err(|e| e.to_string())?;
+    let file_path = downloads_dir.join(&filename);
+    std::fs::write(&file_path, content).map_err(|e| e.to_string())?;
+    Ok(file_path.to_string_lossy().to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -50,7 +61,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![greet, save_file])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -13,9 +13,10 @@ import {
   ProviderFactory,
   SeedEncoder,
   WalletCrypto
-} from '@cmts-dev/carmentis-sdk/client';
+} from '@cmts-dev/carmentis-sdk-core';
 import { useStorageStore, AppLedgerParticipation } from '../stores/storage.ts';
 import VirtualBlockchainRecordNavigator from './walletRequest/VirtualBlockchainRecordNavigator.vue';
+import ExportProofButton from './ExportProofButton.vue';
 import { useToast } from 'primevue/usetoast';
 
 const route = useRoute();
@@ -257,6 +258,17 @@ function shortId(id: string) {
                     {{ participation.appLedgers[selectedIdx].b64EncodedMicroblock.slice(0, 48) }}…
                   </p>
                 </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="flex gap-2">
+                <ExportProofButton
+                  v-if="accountCrypto"
+                  :vb="selectedVb"
+                  :account-crypto="accountCrypto"
+                  :ledger-id="participation.appLedgers[selectedIdx].id"
+                  :author="wallet?.name ?? ''"
+                />
               </div>
 
               <Divider class="my-0" />
