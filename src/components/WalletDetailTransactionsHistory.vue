@@ -26,15 +26,21 @@ const transactions = computed(() => {
     if (accountHistoryQuery.data.value) {
         return accountHistoryQuery.data.value
             .getTransactions()
-            .map((transaction) => ({
+            .map((transaction) => {
+              let linkedAccount = transaction.getLinkedAccount().encode();
+              if (linkedAccount.endsWith('000000000000000000000000000000002')) {
+                linkedAccount = "Fees Account"
+              }
+              return {
                 height: transaction.getHeight(),
                 amount: transaction.getAmount(),
                 transferredAt: transaction.transferredAt().toLocaleString(),
                 type: transaction.getTransactionTypeLabel(),
-                linkedAccount: transaction.getLinkedAccount().encode(),
+                linkedAccount,
                 isNegative: transaction.getAmount().isNegative(),
                 isZero: transaction.getAmount().isZero(),
-            }));
+              }
+            });
     }
     return [];
 });
