@@ -1,5 +1,6 @@
 use tauri::Manager;
 use tauri_plugin_deep_link::DeepLinkExt;
+use tauri_plugin_log::{Target, TargetKind};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -19,7 +20,11 @@ fn save_file(app: tauri::AppHandle, filename: String, content: String) -> Result
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-     let mut builder = tauri::Builder::default();
+    let mut builder = tauri::Builder::default().plugin(
+        tauri_plugin_log::Builder::new()
+            .level(tauri_plugin_log::log::LevelFilter::Info)
+            .build(),
+    );
 
     #[cfg(desktop)]
     {
@@ -29,32 +34,27 @@ pub fn run() {
         }));
     }
 
-
-     #[cfg(not(any(target_os = "android", target_os = "ios")))]
-     {
-         builder = builder.plugin(tauri_plugin_updater::Builder::new().build())
-     }
-
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build())
+    }
 
     builder
         .plugin(tauri_plugin_deep_link::init())
-         .setup(|app| {
-
-
-             #[cfg(any(target_os = "linux", all(debug_assertions, windows)))]
-             {
-               use tauri_plugin_deep_link::DeepLinkExt;
-               app.deep_link().register_all()?;
-             }
+        .plugin(tauri_plugin_log::Builder::new().build())
+        .setup(|app| {
+            #[cfg(any(target_os = "linux", all(debug_assertions, windows)))]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                app.deep_link().register_all()?;
+            }
 
             #[cfg(desktop)]
             {
-            app.deep_link().register("cmts")?;
-            app.deep_link().register("openid")?;
-            app.deep_link().register("openid-credential-offer")?;
+                app.deep_link().register("cmts")?;
+                app.deep_link().register("openid")?;
+                app.deep_link().register("openid-credential-offer")?;
             }
-
-
 
             Ok(())
         })

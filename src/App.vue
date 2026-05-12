@@ -8,9 +8,24 @@ import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import OpenIdDeepLinkHandler from './components/openid/OpenIdDeepLinkHandler.vue';
 import OpenIdCredentialOfferDeepLinkHandler from './components/openid/OpenIdCredentialOfferDeepLinkHandler.vue';
-import { Ed25519PrivateSignatureKey } from '@cmts-dev/carmentis-sdk-core';
-import { JwkSignatureKeyExporter } from './components/jwk-signature-key-exporter.ts';
-import * as jose from 'jose'; // Import important
+import { warn, debug, trace, info, error } from '@tauri-apps/plugin-log';
+
+function forwardConsole(
+    fnName: 'log' | 'debug' | 'info' | 'warn' | 'error',
+    logger: (message: string) => Promise<void>
+) {
+  const original = console[fnName];
+  console[fnName] = (message) => {
+    original(message);
+    logger(message);
+  };
+}
+
+forwardConsole('log', trace);
+forwardConsole('debug', debug);
+forwardConsole('info', info);
+forwardConsole('warn', warn);
+forwardConsole('error', error);
 
 const appWindow = getCurrentWindow();
 const router = useRouter();

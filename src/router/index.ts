@@ -13,6 +13,7 @@ import Connect from '../components/Connect.vue';
 import WalletRequest from '../components/walletRequest/WalletRequest.vue';
 import ProofChecker from '../components/checker/ProofChecker.vue';
 import WalletRequestDocumentationView from '../components/walletRequest/WalletRequestDocumentationView.vue';
+import Settings from '../components/Settings.vue';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -82,6 +83,11 @@ const router = createRouter({
                     component: WalletCredentials,
                 },
             ],
+        },
+        {
+            path: '/settings',
+            name: 'settings',
+            component: Settings,
         },
         {
             path: '/:pathMatch(.*)*',

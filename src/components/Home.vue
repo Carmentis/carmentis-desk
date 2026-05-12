@@ -9,11 +9,8 @@ import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import { computed, ref } from 'vue';
 import { useToast } from 'primevue/usetoast';
-import { check } from '@tauri-apps/plugin-updater';
-import { relaunch } from '@tauri-apps/plugin-process';
 import Menubar from 'primevue/menubar';
 import type { MenuItem } from 'primevue/menuitem';
-import { useTheme } from '../composables/useTheme';
 import HelpDialog from './HelpDialog.vue';
 
 const store = useStorageStore();
@@ -22,10 +19,6 @@ await store.initStorage();
 const { organizations, operators } = storeToRefs(store);
 const confirm = useConfirm();
 const toast = useToast();
-
-// Theme management
-const { currentTheme, toggleTheme, initTheme } = useTheme();
-await initTheme();
 
 // Operator creation dialog state
 const showOperatorDialog = ref(false);
@@ -192,21 +185,7 @@ const menuItems = computed<MenuItem[]>(() => [
     {
         label: 'Settings',
         icon: 'pi pi-cog',
-        items: [
-            {
-                label: currentTheme.value === 'light' ? 'Dark Mode' : 'Light Mode',
-                icon: currentTheme.value === 'light' ? 'pi pi-moon' : 'pi pi-sun',
-                command: () => toggleTheme(),
-            },
-            {
-                separator: true,
-            },
-            {
-                label: searchUpdateButtonMessage.value,
-                icon: 'pi pi-refresh',
-                command: () => checkForUpdate(),
-            },
-        ],
+        command: () => router.push('/settings'),
     },
     {
         label: 'Help',
@@ -217,61 +196,6 @@ const menuItems = computed<MenuItem[]>(() => [
     },
 ]);
 
-const isSearchingForUpdate = ref(false);
-const isDownloadingUpdate = ref(false);
-const downloadingProgress = ref(0);
-const searchUpdateButtonMessage = computed(() => {
-    if (isSearchingForUpdate.value) {
-        return 'Searching for update...';
-    } else if (isDownloadingUpdate.value) {
-        return `Downloading update (${downloadingProgress.value}%)`;
-    } else {
-        return 'Check for update';
-    }
-});
-async function checkForUpdate() {
-    isSearchingForUpdate.value = true;
-    try {
-        const update = await check();
-        if (update) {
-            confirm.require({
-                message: `An update is available for version ${update.version}. Would you like to update now?`,
-                header: 'Update Available',
-                icon: 'pi pi-exclamation-triangle',
-                rejectClass: 'p-button-secondary p-button-outlined',
-                rejectLabel: 'Cancel',
-                acceptLabel: 'Update',
-                acceptClass: 'p-button-success',
-                accept: async () => {
-                    let downloaded = 0;
-                    let contentLength = 0;
-                    isDownloadingUpdate.value = true;
-                    // alternatively we could also call update.download() and update.install() separately
-                    await update.downloadAndInstall((event) => {
-                        switch (event.event) {
-                            case 'Started':
-                                contentLength = event.data.contentLength ?? 0;
-                                break;
-                            case 'Progress':
-                                downloaded += event.data.chunkLength;
-                                const progression = Math.round((downloaded / contentLength) * 100);
-                                downloadingProgress.value = progression;
-                                break;
-                            case 'Finished':
-                                break;
-                        }
-                    });
-
-                    isDownloadingUpdate.value = false;
-                    downloadingProgress.value = 0;
-                    await relaunch();
-                },
-            });
-        }
-    } finally {
-        isSearchingForUpdate.value = false;
-    }
-}
 </script>
 
 <template>
