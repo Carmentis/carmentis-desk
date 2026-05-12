@@ -1,31 +1,31 @@
 <script setup lang="ts">
-import {useRoute} from "vue-router";
-import {computed, onMounted, ref, watch} from "vue";
-import * as jose from "jose";
+import { useRoute } from 'vue-router';
+import { computed, onMounted, ref, watch } from 'vue';
+import * as jose from 'jose';
+import { Openid4vciIssuer } from '@openid4vc/openid4vci';
+import { util } from '@cef-ebsi/key-did-resolver';
 import {
-  Openid4vciIssuer,
-} from "@openid4vc/openid4vci";
-import { util } from "@cef-ebsi/key-did-resolver";
-import {OpenID4VCIClient, CreateCredentialRequestOpts} from "@sphereon/oid4vci-client";
+    OpenID4VCIClient,
+    CreateCredentialRequestOpts,
+} from '@sphereon/oid4vci-client';
 import * as v from 'valibot';
-import {HashAlgorithm} from "@sd-jwt/types";
-import {Openid4vciClient} from "@openid4vc/openid4vci";
-import {InputText, Button} from "primevue";
+import { HashAlgorithm } from '@sd-jwt/types';
+import { Openid4vciClient } from '@openid4vc/openid4vci';
+import { InputText, Button } from 'primevue';
 
 const props = defineProps<{ uri: string }>();
-const uri = ref("");
+const uri = ref('');
 
 async function useDirectCredentialOffer() {
-  await handleQuery()
+    await handleQuery();
 }
 
-
 async function handleQuery() {
-  console.log("Handling query:", uri.value)
-  if (uri.value === "") return;
+    console.log('Handling query:', uri.value);
+    if (uri.value === '') return;
 
-  try {
-    /*
+    try {
+        /*
     // generate random issuer key
     const {privateKey: issuerPrivateKey} = await jose.generateKeyPair('ES256', {extractable: true})
     console.log(await jose.exportJWK(issuerPrivateKey))
@@ -160,8 +160,7 @@ async function handleQuery() {
     console.log("Raw credential response:", JSON.stringify(result, null, 2))
 
      */
-
-  /*
+        /*
     const credentialResponse = await client.retrieveCredentials({
       credentialConfigurationId,
       issuerMetadata,
@@ -180,21 +179,18 @@ async function handleQuery() {
 
 
    */
-  } catch (e) {
-    console.error(e)
-  } finally {
-    uri.value = ""
-  }
+    } catch (e) {
+        console.error(e);
+    } finally {
+        uri.value = '';
+    }
 }
-
 
 //watch(uri, async () => {await handleQuery()})
 
 onMounted(async () => {
-  await handleQuery();
-})
+    await handleQuery();
+});
 </script>
 
-
-<template>
-</template>
+<template></template>

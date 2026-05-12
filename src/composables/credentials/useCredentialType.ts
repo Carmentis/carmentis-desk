@@ -6,11 +6,11 @@ import * as v from 'valibot';
 // ---------------------------------------------------------------------------
 
 export const DisclosureSchema = v.looseObject({
-  _digest: v.string(),
-  _encoded: v.string(),
-  salt: v.string(),
-  key: v.optional(v.string()),
-  value: v.optional(v.unknown()),
+    _digest: v.string(),
+    _encoded: v.string(),
+    salt: v.string(),
+    key: v.optional(v.string()),
+    value: v.optional(v.unknown()),
 });
 
 export type Disclosure = v.InferOutput<typeof DisclosureSchema>;
@@ -23,23 +23,23 @@ export type Disclosure = v.InferOutput<typeof DisclosureSchema>;
 // ---------------------------------------------------------------------------
 
 export const SdJwtPayloadSchema = v.looseObject({
-  iss: v.string(),
-  iat: v.number(),
-  vct: v.string(),
-  _sd_alg: v.string(),
-  // Optional standard JWT claims
-  exp: v.optional(v.number()),
-  sub: v.optional(v.string()),
+    iss: v.string(),
+    iat: v.number(),
+    vct: v.string(),
+    _sd_alg: v.string(),
+    // Optional standard JWT claims
+    exp: v.optional(v.number()),
+    sub: v.optional(v.string()),
 });
 
 export const SdJwtSchema = v.looseObject({
-  jwt: v.looseObject({
-    header: v.looseObject({ typ: v.optional(v.string()), alg: v.string() }),
-    payload: SdJwtPayloadSchema,
-    signature: v.string(),
-    encoded: v.string(),
-  }),
-  disclosures: v.array(DisclosureSchema),
+    jwt: v.looseObject({
+        header: v.looseObject({ typ: v.optional(v.string()), alg: v.string() }),
+        payload: SdJwtPayloadSchema,
+        signature: v.string(),
+        encoded: v.string(),
+    }),
+    disclosures: v.array(DisclosureSchema),
 });
 
 export type SdJwtCredential = v.InferOutput<typeof SdJwtSchema>;
@@ -52,13 +52,13 @@ export type SdJwtCredential = v.InferOutput<typeof SdJwtSchema>;
 // ---------------------------------------------------------------------------
 
 export const SdJwtEnvelopeSchema = v.looseObject({
-  jwt: v.looseObject({
-    header: v.looseObject({ typ: v.optional(v.string()), alg: v.string() }),
-    payload: v.looseObject({ _sd_alg: v.string() }),
-    signature: v.string(),
-    encoded: v.string(),
-  }),
-  disclosures: v.array(DisclosureSchema),
+    jwt: v.looseObject({
+        header: v.looseObject({ typ: v.optional(v.string()), alg: v.string() }),
+        payload: v.looseObject({ _sd_alg: v.string() }),
+        signature: v.string(),
+        encoded: v.string(),
+    }),
+    disclosures: v.array(DisclosureSchema),
 });
 
 export type SdJwtEnvelope = v.InferOutput<typeof SdJwtEnvelopeSchema>;
@@ -66,17 +66,17 @@ export type SdJwtEnvelope = v.InferOutput<typeof SdJwtEnvelopeSchema>;
 export type CredentialType = 'sd-jwt' | 'unrecognized';
 
 export function detectCredentialType(data: string): CredentialType {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(data);
-  } catch {
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(data);
+    } catch {
+        return 'unrecognized';
+    }
+
+    const jwtResult = v.safeParse(SdJwtSchema, parsed);
+    if (jwtResult.success) return 'sd-jwt';
+
     return 'unrecognized';
-  }
-
-  const jwtResult = v.safeParse(SdJwtSchema, parsed);
-  if (jwtResult.success) return 'sd-jwt';
-
-  return 'unrecognized';
 }
 
 // ---------------------------------------------------------------------------
@@ -84,12 +84,12 @@ export function detectCredentialType(data: string): CredentialType {
 // ---------------------------------------------------------------------------
 
 export function parseSdJwt(data: string): SdJwtCredential | null {
-  try {
-    const result = v.safeParse(SdJwtSchema, JSON.parse(data));
-    return result.success ? result.output : null;
-  } catch {
-    return null;
-  }
+    try {
+        const result = v.safeParse(SdJwtSchema, JSON.parse(data));
+        return result.success ? result.output : null;
+    } catch {
+        return null;
+    }
 }
 
 /**
@@ -98,10 +98,10 @@ export function parseSdJwt(data: string): SdJwtCredential | null {
  * (e.g. the presentation dialog).
  */
 export function parseSdJwtEnvelope(data: string): SdJwtEnvelope | null {
-  try {
-    const result = v.safeParse(SdJwtEnvelopeSchema, JSON.parse(data));
-    return result.success ? result.output : null;
-  } catch {
-    return null;
-  }
+    try {
+        const result = v.safeParse(SdJwtEnvelopeSchema, JSON.parse(data));
+        return result.success ? result.output : null;
+    } catch {
+        return null;
+    }
 }

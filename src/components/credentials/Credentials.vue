@@ -1,3 +1,1 @@
-<template>
-  Credentials
-</template>
+<template>Credentials</template>

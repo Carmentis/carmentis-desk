@@ -1,7 +1,10 @@
 <template>
     <div class="overflow-hidden rounded-lg border border-gray-200">
         <!-- Breadcrumb navigation -->
-        <div v-if="path.length > 0" class="flex items-center mb-4 text-sm bg-gray-50 p-2 rounded-md overflow-x-auto">
+        <div
+            v-if="path.length > 0"
+            class="flex items-center mb-4 text-sm bg-gray-50 p-2 rounded-md overflow-x-auto"
+        >
             <button
                 @click="path = []"
                 class="text-blue-600 hover:text-blue-800 flex items-center"
@@ -10,7 +13,11 @@
                 Root
             </button>
 
-            <div v-for="(segment, index) in path" :key="index" class="flex items-center">
+            <div
+                v-for="(segment, index) in path"
+                :key="index"
+                class="flex items-center"
+            >
                 <i class="pi pi-chevron-right mx-1 text-gray-400"></i>
                 <button
                     @click="path = path.slice(0, index + 1)"
@@ -26,7 +33,10 @@
         </div>
 
         <!-- Back button -->
-        <div v-if="path.length > 0" class="bg-gray-50 px-4 py-2 border-b border-gray-200">
+        <div
+            v-if="path.length > 0"
+            class="bg-gray-50 px-4 py-2 border-b border-gray-200"
+        >
             <button
                 @click="path = path.slice(0, -1)"
                 class="text-blue-600 hover:text-blue-800 flex items-center text-sm"
@@ -41,11 +51,15 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <tbody class="bg-white divide-y divide-gray-200">
                     <tr
-                        v-for="([key, value], index) in Object.entries(shownData)"
+                        v-for="([key, value], index) in Object.entries(
+                            shownData,
+                        )"
                         :key="index"
                         :class="[
                             'border-b border-gray-200',
-                            canNavigate(value) ? 'hover:bg-blue-50 cursor-pointer' : '',
+                            canNavigate(value)
+                                ? 'hover:bg-blue-50 cursor-pointer'
+                                : '',
                         ]"
                         @click="canNavigate(value) ? navigateTo(key) : null"
                     >
@@ -62,11 +76,19 @@
                                     : 'text-gray-700',
                             ]"
                         >
-                            <div v-if="canNavigate(value)" class="flex items-center">
+                            <div
+                                v-if="canNavigate(value)"
+                                class="flex items-center"
+                            >
                                 <span>{{ formatValue(value) }}</span>
                                 <i class="pi pi-chevron-right ml-2"></i>
                             </div>
-                            <span v-else :class="typeof value === 'string' ? 'break-all' : ''">
+                            <span
+                                v-else
+                                :class="
+                                    typeof value === 'string' ? 'break-all' : ''
+                                "
+                            >
                                 {{ formatValue(value) }}
                             </span>
                         </td>
@@ -78,77 +100,84 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import type { JsonData } from '@cmts-dev/carmentis-sdk/client'
+import { ref, computed, watch } from 'vue';
+import type { JsonData } from '@cmts-dev/carmentis-sdk/client';
 
 const props = defineProps<{
-    data: JsonData
-    initialPath: string[]
-}>()
+    data: JsonData;
+    initialPath: string[];
+}>();
 
-const path = ref<string[]>([...props.initialPath])
+const path = ref<string[]>([...props.initialPath]);
 
 const shownData = computed(() => {
-    let current: any = props.data
+    let current: any = props.data;
     for (const token of path.value) {
-        current = current[token]
+        current = current[token];
     }
-    return current
-})
+    return current;
+});
 
 const isArrayOfStrings = (value: any): boolean => {
-    return Array.isArray(value) && value.every((v) => typeof v === 'string')
-}
+    return Array.isArray(value) && value.every((v) => typeof v === 'string');
+};
 
 const isDate = (value: any): boolean => {
-    return value instanceof Date || (typeof value === 'string' && !isNaN(Date.parse(value)))
-}
+    return (
+        value instanceof Date ||
+        (typeof value === 'string' && !isNaN(Date.parse(value)))
+    );
+};
 
 const canNavigate = (value: any): boolean => {
-    const isArray = Array.isArray(value)
-    const isObject = typeof value === 'object' && value !== null
+    const isArray = Array.isArray(value);
+    const isObject = typeof value === 'object' && value !== null;
 
     if (!isArray && isObject) {
-        return true
+        return true;
     }
 
     if (isArray) {
-        return value.length > 0 && typeof value[0] === 'object'
+        return value.length > 0 && typeof value[0] === 'object';
     }
 
-    return false
-}
+    return false;
+};
 
 const formatValue = (value: any): string => {
-    const isArrayOfStr = isArrayOfStrings(value)
-    const isArray = Array.isArray(value)
-    const isObject = typeof value === 'object' && value !== null
+    const isArrayOfStr = isArrayOfStrings(value);
+    const isArray = Array.isArray(value);
+    const isObject = typeof value === 'object' && value !== null;
 
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-        return String(value)
+    if (
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean'
+    ) {
+        return String(value);
     } else if (isArrayOfStr) {
-        return value.join(', ')
+        return value.join(', ');
     } else if (isDate(value)) {
-        return new Date(value).toLocaleString()
+        return new Date(value).toLocaleString();
     } else if (!isArray && isObject) {
-        return 'Object'
+        return 'Object';
     } else if (isArray) {
-        return `Array (${value.length} items)`
+        return `Array (${value.length} items)`;
     } else if (value === null) {
-        return 'null'
+        return 'null';
     } else {
-        return 'Cannot display'
+        return 'Cannot display';
     }
-}
+};
 
 const navigateTo = (key: string) => {
-    path.value = [...path.value, key]
-}
+    path.value = [...path.value, key];
+};
 
 watch(
     () => props.data,
     () => {
-        path.value = [...props.initialPath]
+        path.value = [...props.initialPath];
     },
-)
+);
 </script>

@@ -6,28 +6,30 @@ import CredentialCardUnrecognized from './CredentialCardUnrecognized.vue';
 import CredentialCardSdJwt from './CredentialCardSdJwt.vue';
 
 const props = defineProps<{
-  credential: CredentialEntity;
+    credential: CredentialEntity;
 }>();
 
 const emit = defineEmits<{
-  (e: 'delete', id: number): void;
-  (e: 'browse', id: number): void;
+    (e: 'delete', id: number): void;
+    (e: 'browse', id: number): void;
 }>();
 
-const credentialType = computed(() => detectCredentialType(props.credential.data));
+const credentialType = computed(() =>
+    detectCredentialType(props.credential.data),
+);
 </script>
 
 <template>
-  <CredentialCardSdJwt
-    v-if="credentialType === 'sd-jwt'"
-    :credential="credential"
-    @delete="emit('delete', credential.id)"
-    @browse="emit('browse', credential.id)"
-  />
-  <CredentialCardUnrecognized
-    v-else
-    :credential="credential"
-    @delete="emit('delete', credential.id)"
-    @browse="emit('browse', credential.id)"
-  />
+    <CredentialCardSdJwt
+        v-if="credentialType === 'sd-jwt'"
+        :credential="credential"
+        @delete="emit('delete', credential.id)"
+        @browse="emit('browse', credential.id)"
+    />
+    <CredentialCardUnrecognized
+        v-else
+        :credential="credential"
+        @delete="emit('delete', credential.id)"
+        @browse="emit('browse', credential.id)"
+    />
 </template>

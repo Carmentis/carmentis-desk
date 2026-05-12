@@ -1,53 +1,76 @@
-import {defineStore} from "pinia";
-import {useSessionStorage} from "@vueuse/core";
-
+import { defineStore } from 'pinia';
+import { useSessionStorage } from '@vueuse/core';
 
 export interface AuthenticatedOperator {
-	operatorId: number,
-	credentials: {
-		walletId: number,
-		authToken: string
-	}[]
+    operatorId: number;
+    credentials: {
+        walletId: number;
+        authToken: string;
+    }[];
 }
 
 export interface OperatorAuthStore {
-	authenticatedOperators: AuthenticatedOperator[]
+    authenticatedOperators: AuthenticatedOperator[];
 }
 
 export const useOperatorAuthStore = defineStore('operatorAuth', () => {
-	const authStore = useSessionStorage<OperatorAuthStore>("operator-auth", {
-		authenticatedOperators: []
-	});
+    const authStore = useSessionStorage<OperatorAuthStore>('operator-auth', {
+        authenticatedOperators: [],
+    });
 
-	function isAuthenticatedToOperator(operatorId: number) {
-		return authStore.value.authenticatedOperators.some(op => op.operatorId === operatorId);
-	}
-	function addCredential(operatorId: number, walletId: number, authToken: string) {
-		console.log(`Adding credential for operator ${operatorId} with wallet ${walletId}`)
-		const authenticatedOperators = authStore.value.authenticatedOperators;
-		const credential = { walletId, authToken };
-		const operator = authenticatedOperators.find(op => op.operatorId === operatorId);
-		if (operator) {
-			console.log(`Adding credential to operator ${operator.operatorId} for wallet ${walletId}`)
-			operator.credentials.push(credential);
-		} else {
-			console.log(`Creating new operator credential for ${operatorId} with wallet ${walletId}`)
-			authStore.value.authenticatedOperators.push({operatorId, credentials: [credential]});
-		}
-	}
+    function isAuthenticatedToOperator(operatorId: number) {
+        return authStore.value.authenticatedOperators.some(
+            (op) => op.operatorId === operatorId,
+        );
+    }
+    function addCredential(
+        operatorId: number,
+        walletId: number,
+        authToken: string,
+    ) {
+        console.log(
+            `Adding credential for operator ${operatorId} with wallet ${walletId}`,
+        );
+        const authenticatedOperators = authStore.value.authenticatedOperators;
+        const credential = { walletId, authToken };
+        const operator = authenticatedOperators.find(
+            (op) => op.operatorId === operatorId,
+        );
+        if (operator) {
+            console.log(
+                `Adding credential to operator ${operator.operatorId} for wallet ${walletId}`,
+            );
+            operator.credentials.push(credential);
+        } else {
+            console.log(
+                `Creating new operator credential for ${operatorId} with wallet ${walletId}`,
+            );
+            authStore.value.authenticatedOperators.push({
+                operatorId,
+                credentials: [credential],
+            });
+        }
+    }
 
-	function disconnectFromOperator(operatorId: number) {
-		authStore.value.authenticatedOperators = authStore.value.authenticatedOperators.filter(op => op.operatorId !== operatorId);
-	}
+    function disconnectFromOperator(operatorId: number) {
+        authStore.value.authenticatedOperators =
+            authStore.value.authenticatedOperators.filter(
+                (op) => op.operatorId !== operatorId,
+            );
+    }
 
-	function getValidToken(operatorId: number) {
-		const operator = authStore.value.authenticatedOperators.find(op => op.operatorId === operatorId);
-		return operator?.credentials[0]?.authToken;
-	}
+    function getValidToken(operatorId: number) {
+        const operator = authStore.value.authenticatedOperators.find(
+            (op) => op.operatorId === operatorId,
+        );
+        return operator?.credentials[0]?.authToken;
+    }
 
-	return { authStore, addCredential, isAuthenticatedToOperator, disconnectFromOperator, getValidToken };
+    return {
+        authStore,
+        addCredential,
+        isAuthenticatedToOperator,
+        disconnectFromOperator,
+        getValidToken,
+    };
 });
-
-
-
-

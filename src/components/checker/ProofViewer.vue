@@ -4,10 +4,15 @@
         <p class="text-lg text-gray-700 mt-4">Verifying proof...</p>
     </div>
 
-    <div v-else-if="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-6 my-6">
+    <div
+        v-else-if="errorMessage"
+        class="bg-red-50 border border-red-200 rounded-lg p-6 my-6"
+    >
         <div class="flex items-center mb-4">
             <i class="pi pi-exclamation-circle text-red-600 text-2xl mr-3"></i>
-            <h3 class="text-lg font-semibold text-red-700">Proof Verification Failed</h3>
+            <h3 class="text-lg font-semibold text-red-700">
+                Proof Verification Failed
+            </h3>
         </div>
         <p class="text-red-600 mb-4">
             {{ errorMessage }}
@@ -32,32 +37,48 @@
             </button>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div
+            class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+        >
             <div class="p-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-4">
                         <div>
-                            <p class="text-sm text-gray-500 mb-2">Verification Status</p>
+                            <p class="text-sm text-gray-500 mb-2">
+                                Verification Status
+                            </p>
                             <div
                                 class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
                             >
-                                <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                                <span
+                                    class="w-2 h-2 rounded-full bg-green-500 mr-2"
+                                ></span>
                                 Verified
                             </div>
                         </div>
                         <div>
-                            <p class="text-sm text-gray-500 mb-2">Proof Title</p>
+                            <p class="text-sm text-gray-500 mb-2">
+                                Proof Title
+                            </p>
                             <p class="font-medium">{{ title }}</p>
                         </div>
                         <div>
-                            <p class="text-sm text-gray-500 mb-2">Proof Export Time</p>
+                            <p class="text-sm text-gray-500 mb-2">
+                                Proof Export Time
+                            </p>
                             <p class="font-medium">{{ exportedAt }}</p>
                         </div>
                     </div>
                     <div class="space-y-4">
                         <div>
-                            <p class="text-sm text-gray-500 mb-2">Virtual Blockchain ID</p>
-                            <p class="font-mono text-sm break-all text-gray-800">{{ appLedgerId }}</p>
+                            <p class="text-sm text-gray-500 mb-2">
+                                Virtual Blockchain ID
+                            </p>
+                            <p
+                                class="font-mono text-sm break-all text-gray-800"
+                            >
+                                {{ appLedgerId }}
+                            </p>
                         </div>
                         <div>
                             <p class="text-sm text-gray-500 mb-2">Author</p>
@@ -73,69 +94,82 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { ProofDocument, Hash, ProviderFactory, type ImportedProof } from '@cmts-dev/carmentis-sdk/client'
-import ProgressSpinner from 'primevue/progressspinner'
-import ProofRecordViewer from './ProofRecordViewer.vue'
+import { ref, onMounted } from 'vue';
+import {
+    ProofDocument,
+    Hash,
+    ProviderFactory,
+    type ImportedProof,
+} from '@cmts-dev/carmentis-sdk/client';
+import ProgressSpinner from 'primevue/progressspinner';
+import ProofRecordViewer from './ProofRecordViewer.vue';
 
 const props = defineProps<{
-    proof: ProofDocument
-    nodeEndpoint: string
-}>()
+    proof: ProofDocument;
+    nodeEndpoint: string;
+}>();
 
 const emit = defineEmits<{
-    reset: []
-}>()
+    reset: [];
+}>();
 
-const loading = ref(true)
-const errorMessage = ref<string | null>(null)
+const loading = ref(true);
+const errorMessage = ref<string | null>(null);
 const verificationResult = ref<{
-    appLedgerId: string
-    records: ImportedProof[]
-} | null>(null)
+    appLedgerId: string;
+    records: ImportedProof[];
+} | null>(null);
 
-const title = ref('')
-const author = ref('')
-const exportedAt = ref('')
-const appLedgerId = ref('')
-const records = ref<ImportedProof[]>([])
+const title = ref('');
+const author = ref('');
+const exportedAt = ref('');
+const appLedgerId = ref('');
+const records = ref<ImportedProof[]>([]);
 
 onMounted(async () => {
     try {
-        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(props.nodeEndpoint)
+        const provider =
+            ProviderFactory.createInMemoryProviderWithExternalProvider(
+                props.nodeEndpoint,
+            );
 
-        title.value = props.proof.getTitle()
-        author.value = props.proof.getAuthor()
-        exportedAt.value = props.proof.getDate().toLocaleString()
+        title.value = props.proof.getTitle();
+        author.value = props.proof.getAuthor();
+        exportedAt.value = props.proof.getDate().toLocaleString();
 
-        const proofDocumentVBs = props.proof.getVirtualBlockchains()
+        const proofDocumentVBs = props.proof.getVirtualBlockchains();
         if (proofDocumentVBs.length !== 1) {
             throw new Error(
                 'Proof document contains multiple virtual blockchains. Only one virtual blockchain is supported.',
-            )
+            );
         }
 
-        const proofDocumentVB = proofDocumentVBs[0]
-        const vbId = proofDocumentVB.getIdentifier()
-        const appLedgerIdHash = Hash.fromHex(vbId)
-        const appLedgerVb = await provider.loadApplicationLedgerVirtualBlockchain(appLedgerIdHash)
-        const importedProofs = await appLedgerVb.importProof(props.proof.getObject())
+        const proofDocumentVB = proofDocumentVBs[0];
+        const vbId = proofDocumentVB.getIdentifier();
+        const appLedgerIdHash = Hash.fromHex(vbId);
+        const appLedgerVb =
+            await provider.loadApplicationLedgerVirtualBlockchain(
+                appLedgerIdHash,
+            );
+        const importedProofs = await appLedgerVb.importProof(
+            props.proof.getObject(),
+        );
 
-        appLedgerId.value = vbId
-        records.value = importedProofs
+        appLedgerId.value = vbId;
+        records.value = importedProofs;
 
         verificationResult.value = {
             appLedgerId: vbId,
             records: importedProofs,
-        }
+        };
     } catch (error) {
-        console.error('Proof verification error:', error)
+        console.error('Proof verification error:', error);
         errorMessage.value =
             error instanceof Error
                 ? error.message
-                : 'Unable to verify the proof. The proof might be invalid or corrupted.'
+                : 'Unable to verify the proof. The proof might be invalid or corrupted.';
     } finally {
-        loading.value = false
+        loading.value = false;
     }
-})
+});
 </script>

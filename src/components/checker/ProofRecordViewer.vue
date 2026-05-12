@@ -1,6 +1,8 @@
 <template>
     <div class="mt-8">
-        <h3 class="text-xl font-semibold text-gray-800 mb-6">Proof Data Visualization</h3>
+        <h3 class="text-xl font-semibold text-gray-800 mb-6">
+            Proof Data Visualization
+        </h3>
 
         <div class="relative">
             <!-- Timeline line -->
@@ -22,7 +24,9 @@
                         class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-md"
                     >
                         <div class="p-6">
-                            <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <h4
+                                class="text-lg font-semibold text-gray-800 mb-4 flex items-center"
+                            >
                                 <span
                                     class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-3 text-sm font-semibold"
                                 >
@@ -30,7 +34,10 @@
                                 </span>
                                 Block {{ record.height }}
                             </h4>
-                            <BlockViewer :data="record.data" :initial-path="[]" />
+                            <BlockViewer
+                                :data="record.data"
+                                :initial-path="[]"
+                            />
                         </div>
                     </div>
                 </div>
@@ -40,10 +47,10 @@
 </template>
 
 <script setup lang="ts">
-import { type ImportedProof } from '@cmts-dev/carmentis-sdk/client'
-import BlockViewer from './BlockViewer.vue'
+import { type ImportedProof } from '@cmts-dev/carmentis-sdk/client';
+import BlockViewer from './BlockViewer.vue';
 
 defineProps<{
-    records: ImportedProof[]
-}>()
+    records: ImportedProof[];
+}>();
 </script>
