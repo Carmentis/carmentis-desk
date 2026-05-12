@@ -7,7 +7,10 @@ import { useRouter } from 'vue-router';
 import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import OpenIdDeepLinkHandler from "./components/openid/OpenIdDeepLinkHandler.vue";
-import OpenIdCredentialOfferDeepLinkHandler from "./components/openid/OpenIdCredentialOfferDeepLinkHandler.vue"; // Import important
+import OpenIdCredentialOfferDeepLinkHandler from "./components/openid/OpenIdCredentialOfferDeepLinkHandler.vue";
+import {Ed25519PrivateSignatureKey} from "@cmts-dev/carmentis-sdk-core";
+import {JwkSignatureKeyExporter} from "./components/jwk-signature-key-exporter.ts";
+import * as jose from "jose"; // Import important
 
 const appWindow = getCurrentWindow();
 const router = useRouter();
@@ -47,6 +50,36 @@ async function handleDeepLink(urls: string[]) {
 
 // On initialise les écouteurs dans onMounted
 onMounted(async () => {
+
+  /*
+  const key = Ed25519PrivateSignatureKey.gen();
+  const pk = await key.getPublicKey();
+  const skJwk = await JwkSignatureKeyExporter.exportPrivateKey(key);
+  const pkJwk = await JwkSignatureKeyExporter.exportPublicKey(pk);
+  const msg = new Uint8Array([1, 2, 3]);
+  const sig = await new jose.GeneralSign(msg).addSignature(skJwk).setProtectedHeader({alg: 'EdDSA'}).sign();
+  const verified = await jose.generalVerify(
+      sig,
+      pkJwk
+  );
+  console.log(verified)
+
+  const res = await window.crypto.subtle.sign(
+      { name: 'Ed25519' },
+      await jose.importJWK(skJwk, 'EdDSA', {extractable: true}) as CryptoKey,
+      new Uint8Array([1, 2, 3])
+  );
+  console.log("Signature:", res)
+  const verifie = await window.crypto.subtle.verify(
+      { name: 'Ed25519' },
+      await jose.importJWK(pkJwk, 'EdDSA', {extractable: true}) as CryptoKey,
+      res,
+      new Uint8Array([1, 2, 3])
+  )
+  console.log("Verification:", verifie)
+
+   */
+
   try {
     // 1. Vérifier si l'app a été lancée via un lien (Deep Link au démarrage)
     const startUrls = await getCurrent();

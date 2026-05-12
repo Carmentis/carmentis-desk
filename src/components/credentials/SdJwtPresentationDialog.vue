@@ -1,23 +1,125 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import {computed, inject, ref, watch} from 'vue';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import Tag from 'primevue/tag';
 import { useToast } from 'primevue/usetoast';
-import type { CredentialEntity } from '../../stores/storage';
+import {CredentialEntity, useStorageStore} from '../../stores/storage';
 import { parseSdJwtEnvelope } from '../../composables/credentials/useCredentialType';
-import {} from '@sd-jwt/core';
+import {SDJwtInstance} from "@sd-jwt/core";
+import {useRoute, useRouter} from "vue-router";
+import {useOnChainStore} from "../../stores/onchain.ts";
+import {storeToRefs} from "pinia";
+import {Ed25519PrivateSignatureKey, JwkSignatureEncoder, SeedEncoder} from "@cmts-dev/carmentis-sdk-core";
+import * as jose from "jose";
+import {JwkSignatureKeyExporter} from "../jwk-signature-key-exporter.ts";
+import {computedAsync} from "@vueuse/core";
+
+
+
+
+
+
+// we search the wallet index
+const route = useRoute();
+const router = useRouter();
+const toast = useToast();
+const storageStore = useStorageStore();
+const onchainStore = useOnChainStore();
+const walletId = computed(() => Number(route.params.walletId));
+const wallet = computed(() =>
+    storageStore.organizations.find(w => w.id === walletId.value)
+);
+
+
 const props = defineProps<{
   credential: CredentialEntity | null;
 }>();
 const visible = defineModel<boolean>('visible', { default: false });
 
-const toast = useToast();
+
 
 const envelope = computed(() =>
   props.credential ? parseSdJwtEnvelope(props.credential.data) : null,
 );
+
+
+
+const compactToken = computed(() => {
+
+  if (!envelope.value) return '';
+  const { jwt, disclosures } = envelope.value;
+  const included = disclosures.filter(
+      d => d.key === undefined || selectedDigests.value.has(d._digest),
+  );
+  return [jwt.encoded, ...included.map(d => d._encoded)].join('~') + '~';
+});
+
+const verifiablePresentation = computedAsync(async () => {
+  console.log("Envelope changed, updating compact token");
+  if (!envelope.value) return null;
+
+  // load the current wallet
+  const currentWallet = wallet.value;
+  if (!currentWallet) return null;
+
+  // derive keys
+  const { seed } = currentWallet;
+  const sk = Ed25519PrivateSignatureKey.genFromSeed(new SeedEncoder().decode(seed).slice(0, 32));
+  const pk = await sk.getPublicKey();
+  const skJwk = await JwkSignatureKeyExporter.exportPrivateKey(sk);
+  const pkJwk = await JwkSignatureKeyExporter.exportPublicKey(pk);
+
+  try {
+    const instance = new SDJwtInstance({
+      hasher: async (data) => {
+        const contentToHash = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+        const hashBytes = await window.crypto.subtle.digest('SHA-256', contentToHash);
+        return new Uint8Array(hashBytes);
+      },
+      kbSignAlg: "EdDSA",
+      kbSigner: async (data: string) => {
+        const encoder = new TextEncoder();
+        const decoder = new TextDecoder();
+        const signature = await window.crypto.subtle.sign(
+            { name: 'Ed25519' },
+            await jose.importJWK(skJwk, 'EdDSA', {extractable: true}) as CryptoKey,
+            encoder.encode(data)
+        );
+        return jose.base64url.encode(new Uint8Array(signature))
+      }
+    })
+
+    // map the desired disclosures
+    const disclosures = namedDisclosures.value;
+    const res = {}
+    for (const d of disclosures) {
+      res[d.key] = true;
+    }
+    console.log("Disclosures:", res);
+
+    console.log("Instance:", instance);
+    const presentation =  await instance.present(
+        compactToken.value,
+        res,
+        {
+          kb: {
+            payload: {
+              nonce: "123",
+              iat: 0,
+              aud: "test-audience",
+            }
+          }
+        }
+    )
+    console.log("Presentation:", presentation);
+    return presentation;
+  } catch (e) {
+    console.error("Error presenting SD-JWT:", e);
+  }
+},)
+
 
 // Extract optional display fields from the loose payload without template casts
 const payload = computed(() =>
@@ -83,15 +185,8 @@ const selectedCount = computed(() => selectedDigests.value.size);
 // Using spread+join avoids a double "~~" when no disclosures are included.
 // ---------------------------------------------------------------------------
 
-const compactToken = computed(() => {
 
-  if (!envelope.value) return '';
-  const { jwt, disclosures } = envelope.value;
-  const included = disclosures.filter(
-    d => d.key === undefined || selectedDigests.value.has(d._digest),
-  );
-  return [jwt.encoded, ...included.map(d => d._encoded)].join('~') + '~';
-});
+
 
 // ---------------------------------------------------------------------------
 // Copy
