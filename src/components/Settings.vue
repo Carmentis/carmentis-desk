@@ -9,13 +9,11 @@ import Button from 'primevue/button';
 import Logs from './Logs.vue';
 import { useTheme } from '../composables/useTheme';
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 
-const router = useRouter();
 const { currentTheme, toggleTheme } = useTheme();
 
 const confirm = useConfirm();
@@ -74,10 +72,7 @@ async function checkForUpdate() {
 
 <template>
     <div class="space-y-4">
-        <div class="flex items-center gap-3">
-            <Button icon="pi pi-arrow-left" label="Home" text size="small" @click="router.push('/')" />
-            <h1 class="text-2xl font-semibold text-surface-900">Settings</h1>
-        </div>
+        <h1 class="text-2xl font-semibold text-surface-900">Settings</h1>
 
         <Tabs value="general">
             <TabList>
