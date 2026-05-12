@@ -109,14 +109,16 @@ const menuItems = computed<MenuItem[]>(() => [
 </script>
 
 <template>
-    <Menubar :model="menuItems">
+    <div class="p-4 w-full">
+      <Menubar :model="menuItems">
         <template #start>
-            <div class="flex items-center gap-2 cursor-pointer" @click="router.push('/')">
-                <i class="pi pi-home text-2xl text-primary"></i>
-                <span class="text-xl font-bold text-gray-900">Carmentis Desk</span>
-            </div>
+          <div class="flex items-center gap-2 cursor-pointer" @click="router.push('/')">
+            <i class="pi pi-home text-2xl text-primary"></i>
+            <span class="text-xl font-bold text-gray-900">Carmentis Desk</span>
+          </div>
         </template>
-    </Menubar>
+      </Menubar>
+    </div>
 
     <HelpDialog v-model:visible="showHelpDialog" />
 
