@@ -79,6 +79,36 @@ const menuItems = computed<MenuItem[]>(() => [
         items: [
             { label: 'Create Wallet', icon: 'pi pi-plus', command: () => router.push('/wallet/new') },
             { separator: true, visible: organizations.value.length > 0 },
+            ...organizations.value.map((wallet) => ({
+                label: wallet.name,
+                icon: 'pi pi-id-card',
+                command: () => router.push(`/wallet/${wallet.id}`),
+                items: [
+                    {
+                        label: 'Credentials',
+                        icon: 'pi pi-shield',
+                        command: () => router.push(`/wallet/${wallet.id}/credentials`),
+                    },
+                    ...wallet.organizations.map((org) => ({
+                        label: org.name,
+                        icon: 'pi pi-building',
+                        command: () => router.push(`/wallet/${wallet.id}/organization/${org.id}`),
+                        items: [
+                            ...org.applications.map((app) => ({
+                                label: app.name,
+                                icon: 'pi pi-desktop',
+                                command: () => router.push(`/wallet/${wallet.id}/organization/${org.id}/application/${app.id}`),
+                            })),
+                            ...org.nodes.map((node) => ({
+                                label: node.name,
+                                icon: 'pi pi-sitemap',
+                                command: () => router.push(`/wallet/${wallet.id}/organization/${org.id}/node/${node.id}`),
+                            })),
+                        ],
+                    })),
+                ],
+            })),
+            { separator: true, visible: organizations.value.length > 0 },
             {
                 label: 'Clear All Wallets',
                 icon: 'pi pi-trash',
@@ -92,6 +122,12 @@ const menuItems = computed<MenuItem[]>(() => [
         icon: 'pi pi-server',
         items: [
             { label: 'Add Operator', icon: 'pi pi-plus', command: () => openOperatorDialog() },
+            { separator: true, visible: operators.value.length > 0 },
+            ...operators.value.map((op) => ({
+                label: op.name,
+                icon: 'pi pi-server',
+                command: () => router.push(`/operator/${op.id}`),
+            })),
             { separator: true, visible: operators.value.length > 0 },
             {
                 label: 'Clear All Operators',

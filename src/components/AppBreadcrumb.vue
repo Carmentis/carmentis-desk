@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useStorageStore } from '../stores/storage.ts';
 import Breadcrumb from 'primevue/breadcrumb';
+import { useAccountBreakdownQuery } from '../composables/useAccountBreakdown.ts';
 
 const route = useRoute();
 const router = useRouter();
@@ -78,10 +79,16 @@ const items = computed(() => {
 });
 
 const show = computed(() => route.name !== 'home' && items.value.length > 0);
+
+const breakdownQuery = useAccountBreakdownQuery(computed(() => walletId.value ?? 0));
 </script>
 
 <template>
-    <div v-if="show" class="bg-surface-0  px-6 ">
+    <div v-if="show" class="bg-surface-0 px-6 flex items-center justify-between">
         <Breadcrumb :home="breadcrumbHome" :model="items" class="border-none p-0 bg-transparent text-sm" />
+        <div v-if="walletId && breakdownQuery.data.value" class="flex items-center gap-1 text-sm text-gray-600">
+            <i class="pi pi-wallet text-sm"></i>
+            <span class="font-medium">{{ breakdownQuery.data.value.getSpendable() }}</span>
+        </div>
     </div>
 </template>

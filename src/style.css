@@ -2,6 +2,10 @@
 @import 'primeicons/primeicons.css';
 @tailwind utilities;
 
+html, body {
+  background-color: #f9fafb; /* bg-gray-50 */
+}
+
 /* Remove background from PrimeVue Breadcrumb */
 .p-breadcrumb {
   background: transparent !important;
