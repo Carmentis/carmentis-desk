@@ -479,7 +479,7 @@ const menuItems = computed<MenuItem[]>(() => [
                             </p>
                         </template>
                         <template #content>
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="flex flex-col grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div class="bg-gray-50 rounded-lg p-4">
                                     <div class="text-sm text-gray-600 font-medium mb-1">Spendable</div>
                                     <div class="text-2xl font-bold text-gray-900">
