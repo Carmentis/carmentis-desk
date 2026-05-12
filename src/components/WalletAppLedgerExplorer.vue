@@ -153,7 +153,7 @@ function shortId(id: string) {
                             />
                             <div
                                 v-else
-                                class="w-8 h-8 rounded-lg bg-primary-50  flex items-center justify-center flex-shrink-0"
+                                class="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0"
                                 aria-hidden="true"
                             >
                                 <i class="pi pi-box text-primary-400 text-sm"></i>
@@ -258,7 +258,9 @@ function shortId(id: string) {
 
             <!-- Detail panel (right, 2 cols) -->
             <div class="lg:col-span-2 flex flex-col gap-2">
-                <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide px-1 mb-1">App Ledger Details</p>
+                <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide px-1 mb-1">
+                    App Ledger Details
+                </p>
                 <!-- Nothing selected -->
                 <div
                     v-if="selectedIdx === null"
@@ -279,7 +281,9 @@ function shortId(id: string) {
                                     <div class="flex items-center justify-between mb-1.5">
                                         <div class="flex items-center gap-1.5">
                                             <i class="pi pi-box text-primary-400 text-xs"></i>
-                                            <span class="text-xs font-semibold text-surface-500 uppercase tracking-wide">
+                                            <span
+                                                class="text-xs font-semibold text-surface-500 uppercase tracking-wide"
+                                            >
                                                 Virtual Blockchain ID
                                             </span>
                                         </div>
@@ -322,7 +326,9 @@ function shortId(id: string) {
                                     <div class="flex items-center justify-between mb-1.5">
                                         <div class="flex items-center gap-1.5">
                                             <i class="pi pi-check-circle text-green-400 text-xs"></i>
-                                            <span class="text-xs font-semibold text-surface-500 uppercase tracking-wide">
+                                            <span
+                                                class="text-xs font-semibold text-surface-500 uppercase tracking-wide"
+                                            >
                                                 Validated Microblock
                                             </span>
                                         </div>
@@ -332,7 +338,11 @@ function shortId(id: string) {
                                             text
                                             rounded
                                             class="-mt-0.5 -mr-1"
-                                            @click="copyToClipboard(participation.appLedgers[selectedIdx].b64EncodedMicroblock)"
+                                            @click="
+                                                copyToClipboard(
+                                                    participation.appLedgers[selectedIdx].b64EncodedMicroblock,
+                                                )
+                                            "
                                             v-tooltip="'Copy full microblock'"
                                         />
                                     </div>
