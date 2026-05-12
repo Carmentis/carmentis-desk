@@ -88,14 +88,7 @@ export const useOnChainStore = defineStore('onchain', () => {
     async function publishOrganization(params: PublishOrganizationParams) {
         isPublishingOrganization.value = true;
         try {
-            const {
-                walletId,
-                orgId,
-                organizationName,
-                countryCode,
-                city,
-                website,
-            } = params;
+            const { walletId, orgId, organizationName, countryCode, city, website } = params;
 
             // Get wallet from storage
             const wallet = await storageStore.getWalletById(walletId);
@@ -104,32 +97,21 @@ export const useOnChainStore = defineStore('onchain', () => {
             }
 
             // Get organization from wallet
-            const organization = wallet.organizations.find(
-                (org) => org.id === orgId,
-            );
+            const organization = wallet.organizations.find((org) => org.id === orgId);
             if (!organization) {
-                throw new Error(
-                    `Organization with id ${orgId} not found in wallet ${walletId}`,
-                );
+                throw new Error(`Organization with id ${orgId} not found in wallet ${walletId}`);
             }
 
             // Initialize wallet crypto from seed
             const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(
-                seedEncoder.decode(wallet.seed),
-            );
+            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
             const accountCrypto = walletSeed.getDefaultAccountCrypto();
 
             // Create provider
-            const provider =
-                ProviderFactory.createInMemoryProviderWithExternalProvider(
-                    wallet.nodeEndpoint,
-                );
+            const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
 
             // Get signing keys
-            const sk = await accountCrypto.getPrivateSignatureKey(
-                SignatureSchemeId.SECP256K1,
-            );
+            const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
             const pk = await sk.getPublicKey();
 
             // Get the account id
@@ -146,27 +128,17 @@ export const useOnChainStore = defineStore('onchain', () => {
                 countryCode,
             };
             if (organisationId) {
-                console.log(
-                    `Organisation already published on chain, updating it`,
-                );
-                const orgVB = await provider.loadOrganizationVirtualBlockchain(
-                    Hash.from(organisationId),
-                );
+                console.log(`Organisation already published on chain, updating it`);
+                const orgVB = await provider.loadOrganizationVirtualBlockchain(Hash.from(organisationId));
                 const mb = await orgVB.createMicroblock();
                 mb.addSection(orgDescSection);
-                await updateGasInMicroblock(
-                    provider,
-                    mb,
-                    organisationPrivateKey.getSignatureSchemeId(),
-                );
+                await updateGasInMicroblock(provider, mb, organisationPrivateKey.getSignatureSchemeId());
                 await mb.seal(organisationPrivateKey, {
                     feesPayerAccount: accountId,
                 });
                 await provider.publishMicroblock(mb);
             } else {
-                console.log(
-                    `Organisation not published on chain, publishing it`,
-                );
+                console.log(`Organisation not published on chain, publishing it`);
                 const mb = Microblock.createGenesisOrganizationMicroblock();
                 mb.addSections([
                     {
@@ -175,11 +147,7 @@ export const useOnChainStore = defineStore('onchain', () => {
                     },
                     orgDescSection,
                 ]);
-                await updateGasInMicroblock(
-                    provider,
-                    mb,
-                    organisationPrivateKey.getSignatureSchemeId(),
-                );
+                await updateGasInMicroblock(provider, mb, organisationPrivateKey.getSignatureSchemeId());
 
                 await mb.seal(organisationPrivateKey, {
                     feesPayerAccount: accountId,
@@ -189,11 +157,7 @@ export const useOnChainStore = defineStore('onchain', () => {
             }
 
             // Update organization in storage with the VB ID
-            await storageStore.addVbIdToOrganization(
-                walletId,
-                orgId,
-                organisationId,
-            );
+            await storageStore.addVbIdToOrganization(walletId, orgId, organisationId);
 
             toast.add({
                 severity: 'success',
@@ -229,47 +193,32 @@ export const useOnChainStore = defineStore('onchain', () => {
             }
 
             // Get organization from wallet
-            const organization = wallet.organizations.find(
-                (org) => org.id === orgId,
-            );
+            const organization = wallet.organizations.find((org) => org.id === orgId);
             if (!organization) {
-                throw new Error(
-                    `Organization with id ${orgId} not found in wallet ${walletId}`,
-                );
+                throw new Error(`Organization with id ${orgId} not found in wallet ${walletId}`);
             }
 
             // Check if organization is published
             if (!organization.vbId) {
-                throw new Error(
-                    `Organization must be published before claiming nodes`,
-                );
+                throw new Error(`Organization must be published before claiming nodes`);
             }
 
             // Get node from organization
             const node = organization.nodes.find((n) => n.id === nodeId);
             if (!node) {
-                throw new Error(
-                    `Node with id ${nodeId} not found in organization ${orgId}`,
-                );
+                throw new Error(`Node with id ${nodeId} not found in organization ${orgId}`);
             }
 
             // Initialize wallet crypto from seed
             const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(
-                seedEncoder.decode(wallet.seed),
-            );
+            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
             const accountCrypto = walletSeed.getDefaultAccountCrypto();
 
             // Create provider
-            const provider =
-                ProviderFactory.createInMemoryProviderWithExternalProvider(
-                    wallet.nodeEndpoint,
-                );
+            const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
 
             // Get signing keys
-            const sk = await accountCrypto.getPrivateSignatureKey(
-                SignatureSchemeId.SECP256K1,
-            );
+            const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
             const pk = await sk.getPublicKey();
 
             // Get the account id
@@ -282,8 +231,7 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             // Get node status to retrieve CometBFT public key
             const nodeStatus = await provider.getNodeStatus(node.rpcEndpoint);
-            const { type: cometPublicKeyType, value: cometPublicKey } =
-                nodeStatus.result.validator_info.pub_key;
+            const { type: cometPublicKeyType, value: cometPublicKey } = nodeStatus.result.validator_info.pub_key;
 
             // Create the node claim request
             console.log(
@@ -297,30 +245,20 @@ export const useOnChainStore = defineStore('onchain', () => {
                 organizationId: organizationId.toBytes(),
             };
 
-            const vnRpcEndpointDeclarationSection: ValidatorNodeRpcEndpointSection =
-                {
-                    type: SectionType.VN_RPC_ENDPOINT,
-                    rpcEndpoint: nodeRpcEndpoint,
-                };
+            const vnRpcEndpointDeclarationSection: ValidatorNodeRpcEndpointSection = {
+                type: SectionType.VN_RPC_ENDPOINT,
+                rpcEndpoint: nodeRpcEndpoint,
+            };
 
-            const vnCometBFTPublicKeyDeclarationSection: ValidatorNodeCometbftPublicKeyDeclarationSection =
-                {
-                    type: SectionType.VN_COMETBFT_PUBLIC_KEY_DECLARATION,
-                    cometPublicKeyType: cometPublicKeyType,
-                    cometPublicKey: cometPublicKey,
-                };
+            const vnCometBFTPublicKeyDeclarationSection: ValidatorNodeCometbftPublicKeyDeclarationSection = {
+                type: SectionType.VN_COMETBFT_PUBLIC_KEY_DECLARATION,
+                cometPublicKeyType: cometPublicKeyType,
+                cometPublicKey: cometPublicKey,
+            };
 
-            mb.addSections([
-                vnCreationSection,
-                vnRpcEndpointDeclarationSection,
-                vnCometBFTPublicKeyDeclarationSection,
-            ]);
+            mb.addSections([vnCreationSection, vnRpcEndpointDeclarationSection, vnCometBFTPublicKeyDeclarationSection]);
 
-            await updateGasInMicroblock(
-                provider,
-                mb,
-                organisationPrivateKey.getSignatureSchemeId(),
-            );
+            await updateGasInMicroblock(provider, mb, organisationPrivateKey.getSignatureSchemeId());
             await mb.seal(organisationPrivateKey, {
                 feesPayerAccount: accountId,
             });
@@ -372,83 +310,58 @@ export const useOnChainStore = defineStore('onchain', () => {
             }
 
             // Get organization from wallet
-            const organization = wallet.organizations.find(
-                (org) => org.id === orgId,
-            );
+            const organization = wallet.organizations.find((org) => org.id === orgId);
             if (!organization) {
-                throw new Error(
-                    `Organization with id ${orgId} not found in wallet ${walletId}`,
-                );
+                throw new Error(`Organization with id ${orgId} not found in wallet ${walletId}`);
             }
 
             // Check if organization is published
             if (!organization.vbId) {
-                throw new Error(
-                    `Organization must be published before staking on nodes`,
-                );
+                throw new Error(`Organization must be published before staking on nodes`);
             }
 
             // Get node from organization
             const node = organization.nodes.find((n) => n.id === nodeId);
             if (!node) {
-                throw new Error(
-                    `Node with id ${nodeId} not found in organization ${orgId}`,
-                );
+                throw new Error(`Node with id ${nodeId} not found in organization ${orgId}`);
             }
 
             // Initialize wallet crypto from seed
             const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(
-                seedEncoder.decode(wallet.seed),
-            );
+            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
             const accountCrypto = walletSeed.getDefaultAccountCrypto();
 
             // Create provider
-            const provider =
-                ProviderFactory.createInMemoryProviderWithExternalProvider(
-                    wallet.nodeEndpoint,
-                );
+            const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
 
             // Get signing keys
-            const sk = await accountCrypto.getPrivateSignatureKey(
-                SignatureSchemeId.SECP256K1,
-            );
+            const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
             const pk = await sk.getPublicKey();
 
             // Get the account id
             const accountId = await provider.getAccountIdByPublicKey(pk);
-            if (accountId === undefined)
-                throw new Error('Error getting account id');
+            if (accountId === undefined) throw new Error('Error getting account id');
             const organisationPrivateKey = sk;
 
             // Get node status to retrieve CometBFT public key
             const nodeStatus = await provider.getNodeStatus(node.rpcEndpoint);
-            const cometbftPublicKey =
-                nodeStatus.result.validator_info.pub_key.value;
+            const cometbftPublicKey = nodeStatus.result.validator_info.pub_key.value;
 
             // Check if the node is declared
-            const isDeclared = await isDeclaredValidatorNodeByCometbftPublicKey(
-                provider,
-                cometbftPublicKey,
-            );
+            const isDeclared = await isDeclaredValidatorNodeByCometbftPublicKey(provider, cometbftPublicKey);
             if (!isDeclared) {
                 throw new Error('The node must be declared before staking');
             }
 
             // Get validator node id from CometBFT public key
-            const nodeAddress =
-                await provider.getValidatorNodeIdByCometbftPublicKey(
-                    cometbftPublicKey,
-                );
+            const nodeAddress = await provider.getValidatorNodeIdByCometbftPublicKey(cometbftPublicKey);
 
             console.log(
                 `Creating staking request for node: validator node address=${Hash.from(nodeAddress).encode()}, amount=${amount.toString()}`,
             );
 
             // Create the staking request
-            const accountVb = await provider.loadAccountVirtualBlockchain(
-                Hash.from(accountId),
-            );
+            const accountVb = await provider.loadAccountVirtualBlockchain(Hash.from(accountId));
             const mb = await accountVb.createMicroblock();
 
             mb.addSection({
@@ -458,11 +371,7 @@ export const useOnChainStore = defineStore('onchain', () => {
                 objectIdentifier: nodeAddress,
             });
 
-            await updateGasInMicroblock(
-                provider,
-                mb,
-                organisationPrivateKey.getSignatureSchemeId(),
-            );
+            await updateGasInMicroblock(provider, mb, organisationPrivateKey.getSignatureSchemeId());
             await mb.seal(organisationPrivateKey, {
                 feesPayerAccount: accountId,
             });
@@ -508,47 +417,32 @@ export const useOnChainStore = defineStore('onchain', () => {
             }
 
             // Get organization from wallet
-            const organization = wallet.organizations.find(
-                (org) => org.id === orgId,
-            );
+            const organization = wallet.organizations.find((org) => org.id === orgId);
             if (!organization) {
-                throw new Error(
-                    `Organization with id ${orgId} not found in wallet ${walletId}`,
-                );
+                throw new Error(`Organization with id ${orgId} not found in wallet ${walletId}`);
             }
 
             // Check if organization is published
             if (!organization.vbId) {
-                throw new Error(
-                    `Organization must be published before unstaking from nodes`,
-                );
+                throw new Error(`Organization must be published before unstaking from nodes`);
             }
 
             // Get node from organization
             const node = organization.nodes.find((n) => n.id === nodeId);
             if (!node) {
-                throw new Error(
-                    `Node with id ${nodeId} not found in organization ${orgId}`,
-                );
+                throw new Error(`Node with id ${nodeId} not found in organization ${orgId}`);
             }
 
             // Initialize wallet crypto from seed
             const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(
-                seedEncoder.decode(wallet.seed),
-            );
+            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
             const accountCrypto = walletSeed.getDefaultAccountCrypto();
 
             // Create provider
-            const provider =
-                ProviderFactory.createInMemoryProviderWithExternalProvider(
-                    wallet.nodeEndpoint,
-                );
+            const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
 
             // Get signing keys
-            const sk = await accountCrypto.getPrivateSignatureKey(
-                SignatureSchemeId.SECP256K1,
-            );
+            const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
             const pk = await sk.getPublicKey();
 
             // Get the account id
@@ -557,23 +451,17 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             // Get node status to retrieve CometBFT public key
             const nodeStatus = await provider.getNodeStatus(node.rpcEndpoint);
-            const cometbftPublicKey =
-                nodeStatus.result.validator_info.pub_key.value;
+            const cometbftPublicKey = nodeStatus.result.validator_info.pub_key.value;
 
             // Get validator node id from CometBFT public key
-            const nodeAddress =
-                await provider.getValidatorNodeIdByCometbftPublicKey(
-                    cometbftPublicKey,
-                );
+            const nodeAddress = await provider.getValidatorNodeIdByCometbftPublicKey(cometbftPublicKey);
 
             console.log(
                 `Creating unstaking request for ${amount.toString()} node: validator node id=${Hash.from(nodeAddress).encode()}`,
             );
 
             // Create the unstaking request
-            const accountVb = await provider.loadAccountVirtualBlockchain(
-                Hash.from(accountId),
-            );
+            const accountVb = await provider.loadAccountVirtualBlockchain(Hash.from(accountId));
             const mb = await accountVb.createMicroblock();
 
             mb.addSection({
@@ -583,11 +471,7 @@ export const useOnChainStore = defineStore('onchain', () => {
                 objectIdentifier: nodeAddress,
             });
 
-            await updateGasInMicroblock(
-                provider,
-                mb,
-                organisationPrivateKey.getSignatureSchemeId(),
-            );
+            await updateGasInMicroblock(provider, mb, organisationPrivateKey.getSignatureSchemeId());
             await mb.seal(organisationPrivateKey, {
                 feesPayerAccount: accountId,
             });
@@ -625,9 +509,7 @@ export const useOnChainStore = defineStore('onchain', () => {
         cometbftPublicKey: string,
     ): Promise<boolean> {
         try {
-            await provider.getValidatorNodeIdByCometbftPublicKey(
-                cometbftPublicKey,
-            );
+            await provider.getValidatorNodeIdByCometbftPublicKey(cometbftPublicKey);
             return true;
         } catch (e) {
             console.error('Error checking if validator node is declared: ', e);
@@ -635,11 +517,7 @@ export const useOnChainStore = defineStore('onchain', () => {
         }
     }
 
-    async function updateGasInMicroblock(
-        provider: IProvider,
-        mb: Microblock,
-        usedSigSchemeId: SignatureSchemeId,
-    ) {
+    async function updateGasInMicroblock(provider: IProvider, mb: Microblock, usedSigSchemeId: SignatureSchemeId) {
         const fees = await provider.computeMicroblockFees(mb, {
             signatureSchemeId: usedSigSchemeId,
         });
@@ -653,14 +531,8 @@ export const useOnChainStore = defineStore('onchain', () => {
         mb.setMaxFees(fees);
     }
 
-    async function fetchAccountStateByPublicKey(
-        nodeEndpoint: string,
-        publicKey: PublicSignatureKey,
-    ) {
-        const provider =
-            ProviderFactory.createInMemoryProviderWithExternalProvider(
-                nodeEndpoint,
-            );
+    async function fetchAccountStateByPublicKey(nodeEndpoint: string, publicKey: PublicSignatureKey) {
+        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(nodeEndpoint);
         const accountId = await provider.getAccountIdByPublicKey(publicKey);
         const accountState = await provider.getAccountState(accountId);
         return accountState;
@@ -673,8 +545,7 @@ export const useOnChainStore = defineStore('onchain', () => {
     async function publishApplication(params: PublishApplicationParams) {
         isPublishingApplication.value = true;
         try {
-            const { walletId, orgId, appId, name, description, website } =
-                params;
+            const { walletId, orgId, appId, name, description, website } = params;
 
             // Get wallet from storage
             const wallet = await storageStore.getWalletById(walletId);
@@ -683,49 +554,32 @@ export const useOnChainStore = defineStore('onchain', () => {
             }
 
             // Get organization from wallet
-            const organization = wallet.organizations.find(
-                (org) => org.id === orgId,
-            );
+            const organization = wallet.organizations.find((org) => org.id === orgId);
             if (!organization) {
-                throw new Error(
-                    `Organization with id ${orgId} not found in wallet ${walletId}`,
-                );
+                throw new Error(`Organization with id ${orgId} not found in wallet ${walletId}`);
             }
 
             // Check if organization is published
             if (!organization.vbId) {
-                throw new Error(
-                    `Organization must be published before publishing applications`,
-                );
+                throw new Error(`Organization must be published before publishing applications`);
             }
 
             // Get application from organization
-            const application = organization.applications.find(
-                (app) => app.id === appId,
-            );
+            const application = organization.applications.find((app) => app.id === appId);
             if (!application) {
-                throw new Error(
-                    `Application with id ${appId} not found in organization ${orgId}`,
-                );
+                throw new Error(`Application with id ${appId} not found in organization ${orgId}`);
             }
 
             // Initialize wallet crypto from seed
             const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(
-                seedEncoder.decode(wallet.seed),
-            );
+            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
             const accountCrypto = walletSeed.getDefaultAccountCrypto();
 
             // Create provider
-            const provider =
-                ProviderFactory.createInMemoryProviderWithExternalProvider(
-                    wallet.nodeEndpoint,
-                );
+            const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
 
             // Get signing keys
-            const sk = await accountCrypto.getPrivateSignatureKey(
-                SignatureSchemeId.SECP256K1,
-            );
+            const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
             const pk = await sk.getPublicKey();
 
             // Get the account id
@@ -746,28 +600,18 @@ export const useOnChainStore = defineStore('onchain', () => {
             let applicationVbId: string;
 
             if (isAlreadyPublished) {
-                console.log(
-                    `Application already published on chain, updating it`,
-                );
-                const appVb = await provider.loadApplicationVirtualBlockchain(
-                    Hash.from(application.vbId!),
-                );
+                console.log(`Application already published on chain, updating it`);
+                const appVb = await provider.loadApplicationVirtualBlockchain(Hash.from(application.vbId!));
                 const mb = await appVb.createMicroblock();
                 mb.addSections([appDescSection]);
-                await updateGasInMicroblock(
-                    provider,
-                    mb,
-                    organisationPrivateKey.getSignatureSchemeId(),
-                );
+                await updateGasInMicroblock(provider, mb, organisationPrivateKey.getSignatureSchemeId());
                 await mb.seal(organisationPrivateKey, {
                     feesPayerAccount: accountId,
                 });
                 await provider.publishMicroblock(mb);
                 applicationVbId = application.vbId!;
             } else {
-                console.log(
-                    `Application not published on chain, publishing a new one`,
-                );
+                console.log(`Application not published on chain, publishing a new one`);
                 const mb = Microblock.createGenesisApplicationMicroblock();
                 mb.setHeight(1);
                 mb.addSections([
@@ -777,11 +621,7 @@ export const useOnChainStore = defineStore('onchain', () => {
                     },
                     appDescSection,
                 ]);
-                await updateGasInMicroblock(
-                    provider,
-                    mb,
-                    organisationPrivateKey.getSignatureSchemeId(),
-                );
+                await updateGasInMicroblock(provider, mb, organisationPrivateKey.getSignatureSchemeId());
                 await mb.seal(organisationPrivateKey, {
                     feesPayerAccount: accountId,
                 });
@@ -829,8 +669,7 @@ export const useOnChainStore = defineStore('onchain', () => {
             // Validate token amount
             const transferredAmount = amount.getAmountAsAtomic();
             const isNegativeOrZero = transferredAmount <= 0;
-            const isAboveAllowedMax =
-                MAXIMAL_ALLOWED_TOKEN_TRANSFER < amount.getAmount();
+            const isAboveAllowedMax = MAXIMAL_ALLOWED_TOKEN_TRANSFER < amount.getAmount();
             if (isNegativeOrZero || isAboveAllowedMax) {
                 throw new Error(
                     `Invalid amount of token transfer: Should be between zero (excluded) and ${MAXIMAL_ALLOWED_TOKEN_TRANSFER}`,
@@ -845,42 +684,24 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             // Initialize wallet crypto from seed
             const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(
-                seedEncoder.decode(wallet.seed),
-            );
+            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
             const accountCrypto = walletSeed.getDefaultAccountCrypto();
 
             // Create provider
-            const provider =
-                ProviderFactory.createInMemoryProviderWithExternalProvider(
-                    wallet.nodeEndpoint,
-                );
+            const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
 
             // Get signing keys
-            const sk = await accountCrypto.getPrivateSignatureKey(
-                SignatureSchemeId.SECP256K1,
-            );
+            const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
             // Decode recipient public key
-            const encoder =
-                CryptoEncoderFactory.defaultStringSignatureEncoder();
-            const recipientPk =
-                await encoder.decodePublicKey(recipientPublicKey);
+            const encoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
+            const recipientPk = await encoder.decodePublicKey(recipientPublicKey);
 
-            console.log(
-                `Transferring ${amount} tokens to account with public key ${recipientPublicKey}`,
-            );
+            console.log(`Transferring ${amount} tokens to account with public key ${recipientPublicKey}`);
 
             try {
                 // Try to find existing recipient account
-                const recipientAccountHash = Hash.from(
-                    await provider.getAccountIdByPublicKey(recipientPk),
-                );
-                await creditExistingAccount(
-                    sk,
-                    provider,
-                    recipientAccountHash,
-                    amount,
-                );
+                const recipientAccountHash = Hash.from(await provider.getAccountIdByPublicKey(recipientPk));
+                await creditExistingAccount(sk, provider, recipientAccountHash, amount);
                 toast.add({
                     severity: 'success',
                     summary: 'Transfer successful',
@@ -890,12 +711,7 @@ export const useOnChainStore = defineStore('onchain', () => {
             } catch (error) {
                 // Recipient account doesn't exist, create a new one
                 console.warn(`Recipient account not found: ${error}`);
-                await createAndCreditNewAccount(
-                    sk,
-                    provider,
-                    recipientPk,
-                    amount,
-                );
+                await createAndCreditNewAccount(sk, provider, recipientPk, amount);
                 toast.add({
                     severity: 'success',
                     summary: 'Transfer successful',
@@ -934,16 +750,13 @@ export const useOnChainStore = defineStore('onchain', () => {
         console.log('Creating new token account...');
 
         const issuerAccountHash = Hash.from(
-            await provider.getAccountIdByPublicKey(
-                await issuerPrivateSignatureKey.getPublicKey(),
-            ),
+            await provider.getAccountIdByPublicKey(await issuerPrivateSignatureKey.getPublicKey()),
         );
-        const accountCreationMb =
-            await AccountVb.createAccountCreationMicroblock(
-                recipientPublicKey,
-                tokenAmount,
-                issuerAccountHash.toBytes(),
-            );
+        const accountCreationMb = await AccountVb.createAccountCreationMicroblock(
+            recipientPublicKey,
+            tokenAmount,
+            issuerAccountHash.toBytes(),
+        );
         /*
 		const feesCalculationFormulaVersion = (
 			await provider.getProtocolState()
@@ -998,10 +811,8 @@ export const useOnChainStore = defineStore('onchain', () => {
         );
 
         const issuerPublicKey = await issuerPrivateSignatureKey.getPublicKey();
-        const senderAccountHash =
-            await provider.getAccountIdFromPublicKey(issuerPublicKey);
-        const senderAccount =
-            await provider.loadAccountVirtualBlockchain(senderAccountHash);
+        const senderAccountHash = await provider.getAccountIdFromPublicKey(issuerPublicKey);
+        const senderAccount = await provider.loadAccountVirtualBlockchain(senderAccountHash);
         const tokenTransferMb = await senderAccount.createMicroblock();
         tokenTransferMb.addSection({
             type: SectionType.ACCOUNT_TRANSFER,
@@ -1022,9 +833,7 @@ export const useOnChainStore = defineStore('onchain', () => {
 
         // publish
         const hash = tokenTransferMb.getHash();
-        console.log(
-            `Transferring ${tokenAmount} tokens to account id ${hash.encode()}`,
-        );
+        console.log(`Transferring ${tokenAmount} tokens to account id ${hash.encode()}`);
         console.log(tokenTransferMb.toString());
         await provider.publishMicroblock(tokenTransferMb);
 

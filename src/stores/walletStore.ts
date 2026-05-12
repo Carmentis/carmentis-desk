@@ -33,20 +33,12 @@ export const useWalletStore = defineStore('wallet', () => {
         if (!wallet) {
             throw new Error(`Wallet with id ${walletId} not found`);
         }
-        const provider =
-            ProviderFactory.createInMemoryProviderWithExternalProvider(
-                wallet.nodeEndpoint,
-            );
+        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
         return provider;
     }
 
-    async function fetchAccountStateByAccountId(
-        walletId: number,
-        accountId: Uint8Array,
-    ) {
-        console.log(
-            `Fetching account state for account id ${Utils.binaryToHexa(accountId)} (wallet ID: ${walletId})`,
-        );
+    async function fetchAccountStateByAccountId(walletId: number, accountId: Uint8Array) {
+        console.log(`Fetching account state for account id ${Utils.binaryToHexa(accountId)} (wallet ID: ${walletId})`);
         const provider = await getProvider(walletId);
         return provider.getAccountState(accountId);
     }
@@ -62,9 +54,7 @@ export const useWalletStore = defineStore('wallet', () => {
         const seed = encoder.decode(wallet.seed);
         const walletCrypto = WalletCrypto.fromSeed(seed);
         const accountCrypto = walletCrypto.getDefaultAccountCrypto();
-        const sk = await accountCrypto.getPrivateSignatureKey(
-            state.value.signatureSchemaType,
-        );
+        const sk = await accountCrypto.getPrivateSignatureKey(state.value.signatureSchemaType);
         const pk = await sk.getPublicKey();
 
         // update the key
@@ -77,10 +67,7 @@ export const useWalletStore = defineStore('wallet', () => {
         return await provider.getAccountIdByPublicKey(pk);
     }
 
-    async function getAccountIdFromPublicKey(
-        walletId: number,
-        pk: PublicSignatureKey,
-    ) {
+    async function getAccountIdFromPublicKey(walletId: number, pk: PublicSignatureKey) {
         const provider = await getProvider(walletId);
         return await provider.getAccountIdByPublicKey(pk);
     }
@@ -93,11 +80,7 @@ export const useWalletStore = defineStore('wallet', () => {
     ) {
         try {
             const provider = await getProvider(walletId);
-            const history = await provider.getAccountHistory(
-                accountId,
-                lastAccountHistoryHash,
-                limit,
-            );
+            const history = await provider.getAccountHistory(accountId, lastAccountHistoryHash, limit);
             return AccountTransactions.createFromAbciResponse(history);
         } catch (e) {
             console.error(e);
@@ -105,10 +88,7 @@ export const useWalletStore = defineStore('wallet', () => {
         }
     }
 
-    async function isAccountFoundByPublicKey(
-        walletId: number,
-        pk: PublicSignatureKey,
-    ) {
+    async function isAccountFoundByPublicKey(walletId: number, pk: PublicSignatureKey) {
         try {
             const id = await getAccountIdFromPublicKey(walletId, pk);
             console.log(`Account found with id ${Utils.binaryToHexa(id)}`);

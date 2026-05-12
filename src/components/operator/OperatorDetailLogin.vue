@@ -3,10 +3,7 @@ import { useStorageStore, WalletEntity } from '../../stores/storage.ts';
 import { computed, ref, watch } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useRoute } from 'vue-router';
-import {
-    useGetChallenge,
-    useLoginMutation,
-} from '../../composables/operator.ts';
+import { useGetChallenge, useLoginMutation } from '../../composables/operator.ts';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Dropdown from 'primevue/dropdown';
@@ -48,16 +45,10 @@ async function login() {
         const walletCrypto = WalletCrypto.fromSeed(seed);
         const accountCrypto = walletCrypto.getDefaultAccountCrypto();
         const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
-        const privateKey = await accountCrypto.getPrivateSignatureKey(
-            SignatureSchemeId.SECP256K1,
-        );
-        const rawChallenge = EncoderFactory.bytesToHexEncoder().decode(
-            challenge.value.challenge,
-        );
+        const privateKey = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
+        const rawChallenge = EncoderFactory.bytesToHexEncoder().decode(challenge.value.challenge);
         const signature = await privateKey.sign(rawChallenge);
-        const publicKey = await sigEncoder.encodePublicKey(
-            await privateKey.getPublicKey(),
-        );
+        const publicKey = await sigEncoder.encodePublicKey(await privateKey.getPublicKey());
 
         return sendLoginRequest({
             challenge: challenge.value.challenge,
@@ -76,9 +67,7 @@ watch(isSuccess, () => {
         const { token } = response;
         const selectedWalletId = selectedWallet.value.id;
         const operatorId = Number(route.params.operatorId);
-        console.log(
-            `Addition of credential for operator ${operatorId} and wallet ${selectedWalletId}: ${token}`,
-        );
+        console.log(`Addition of credential for operator ${operatorId} and wallet ${selectedWalletId}: ${token}`);
         authStore.addCredential(operatorId, selectedWalletId, token);
         toast.add({
             severity: 'success',
@@ -107,36 +96,25 @@ watch(loginError, () => {
             <Card class="login-card p-6">
                 <template #header>
                     <div class="text-center pt-6 pb-4">
-                        <div
-                            class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-100 mb-4"
-                        >
+                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-100 mb-4">
                             <i class="pi pi-lock text-3xl text-primary-500"></i>
                         </div>
-                        <h2 class="text-2xl font-bold text-surface-900 mb-2">
-                            Operator Login
-                        </h2>
-                        <p class="text-sm text-surface-600">
-                            Select a wallet to authenticate with the operator
-                        </p>
+                        <h2 class="text-2xl font-bold text-surface-900 mb-2">Operator Login</h2>
+                        <p class="text-sm text-surface-600">Select a wallet to authenticate with the operator</p>
                     </div>
                 </template>
 
                 <template #content>
                     <!-- Loading State -->
                     <div v-if="isLogingIn" class="text-center py-8">
-                        <i
-                            class="pi pi-spin pi-spinner text-4xl text-primary-500 mb-4"
-                        ></i>
+                        <i class="pi pi-spin pi-spinner text-4xl text-primary-500 mb-4"></i>
                         <p class="text-surface-600">Authenticating...</p>
                     </div>
 
                     <!-- Login Form -->
                     <div v-else-if="isChallengedObtained" class="space-y-6">
                         <div>
-                            <label
-                                for="walletSelect"
-                                class="block text-sm font-semibold text-surface-700 mb-2"
-                            >
+                            <label for="walletSelect" class="block text-sm font-semibold text-surface-700 mb-2">
                                 Select Wallet
                             </label>
                             <Dropdown
@@ -148,13 +126,8 @@ watch(loginError, () => {
                                 class="w-full"
                             >
                                 <template #value="slotProps">
-                                    <div
-                                        v-if="slotProps.value"
-                                        class="flex items-center gap-2"
-                                    >
-                                        <i
-                                            class="pi pi-wallet text-surface-500"
-                                        ></i>
+                                    <div v-if="slotProps.value" class="flex items-center gap-2">
+                                        <i class="pi pi-wallet text-surface-500"></i>
                                         <span>{{ slotProps.value.name }}</span>
                                     </div>
                                     <span v-else class="text-surface-500">
@@ -163,20 +136,13 @@ watch(loginError, () => {
                                 </template>
                                 <template #option="slotProps">
                                     <div class="flex items-center gap-2">
-                                        <i
-                                            class="pi pi-wallet text-surface-500"
-                                        ></i>
+                                        <i class="pi pi-wallet text-surface-500"></i>
                                         <div>
                                             <div class="font-semibold">
                                                 {{ slotProps.option.name }}
                                             </div>
-                                            <div
-                                                class="text-xs text-surface-500"
-                                            >
-                                                {{
-                                                    slotProps.option
-                                                        .nodeEndpoint
-                                                }}
+                                            <div class="text-xs text-surface-500">
+                                                {{ slotProps.option.nodeEndpoint }}
                                             </div>
                                         </div>
                                     </div>
@@ -206,20 +172,15 @@ watch(loginError, () => {
                         <div class="text-center">
                             <p class="text-xs text-surface-500">
                                 <i class="pi pi-info-circle mr-1"></i>
-                                Authentication uses cryptographic signature
-                                verification
+                                Authentication uses cryptographic signature verification
                             </p>
                         </div>
                     </div>
 
                     <!-- Challenge Loading State -->
                     <div v-else class="text-center py-8">
-                        <i
-                            class="pi pi-spin pi-spinner text-4xl text-primary-500 mb-4"
-                        ></i>
-                        <p class="text-surface-600">
-                            Loading authentication challenge...
-                        </p>
+                        <i class="pi pi-spin pi-spinner text-4xl text-primary-500 mb-4"></i>
+                        <p class="text-surface-600">Loading authentication challenge...</p>
                     </div>
                 </template>
             </Card>

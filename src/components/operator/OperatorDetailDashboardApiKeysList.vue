@@ -61,9 +61,7 @@ async function createApiKey() {
         await createApiKeyMutation.mutateAsync({
             name: newApiKeyName.value.trim(),
             applicationVbId: selectedApplication.value.vbId,
-            activeUntil: activeUntilDate.value
-                ? activeUntilDate.value.toISOString()
-                : null,
+            activeUntil: activeUntilDate.value ? activeUntilDate.value.toISOString() : null,
         });
 
         toast.add({
@@ -79,8 +77,7 @@ async function createApiKey() {
         toast.add({
             severity: 'error',
             summary: 'Error',
-            detail:
-                error?.response?.data?.message || 'Failed to create API key',
+            detail: error?.response?.data?.message || 'Failed to create API key',
             life: 3000,
         });
     }
@@ -105,8 +102,7 @@ async function toggleApiKey(apiKey: any) {
         toast.add({
             severity: 'error',
             summary: 'Error',
-            detail:
-                error?.response?.data?.message || 'Failed to toggle API key',
+            detail: error?.response?.data?.message || 'Failed to toggle API key',
             life: 3000,
         });
     }
@@ -137,9 +133,7 @@ function confirmDeleteApiKey(apiKey: any) {
                 toast.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail:
-                        error?.response?.data?.message ||
-                        'Failed to delete API key',
+                    detail: error?.response?.data?.message || 'Failed to delete API key',
                     life: 3000,
                 });
             }
@@ -161,12 +155,7 @@ function formatDate(dateString: string | null): string {
                     <i class="pi pi-key text-2xl text-primary-500"></i>
                     <span>API Keys</span>
                 </div>
-                <Button
-                    label="Add API Key"
-                    icon="pi pi-plus"
-                    size="small"
-                    @click="openCreateApiKeyDialog"
-                />
+                <Button label="Add API Key" icon="pi pi-plus" size="small" @click="openCreateApiKeyDialog" />
             </div>
         </template>
         <template #content>
@@ -178,34 +167,21 @@ function formatDate(dateString: string | null): string {
             </div>
 
             <!-- Error State -->
-            <Message
-                v-else-if="getAllApiKeysRequest.isError.value"
-                severity="error"
-                :closable="false"
-            >
+            <Message v-else-if="getAllApiKeysRequest.isError.value" severity="error" :closable="false">
                 Failed to load API keys:
                 {{ getAllApiKeysRequest.error.value?.message }}
             </Message>
 
             <!-- Empty State -->
             <div
-                v-else-if="
-                    !getAllApiKeysRequest.data.value ||
-                    getAllApiKeysRequest.data.value.length === 0
-                "
+                v-else-if="!getAllApiKeysRequest.data.value || getAllApiKeysRequest.data.value.length === 0"
                 class="text-center py-8"
             >
-                <div
-                    class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-surface-100 mb-4"
-                >
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-surface-100 mb-4">
                     <i class="pi pi-key text-3xl text-surface-400"></i>
                 </div>
-                <h3 class="text-lg font-medium text-surface-900 mb-2">
-                    No API keys found
-                </h3>
-                <p class="text-surface-500">
-                    No API keys are currently registered with this operator.
-                </p>
+                <h3 class="text-lg font-medium text-surface-900 mb-2">No API keys found</h3>
+                <p class="text-surface-500">No API keys are currently registered with this operator.</p>
             </div>
 
             <!-- Data Table -->
@@ -214,9 +190,7 @@ function formatDate(dateString: string | null): string {
                     <span class="text-surface-600 text-sm">
                         <i class="pi pi-info-circle mr-2"></i>
                         {{ getAllApiKeysRequest.data.value.length }} API key{{
-                            getAllApiKeysRequest.data.value.length !== 1
-                                ? 's'
-                                : ''
+                            getAllApiKeysRequest.data.value.length !== 1 ? 's' : ''
                         }}
                         found
                     </span>
@@ -232,17 +206,10 @@ function formatDate(dateString: string | null): string {
                     responsiveLayout="scroll"
                     class="text-sm"
                 >
-                    <Column
-                        field="ID"
-                        header="ID"
-                        sortable
-                        style="min-width: 150px"
-                    >
+                    <Column field="ID" header="ID" sortable style="min-width: 150px">
                         <template #body="slotProps">
                             <div class="flex items-center gap-2">
-                                <i
-                                    class="pi pi-tag text-surface-400 text-xs"
-                                ></i>
+                                <i class="pi pi-tag text-surface-400 text-xs"></i>
                                 <span class="font-semibold">
                                     {{ slotProps.data.id }}
                                 </span>
@@ -250,17 +217,10 @@ function formatDate(dateString: string | null): string {
                         </template>
                     </Column>
 
-                    <Column
-                        field="name"
-                        header="Name"
-                        sortable
-                        style="min-width: 150px"
-                    >
+                    <Column field="name" header="Name" sortable style="min-width: 150px">
                         <template #body="slotProps">
                             <div class="flex items-center gap-2">
-                                <i
-                                    class="pi pi-tag text-surface-400 text-xs"
-                                ></i>
+                                <i class="pi pi-tag text-surface-400 text-xs"></i>
                                 <span class="font-semibold">
                                     {{ slotProps.data.name }}
                                 </span>
@@ -268,11 +228,7 @@ function formatDate(dateString: string | null): string {
                         </template>
                     </Column>
 
-                    <Column
-                        field="apiKey"
-                        header="API Key"
-                        style="min-width: 200px"
-                    >
+                    <Column field="apiKey" header="API Key" style="min-width: 200px">
                         <template #body="slotProps">
                             <Password
                                 :modelValue="slotProps.data.apiKey"
@@ -285,31 +241,18 @@ function formatDate(dateString: string | null): string {
                         </template>
                     </Column>
 
-                    <Column
-                        field="applicationVbId"
-                        header="Application Name"
-                        sortable
-                    >
+                    <Column field="applicationVbId" header="Application Name" sortable>
                         <template #body="slotProps">
                             <div class="flex items-center gap-2">
-                                <i
-                                    class="pi pi-box text-surface-400 text-xs"
-                                ></i>
-                                <code
-                                    class="text-xs bg-surface-50 px-2 py-1 rounded text-surface-700 font-mono"
-                                >
+                                <i class="pi pi-box text-surface-400 text-xs"></i>
+                                <code class="text-xs bg-surface-50 px-2 py-1 rounded text-surface-700 font-mono">
                                     {{ slotProps.data.application.name }}
                                 </code>
                             </div>
                         </template>
                     </Column>
 
-                    <Column
-                        field="createdAt"
-                        header="Created"
-                        sortable
-                        style="width: 120px"
-                    >
+                    <Column field="createdAt" header="Created" sortable style="width: 120px">
                         <template #body="slotProps">
                             <span class="text-xs">
                                 {{ formatDate(slotProps.data.createdAt) }}
@@ -317,35 +260,20 @@ function formatDate(dateString: string | null): string {
                         </template>
                     </Column>
 
-                    <Column
-                        field="activeUntil"
-                        header="Valid Until"
-                        sortable
-                        style="width: 130px"
-                    >
+                    <Column field="activeUntil" header="Valid Until" sortable style="width: 130px">
                         <template #body="slotProps">
                             <span
                                 class="text-xs"
-                                :class="
-                                    slotProps.data.activeUntil
-                                        ? 'text-surface-700'
-                                        : 'text-surface-500'
-                                "
+                                :class="slotProps.data.activeUntil ? 'text-surface-700' : 'text-surface-500'"
                             >
                                 {{ formatDate(slotProps.data.activeUntil) }}
                             </span>
                         </template>
                     </Column>
 
-                    <Column
-                        field="isActive"
-                        header="Status"
-                        style="width: 100px"
-                    >
+                    <Column field="isActive" header="Status" style="width: 100px">
                         <template #body="slotProps">
-                            {{
-                                slotProps.data.isActive ? 'Active' : 'Inactive'
-                            }}
+                            {{ slotProps.data.isActive ? 'Active' : 'Inactive' }}
                         </template>
                     </Column>
 
@@ -353,9 +281,7 @@ function formatDate(dateString: string | null): string {
                         <template #body="slotProps">
                             <InputSwitch
                                 :modelValue="slotProps.data.isActive"
-                                @update:modelValue="
-                                    toggleApiKey(slotProps.data)
-                                "
+                                @update:modelValue="toggleApiKey(slotProps.data)"
                             />
 
                             <Button
@@ -374,33 +300,17 @@ function formatDate(dateString: string | null): string {
     </Card>
 
     <!-- Create API Key Dialog -->
-    <Dialog
-        v-model:visible="showCreateApiKeyDialog"
-        modal
-        header="Add API Key"
-        :style="{ width: '500px' }"
-    >
+    <Dialog v-model:visible="showCreateApiKeyDialog" modal header="Add API Key" :style="{ width: '500px' }">
         <div class="space-y-4 py-4">
             <div>
-                <label
-                    for="apiKeyName"
-                    class="block text-sm font-semibold text-gray-700 mb-2"
-                >
+                <label for="apiKeyName" class="block text-sm font-semibold text-gray-700 mb-2">
                     Name
                     <span class="text-red-500">*</span>
                 </label>
-                <InputText
-                    id="apiKeyName"
-                    v-model="newApiKeyName"
-                    placeholder="Enter API key name"
-                    class="w-full"
-                />
+                <InputText id="apiKeyName" v-model="newApiKeyName" placeholder="Enter API key name" class="w-full" />
             </div>
             <div>
-                <label
-                    for="apiKeyApplication"
-                    class="block text-sm font-semibold text-gray-700 mb-2"
-                >
+                <label for="apiKeyApplication" class="block text-sm font-semibold text-gray-700 mb-2">
                     Application
                     <span class="text-red-500">*</span>
                 </label>
@@ -414,10 +324,7 @@ function formatDate(dateString: string | null): string {
                     :loading="getAllApplicationsRequest.isPending.value"
                 >
                     <template #value="slotProps">
-                        <div
-                            v-if="slotProps.value"
-                            class="flex items-center gap-2"
-                        >
+                        <div v-if="slotProps.value" class="flex items-center gap-2">
                             <i class="pi pi-box text-surface-500"></i>
                             <span>{{ slotProps.value.vbId }}</span>
                         </div>
@@ -437,15 +344,10 @@ function formatDate(dateString: string | null): string {
                         </div>
                     </template>
                 </Dropdown>
-                <small class="text-surface-500 mt-1 block">
-                    Select from applications registered with the operator
-                </small>
+                <small class="text-surface-500 mt-1 block">Select from applications registered with the operator</small>
             </div>
             <div>
-                <label
-                    for="apiKeyValidUntil"
-                    class="block text-sm font-semibold text-gray-700 mb-2"
-                >
+                <label for="apiKeyValidUntil" class="block text-sm font-semibold text-gray-700 mb-2">
                     Valid Until (Optional)
                 </label>
                 <Calendar
@@ -457,22 +359,12 @@ function formatDate(dateString: string | null): string {
                     :minDate="new Date()"
                     showIcon
                 />
-                <small class="text-surface-500 mt-1 block">
-                    Leave empty for no expiration
-                </small>
+                <small class="text-surface-500 mt-1 block">Leave empty for no expiration</small>
             </div>
         </div>
         <template #footer>
-            <Button
-                label="Cancel"
-                text
-                @click="showCreateApiKeyDialog = false"
-            />
-            <Button
-                label="Create"
-                @click="createApiKey"
-                :loading="createApiKeyMutation.isPending.value"
-            />
+            <Button label="Cancel" text @click="showCreateApiKeyDialog = false" />
+            <Button label="Create" @click="createApiKey" :loading="createApiKeyMutation.isPending.value" />
         </template>
     </Dialog>
 </template>

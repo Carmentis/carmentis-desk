@@ -15,33 +15,17 @@ const orgId = computed(() => Number(route.params.orgId));
 const appId = computed(() => Number(route.params.appId));
 const nodeId = computed(() => Number(route.params.nodeId));
 
-const wallet = computed(() =>
-    storageStore.organizations.find((w) => w.id === walletId.value),
-);
-const walletName = computed(() =>
-    wallet.value !== undefined ? wallet.value.name : '',
-);
+const wallet = computed(() => storageStore.organizations.find((w) => w.id === walletId.value));
+const walletName = computed(() => (wallet.value !== undefined ? wallet.value.name : ''));
 
-const organization = computed(() =>
-    wallet.value?.organizations.find((org) => org.id === orgId.value),
-);
-const organizationName = computed(() =>
-    organization.value !== undefined ? organization.value.name : '',
-);
+const organization = computed(() => wallet.value?.organizations.find((org) => org.id === orgId.value));
+const organizationName = computed(() => (organization.value !== undefined ? organization.value.name : ''));
 
-const application = computed(() =>
-    organization.value?.applications.find((app) => app.id === appId.value),
-);
-const applicationName = computed(() =>
-    application.value !== undefined ? application.value.name : '',
-);
+const application = computed(() => organization.value?.applications.find((app) => app.id === appId.value));
+const applicationName = computed(() => (application.value !== undefined ? application.value.name : ''));
 
-const node = computed(() =>
-    organization.value?.nodes.find((n) => n.id === nodeId.value),
-);
-const nodeName = computed(() =>
-    node.value !== undefined ? node.value.name : '',
-);
+const node = computed(() => organization.value?.nodes.find((n) => n.id === nodeId.value));
+const nodeName = computed(() => (node.value !== undefined ? node.value.name : ''));
 
 // Current page context - only show the current item
 const currentPageContext = computed(() => {
@@ -110,10 +94,7 @@ const showBalance = computed(() => {
         <div class="flex items-center justify-between">
             <!-- Left: Current page context -->
             <div v-if="currentPageContext" class="flex items-center gap-3">
-                <i
-                    :class="currentPageContext.icon"
-                    class="text-2xl text-gray-700"
-                ></i>
+                <i :class="currentPageContext.icon" class="text-2xl text-gray-700"></i>
                 <div>
                     <div class="text-xs text-gray-500 uppercase tracking-wide">
                         {{ currentPageContext.type }}

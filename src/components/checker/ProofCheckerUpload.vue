@@ -1,51 +1,32 @@
 <template>
     <div class="flex flex-col items-center justify-center py-12">
         <div class="max-w-xl w-full mx-auto text-center mb-8">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-3">
-                Upload Proof File
-            </h2>
-            <p class="text-gray-600">
-                Upload a JSON proof file to verify its authenticity and view its
-                contents
-            </p>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-3">Upload Proof File</h2>
+            <p class="text-gray-600">Upload a JSON proof file to verify its authenticity and view its contents</p>
         </div>
 
         <div
             :class="[
                 'w-full max-w-md mx-auto border-2 border-dashed rounded-lg p-12 transition-all duration-200 ease-in-out cursor-pointer',
-                isDragging
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 bg-gray-50 hover:bg-gray-100',
+                isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100',
             ]"
             @click="fileInputRef?.click()"
             @dragover="handleDragOver"
             @dragleave="handleDragLeave"
             @drop="handleDrop"
         >
-            <input
-                type="file"
-                accept="application/json"
-                ref="fileInputRef"
-                class="hidden"
-                @change="handleFileUpload"
-            />
+            <input type="file" accept="application/json" ref="fileInputRef" class="hidden" @change="handleFileUpload" />
             <div class="flex flex-col items-center justify-center">
                 <div
                     :class="[
                         'w-20 h-20 rounded-full flex items-center justify-center mb-4',
-                        isDragging
-                            ? 'bg-blue-100 text-blue-600'
-                            : 'bg-gray-200 text-gray-600',
+                        isDragging ? 'bg-blue-100 text-blue-600' : 'bg-gray-200 text-gray-600',
                     ]"
                 >
                     <i class="pi pi-upload text-4xl"></i>
                 </div>
                 <p class="text-lg font-medium text-gray-700">
-                    {{
-                        isDragging
-                            ? 'Drop your file here'
-                            : 'Drag and drop your file here'
-                    }}
+                    {{ isDragging ? 'Drop your file here' : 'Drag and drop your file here' }}
                 </p>
                 <p class="text-sm text-gray-500 mt-2">or</p>
                 <button
@@ -58,12 +39,7 @@
             </div>
         </div>
 
-        <Message
-            v-if="error"
-            severity="error"
-            :closable="false"
-            class="mt-6 max-w-md mx-auto"
-        >
+        <Message v-if="error" severity="error" :closable="false" class="mt-6 max-w-md mx-auto">
             {{ error }}
         </Message>
     </div>
@@ -104,8 +80,7 @@ const processFile = (file?: File) => {
                 emit('upload', proofDocument);
             } catch (err) {
                 console.error(err);
-                error.value =
-                    'Invalid JSON file. Please upload a valid JSON file.';
+                error.value = 'Invalid JSON file. Please upload a valid JSON file.';
             }
         };
         reader.readAsText(file);

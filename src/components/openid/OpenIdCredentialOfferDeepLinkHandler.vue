@@ -4,10 +4,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import * as jose from 'jose';
 import { Openid4vciIssuer } from '@openid4vc/openid4vci';
 import { util } from '@cef-ebsi/key-did-resolver';
-import {
-    OpenID4VCIClient,
-    CreateCredentialRequestOpts,
-} from '@sphereon/oid4vci-client';
+import { OpenID4VCIClient, CreateCredentialRequestOpts } from '@sphereon/oid4vci-client';
 import * as v from 'valibot';
 import { HashAlgorithm } from '@sd-jwt/types';
 import { Openid4vciClient } from '@openid4vc/openid4vci';

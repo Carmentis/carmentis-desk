@@ -48,20 +48,10 @@ function toggle(id: string) {
     collapsed.value = s;
 }
 
-function walk(
-    value: any,
-    id: string,
-    depth: number,
-    displayKey: string,
-    out: VisibleNode[],
-) {
+function walk(value: any, id: string, depth: number, displayKey: string, out: VisibleNode[]) {
     const type = getType(value);
     const isExpandable = type === 'object' || type === 'array';
-    const childCount = isExpandable
-        ? type === 'array'
-            ? value.length
-            : Object.keys(value).length
-        : 0;
+    const childCount = isExpandable ? (type === 'array' ? value.length : Object.keys(value).length) : 0;
 
     out.push({ id, depth, displayKey, value, type, isExpandable, childCount });
 
@@ -95,12 +85,7 @@ function walk(
 }
 
 const nodes = computed<VisibleNode[]>(() => {
-    if (
-        props.data == null &&
-        typeof props.data !== 'boolean' &&
-        typeof props.data !== 'number'
-    )
-        return [];
+    if (props.data == null && typeof props.data !== 'boolean' && typeof props.data !== 'number') return [];
     const out: VisibleNode[] = [];
     walk(props.data, 'root', 0, '', out);
     // skip the synthetic root wrapper — show its children directly
@@ -112,9 +97,7 @@ const expandedStrings = ref(new Set<string>());
 </script>
 
 <template>
-    <div
-        class="font-mono text-xs rounded-lg shadow border-surface-200 overflow-auto bg-surface-50"
-    >
+    <div class="font-mono text-xs rounded-lg shadow border-surface-200 overflow-auto bg-surface-50">
         <template v-if="nodes.length === 0">
             <span class="block px-3 py-2 text-surface-400 italic">empty</span>
         </template>
@@ -134,8 +117,7 @@ const expandedStrings = ref(new Set<string>());
                     class="text-primary hover:underline py-0.5 text-xs"
                     @click="showMore(node.truncParentId!, node.truncTotal!)"
                 >
-                    {{ node.truncTotal! - node.truncShown! }} more items — click
-                    to load
+                    {{ node.truncTotal! - node.truncShown! }} more items — click to load
                 </button>
             </template>
 
@@ -148,30 +130,18 @@ const expandedStrings = ref(new Set<string>());
                     @click="toggle(node.id)"
                 >
                     <i
-                        :class="
-                            collapsed.has(node.id)
-                                ? 'pi pi-chevron-right'
-                                : 'pi pi-chevron-down'
-                        "
+                        :class="collapsed.has(node.id) ? 'pi pi-chevron-right' : 'pi pi-chevron-down'"
                         class="text-[10px]"
                     ></i>
                 </button>
                 <span v-else class="flex-shrink-0 w-4 mr-0.5"></span>
 
                 <!-- Key label -->
-                <span
-                    v-if="node.displayKey"
-                    class="text-surface-500 mr-1 flex-shrink-0"
-                >
-                    {{ node.displayKey }}:
-                </span>
+                <span v-if="node.displayKey" class="text-surface-500 mr-1 flex-shrink-0">{{ node.displayKey }}:</span>
 
                 <!-- Value -->
                 <template v-if="node.isExpandable">
-                    <span
-                        v-if="collapsed.has(node.id)"
-                        class="text-surface-400"
-                    >
+                    <span v-if="collapsed.has(node.id)" class="text-surface-400">
                         <span v-if="node.type === 'array'">
                             [
                             <span class="text-primary">
@@ -194,10 +164,7 @@ const expandedStrings = ref(new Set<string>());
 
                 <template v-else-if="node.type === 'string'">
                     <span
-                        v-if="
-                            node.value.length <= MAX_STRING_LENGTH ||
-                            expandedStrings.has(node.id)
-                        "
+                        v-if="node.value.length <= MAX_STRING_LENGTH || expandedStrings.has(node.id)"
                         class="text-emerald-700 break-all"
                     >
                         "{{ node.value }}"
@@ -216,10 +183,7 @@ const expandedStrings = ref(new Set<string>());
                 <span v-else-if="node.type === 'number'" class="text-blue-600">
                     {{ node.value }}
                 </span>
-                <span
-                    v-else-if="node.type === 'boolean'"
-                    class="text-violet-600"
-                >
+                <span v-else-if="node.type === 'boolean'" class="text-violet-600">
                     {{ node.value }}
                 </span>
                 <span v-else class="text-surface-400 italic">null</span>

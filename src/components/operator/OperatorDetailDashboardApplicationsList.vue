@@ -23,12 +23,8 @@ const route = useRoute();
 const operatorId = computed(() => Number(route.params.operatorId));
 const getAllApplicationsRequest = useGetAllApplications(operatorId.value);
 const getAllWalletsRequest = useGetAllWallets(operatorId.value);
-const createApplicationMutation = useCreateApplicationMutation(
-    operatorId.value,
-);
-const deleteApplicationMutation = useDeleteApplicationMutation(
-    operatorId.value,
-);
+const createApplicationMutation = useCreateApplicationMutation(operatorId.value);
+const deleteApplicationMutation = useDeleteApplicationMutation(operatorId.value);
 const toast = useToast();
 const confirm = useConfirm();
 
@@ -50,11 +46,7 @@ function openCreateApplicationDialog() {
 }
 
 async function createApplication() {
-    if (
-        !newApplicationVbId.value.trim() ||
-        !newApplicationName.value.trim() ||
-        !selectedWallet.value
-    ) {
+    if (!newApplicationVbId.value.trim() || !newApplicationName.value.trim() || !selectedWallet.value) {
         toast.add({
             severity: 'error',
             summary: 'Validation Error',
@@ -65,10 +57,7 @@ async function createApplication() {
     }
 
     try {
-        console.log(
-            'Selected wallet for creating application:',
-            selectedWallet.value,
-        );
+        console.log('Selected wallet for creating application:', selectedWallet.value);
         await createApplicationMutation.mutateAsync({
             vbId: newApplicationVbId.value.trim(),
             walletId: selectedWallet.value.walletId,
@@ -88,9 +77,7 @@ async function createApplication() {
         toast.add({
             severity: 'error',
             summary: 'Error',
-            detail:
-                error?.response?.data?.message ||
-                'Failed to create application',
+            detail: error?.response?.data?.message || 'Failed to create application',
             life: 3000,
         });
     }
@@ -121,9 +108,7 @@ function confirmDeleteApplication(application: any) {
                 toast.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail:
-                        error?.response?.data?.message ||
-                        'Failed to delete application',
+                    detail: error?.response?.data?.message || 'Failed to delete application',
                     life: 3000,
                 });
             }
@@ -140,54 +125,33 @@ function confirmDeleteApplication(application: any) {
                     <i class="pi pi-box text-2xl text-primary-500"></i>
                     <span>Applications</span>
                 </div>
-                <Button
-                    label="Add Application"
-                    icon="pi pi-plus"
-                    size="small"
-                    @click="openCreateApplicationDialog"
-                />
+                <Button label="Add Application" icon="pi pi-plus" size="small" @click="openCreateApplicationDialog" />
             </div>
         </template>
         <template #content>
             <!-- Loading State -->
-            <div
-                v-if="getAllApplicationsRequest.isPending.value"
-                class="space-y-3"
-            >
+            <div v-if="getAllApplicationsRequest.isPending.value" class="space-y-3">
                 <Skeleton height="3rem" />
                 <Skeleton height="3rem" />
                 <Skeleton height="3rem" />
             </div>
 
             <!-- Error State -->
-            <Message
-                v-else-if="getAllApplicationsRequest.isError.value"
-                severity="error"
-                :closable="false"
-            >
+            <Message v-else-if="getAllApplicationsRequest.isError.value" severity="error" :closable="false">
                 Failed to load applications:
                 {{ getAllApplicationsRequest.error.value?.message }}
             </Message>
 
             <!-- Empty State -->
             <div
-                v-else-if="
-                    !getAllApplicationsRequest.data.value ||
-                    getAllApplicationsRequest.data.value.length === 0
-                "
+                v-else-if="!getAllApplicationsRequest.data.value || getAllApplicationsRequest.data.value.length === 0"
                 class="text-center py-8"
             >
-                <div
-                    class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-surface-100 mb-4"
-                >
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-surface-100 mb-4">
                     <i class="pi pi-box text-3xl text-surface-400"></i>
                 </div>
-                <h3 class="text-lg font-medium text-surface-900 mb-2">
-                    No applications found
-                </h3>
-                <p class="text-surface-500">
-                    No applications are currently registered with this operator.
-                </p>
+                <h3 class="text-lg font-medium text-surface-900 mb-2">No applications found</h3>
+                <p class="text-surface-500">No applications are currently registered with this operator.</p>
             </div>
 
             <!-- Data Table -->
@@ -196,11 +160,7 @@ function confirmDeleteApplication(application: any) {
                     <span class="text-surface-600 text-sm">
                         <i class="pi pi-info-circle mr-2"></i>
                         {{ getAllApplicationsRequest.data.value.length }}
-                        application{{
-                            getAllApplicationsRequest.data.value.length !== 1
-                                ? 's'
-                                : ''
-                        }}
+                        application{{ getAllApplicationsRequest.data.value.length !== 1 ? 's' : '' }}
                         found
                     </span>
                 </div>
@@ -209,9 +169,7 @@ function confirmDeleteApplication(application: any) {
                     :value="getAllApplicationsRequest.data.value"
                     stripedRows
                     showGridlines
-                    :paginator="
-                        getAllApplicationsRequest.data.value.length > 10
-                    "
+                    :paginator="getAllApplicationsRequest.data.value.length > 10"
                     :rows="10"
                     :rowsPerPageOptions="[5, 10, 20, 50]"
                     responsiveLayout="scroll"
@@ -220,12 +178,8 @@ function confirmDeleteApplication(application: any) {
                     <Column field="name" header="Application Name" sortable>
                         <template #body="slotProps">
                             <div class="flex items-center gap-2">
-                                <i
-                                    class="pi pi-id-card text-surface-400 text-xs"
-                                ></i>
-                                <code
-                                    class="text-xs bg-surface-50 px-2 py-1 rounded text-surface-700 font-mono"
-                                >
+                                <i class="pi pi-id-card text-surface-400 text-xs"></i>
+                                <code class="text-xs bg-surface-50 px-2 py-1 rounded text-surface-700 font-mono">
                                     {{ slotProps.data.name }}
                                 </code>
                             </div>
@@ -235,12 +189,8 @@ function confirmDeleteApplication(application: any) {
                     <Column field="vbId" header="VB ID" sortable>
                         <template #body="slotProps">
                             <div class="flex items-center gap-2">
-                                <i
-                                    class="pi pi-id-card text-surface-400 text-xs"
-                                ></i>
-                                <code
-                                    class="text-xs bg-surface-50 px-2 py-1 rounded text-surface-700 font-mono"
-                                >
+                                <i class="pi pi-id-card text-surface-400 text-xs"></i>
+                                <code class="text-xs bg-surface-50 px-2 py-1 rounded text-surface-700 font-mono">
                                     {{ slotProps.data.vbId }}
                                 </code>
                             </div>
@@ -258,11 +208,7 @@ function confirmDeleteApplication(application: any) {
                         </template>
                     </Column>
 
-                    <Column
-                        field="walletRpcEndpoint"
-                        header="Wallet RPC Endpoint"
-                        sortable
-                    >
+                    <Column field="walletRpcEndpoint" header="Wallet RPC Endpoint" sortable>
                         <template #body="slotProps">
                             <div class="flex items-center gap-2">
                                 <i class="pi pi-wallet text-surface-400"></i>
@@ -280,12 +226,8 @@ function confirmDeleteApplication(application: any) {
                                 severity="danger"
                                 text
                                 rounded
-                                @click="
-                                    confirmDeleteApplication(slotProps.data)
-                                "
-                                :loading="
-                                    deleteApplicationMutation.isPending.value
-                                "
+                                @click="confirmDeleteApplication(slotProps.data)"
+                                :loading="deleteApplicationMutation.isPending.value"
                             />
                         </template>
                     </Column>
@@ -295,18 +237,10 @@ function confirmDeleteApplication(application: any) {
     </Card>
 
     <!-- Create Application Dialog -->
-    <Dialog
-        v-model:visible="showCreateApplicationDialog"
-        modal
-        header="Add Application"
-        :style="{ width: '500px' }"
-    >
+    <Dialog v-model:visible="showCreateApplicationDialog" modal header="Add Application" :style="{ width: '500px' }">
         <div class="space-y-4 py-4">
             <div>
-                <label
-                    for="applicationName"
-                    class="block text-sm font-semibold text-gray-700 mb-2"
-                >
+                <label for="applicationName" class="block text-sm font-semibold text-gray-700 mb-2">
                     Application Name
                 </label>
                 <InputText
@@ -316,32 +250,16 @@ function confirmDeleteApplication(application: any) {
                     class="w-full"
                 />
                 <small class="text-surface-500 mt-1 block">
-                    Readable name for the application (can be different of the
-                    one on-chain)
+                    Readable name for the application (can be different of the one on-chain)
                 </small>
             </div>
             <div>
-                <label
-                    for="applicationVbId"
-                    class="block text-sm font-semibold text-gray-700 mb-2"
-                >
-                    VB ID
-                </label>
-                <InputText
-                    id="applicationVbId"
-                    v-model="newApplicationVbId"
-                    placeholder="Enter VB ID"
-                    class="w-full"
-                />
-                <small class="text-surface-500 mt-1 block">
-                    The unique identifier for the application
-                </small>
+                <label for="applicationVbId" class="block text-sm font-semibold text-gray-700 mb-2">VB ID</label>
+                <InputText id="applicationVbId" v-model="newApplicationVbId" placeholder="Enter VB ID" class="w-full" />
+                <small class="text-surface-500 mt-1 block">The unique identifier for the application</small>
             </div>
             <div>
-                <label
-                    for="applicationWallet"
-                    class="block text-sm font-semibold text-gray-700 mb-2"
-                >
+                <label for="applicationWallet" class="block text-sm font-semibold text-gray-700 mb-2">
                     Associated Wallet
                 </label>
                 <Dropdown
@@ -354,10 +272,7 @@ function confirmDeleteApplication(application: any) {
                     :loading="getAllWalletsRequest.isPending.value"
                 >
                     <template #value="slotProps">
-                        <div
-                            v-if="slotProps.value"
-                            class="flex items-center gap-2"
-                        >
+                        <div v-if="slotProps.value" class="flex items-center gap-2">
                             <i class="pi pi-wallet text-surface-500"></i>
                             <span>{{ slotProps.value.name }}</span>
                         </div>
@@ -377,22 +292,12 @@ function confirmDeleteApplication(application: any) {
                         </div>
                     </template>
                 </Dropdown>
-                <small class="text-surface-500 mt-1 block">
-                    Select from wallets registered with the operator
-                </small>
+                <small class="text-surface-500 mt-1 block">Select from wallets registered with the operator</small>
             </div>
         </div>
         <template #footer>
-            <Button
-                label="Cancel"
-                text
-                @click="showCreateApplicationDialog = false"
-            />
-            <Button
-                label="Create"
-                @click="createApplication"
-                :loading="createApplicationMutation.isPending.value"
-            />
+            <Button label="Cancel" text @click="showCreateApplicationDialog = false" />
+            <Button label="Create" @click="createApplication" :loading="createApplicationMutation.isPending.value" />
         </template>
     </Dialog>
 </template>

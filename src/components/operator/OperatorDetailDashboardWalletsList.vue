@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
 import { computed, ref } from 'vue';
-import {
-    useGetAllWallets,
-    useCreateWalletMutation,
-    useDeleteWalletMutation,
-} from '../../composables/operator.ts';
+import { useGetAllWallets, useCreateWalletMutation, useDeleteWalletMutation } from '../../composables/operator.ts';
 import { useStorageStore, WalletEntity } from '../../stores/storage.ts';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
@@ -52,11 +48,7 @@ function openUploadWalletDialog() {
 }
 
 async function createWallet() {
-    if (
-        !newWalletRpcEndpoint.value.trim() ||
-        !newWalletName.value.trim() ||
-        !newWalletSeed.value.trim()
-    ) {
+    if (!newWalletRpcEndpoint.value.trim() || !newWalletName.value.trim() || !newWalletSeed.value.trim()) {
         toast.add({
             severity: 'error',
             summary: 'Validation Error',
@@ -154,9 +146,7 @@ function confirmDeleteWallet(wallet: any) {
                 toast.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail:
-                        error?.response?.data?.message ||
-                        'Failed to delete wallet',
+                    detail: error?.response?.data?.message || 'Failed to delete wallet',
                     life: 3000,
                 });
             }
@@ -182,12 +172,7 @@ function confirmDeleteWallet(wallet: any) {
                         outlined
                         @click="openUploadWalletDialog"
                     />
-                    <Button
-                        label="Add Wallet"
-                        icon="pi pi-plus"
-                        size="small"
-                        @click="openCreateWalletDialog"
-                    />
+                    <Button label="Add Wallet" icon="pi pi-plus" size="small" @click="openCreateWalletDialog" />
                 </div>
             </div>
         </template>
@@ -200,34 +185,21 @@ function confirmDeleteWallet(wallet: any) {
             </div>
 
             <!-- Error State -->
-            <Message
-                v-else-if="getAllWalletsRequest.isError.value"
-                severity="error"
-                :closable="false"
-            >
+            <Message v-else-if="getAllWalletsRequest.isError.value" severity="error" :closable="false">
                 Failed to load wallets:
                 {{ getAllWalletsRequest.error.value?.message }}
             </Message>
 
             <!-- Empty State -->
             <div
-                v-else-if="
-                    !getAllWalletsRequest.data.value ||
-                    getAllWalletsRequest.data.value.length === 0
-                "
+                v-else-if="!getAllWalletsRequest.data.value || getAllWalletsRequest.data.value.length === 0"
                 class="text-center py-8"
             >
-                <div
-                    class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-surface-100 mb-4"
-                >
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-surface-100 mb-4">
                     <i class="pi pi-wallet text-3xl text-surface-400"></i>
                 </div>
-                <h3 class="text-lg font-medium text-surface-900 mb-2">
-                    No wallets found
-                </h3>
-                <p class="text-surface-500">
-                    No wallets are currently registered with this operator.
-                </p>
+                <h3 class="text-lg font-medium text-surface-900 mb-2">No wallets found</h3>
+                <p class="text-surface-500">No wallets are currently registered with this operator.</p>
             </div>
 
             <!-- Data Table -->
@@ -236,9 +208,7 @@ function confirmDeleteWallet(wallet: any) {
                     <span class="text-surface-600 text-sm">
                         <i class="pi pi-info-circle mr-2"></i>
                         {{ getAllWalletsRequest.data.value.length }} wallet{{
-                            getAllWalletsRequest.data.value.length !== 1
-                                ? 's'
-                                : ''
+                            getAllWalletsRequest.data.value.length !== 1 ? 's' : ''
                         }}
                         found
                     </span>
@@ -305,32 +275,14 @@ function confirmDeleteWallet(wallet: any) {
     </Card>
 
     <!-- Create Wallet Dialog -->
-    <Dialog
-        v-model:visible="showCreateWalletDialog"
-        modal
-        header="Add Wallet"
-        :style="{ width: '500px' }"
-    >
+    <Dialog v-model:visible="showCreateWalletDialog" modal header="Add Wallet" :style="{ width: '500px' }">
         <div class="space-y-4 py-4">
             <div>
-                <label
-                    for="walletName"
-                    class="block text-sm font-semibold text-gray-700 mb-2"
-                >
-                    Wallet Name
-                </label>
-                <InputText
-                    id="walletName"
-                    v-model="newWalletName"
-                    placeholder="Enter wallet name"
-                    class="w-full"
-                />
+                <label for="walletName" class="block text-sm font-semibold text-gray-700 mb-2">Wallet Name</label>
+                <InputText id="walletName" v-model="newWalletName" placeholder="Enter wallet name" class="w-full" />
             </div>
             <div>
-                <label
-                    for="walletRpcEndpoint"
-                    class="block text-sm font-semibold text-gray-700 mb-2"
-                >
+                <label for="walletRpcEndpoint" class="block text-sm font-semibold text-gray-700 mb-2">
                     RPC Endpoint
                 </label>
                 <InputText
@@ -341,12 +293,7 @@ function confirmDeleteWallet(wallet: any) {
                 />
             </div>
             <div>
-                <label
-                    for="walletSeed"
-                    class="block text-sm font-semibold text-gray-700 mb-2"
-                >
-                    Seed
-                </label>
+                <label for="walletSeed" class="block text-sm font-semibold text-gray-700 mb-2">Seed</label>
                 <Password
                     id="walletSeed"
                     v-model="newWalletSeed"
@@ -358,26 +305,13 @@ function confirmDeleteWallet(wallet: any) {
             </div>
         </div>
         <template #footer>
-            <Button
-                label="Cancel"
-                text
-                @click="showCreateWalletDialog = false"
-            />
-            <Button
-                label="Create"
-                @click="createWallet"
-                :loading="createWalletMutation.isPending.value"
-            />
+            <Button label="Cancel" text @click="showCreateWalletDialog = false" />
+            <Button label="Create" @click="createWallet" :loading="createWalletMutation.isPending.value" />
         </template>
     </Dialog>
 
     <!-- Upload Wallet Dialog -->
-    <Dialog
-        v-model:visible="showUploadWalletDialog"
-        modal
-        header="Upload Wallet"
-        :style="{ width: '550px' }"
-    >
+    <Dialog v-model:visible="showUploadWalletDialog" modal header="Upload Wallet" :style="{ width: '550px' }">
         <div class="space-y-4 py-4">
             <Message severity="warn" :closable="false">
                 <div class="space-y-2">
@@ -385,19 +319,13 @@ function confirmDeleteWallet(wallet: any) {
                     <p class="text-sm">
                         When you click "Upload", the selected wallet's
                         <strong>seed phrase and endpoint</strong>
-                        will be sent to the operator server. Only proceed if you
-                        trust this operator.
+                        will be sent to the operator server. Only proceed if you trust this operator.
                     </p>
                 </div>
             </Message>
 
             <div>
-                <label
-                    for="selectWallet"
-                    class="block text-sm font-semibold text-gray-700 mb-2"
-                >
-                    Select Wallet
-                </label>
+                <label for="selectWallet" class="block text-sm font-semibold text-gray-700 mb-2">Select Wallet</label>
                 <Dropdown
                     id="selectWallet"
                     v-model="selectedWalletToUpload"
@@ -407,10 +335,7 @@ function confirmDeleteWallet(wallet: any) {
                     class="w-full"
                 >
                     <template #value="slotProps">
-                        <div
-                            v-if="slotProps.value"
-                            class="flex items-center gap-2"
-                        >
+                        <div v-if="slotProps.value" class="flex items-center gap-2">
                             <i class="pi pi-wallet text-surface-500"></i>
                             <span>{{ slotProps.value.name }}</span>
                         </div>
@@ -431,11 +356,7 @@ function confirmDeleteWallet(wallet: any) {
             </div>
         </div>
         <template #footer>
-            <Button
-                label="Cancel"
-                text
-                @click="showUploadWalletDialog = false"
-            />
+            <Button label="Cancel" text @click="showUploadWalletDialog = false" />
             <Button
                 label="Upload"
                 severity="warning"

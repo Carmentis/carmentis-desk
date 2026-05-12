@@ -9,14 +9,7 @@ import InputNumber from 'primevue/inputnumber';
 import { useStorageStore } from '../stores/storage';
 import { useOnChainStore } from '../stores/onchain';
 import { computedAsync } from '@vueuse/core';
-import {
-    CMTSToken,
-    EncoderFactory,
-    Hash,
-    LockType,
-    ProviderFactory,
-    Utils,
-} from '@cmts-dev/carmentis-sdk/client';
+import { CMTSToken, EncoderFactory, Hash, LockType, ProviderFactory, Utils } from '@cmts-dev/carmentis-sdk/client';
 import { Tendermint37Client } from '@cosmjs/tendermint-rpc';
 import { useHasAccountOnChainQuery } from '../composables/useAccountBreakdown.ts';
 
@@ -24,26 +17,18 @@ const route = useRoute();
 const router = useRouter();
 const storageStore = useStorageStore();
 const onchainStore = useOnChainStore();
-const registerNavbarActions = inject<(actions: any[]) => void>(
-    'registerNavbarActions',
-);
+const registerNavbarActions = inject<(actions: any[]) => void>('registerNavbarActions');
 await storageStore.initStorage();
 
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 const nodeId = computed(() => Number(route.params.nodeId));
 
-const wallet = computed(() =>
-    storageStore.organizations.find((w) => w.id === walletId.value),
-);
+const wallet = computed(() => storageStore.organizations.find((w) => w.id === walletId.value));
 
-const organization = computed(() =>
-    wallet.value?.organizations.find((org) => org.id === orgId.value),
-);
+const organization = computed(() => wallet.value?.organizations.find((org) => org.id === orgId.value));
 
-const node = computed(() =>
-    organization.value?.nodes.find((n) => n.id === nodeId.value),
-);
+const node = computed(() => organization.value?.nodes.find((n) => n.id === nodeId.value));
 
 // node chain status (the chain on which the node is running)
 const chainNameOnWhichNodeIsConnected = computedAsync(async () => {
@@ -85,13 +70,8 @@ const nodeVbId = computedAsync(async () => {
     if (node.value.vbId) {
         return Hash.from(node.value.vbId);
     } else {
-        const provider =
-            ProviderFactory.createInMemoryProviderWithExternalProvider(
-                wallet.value.nodeEndpoint,
-            );
-        const vbId = await provider.getValidatorNodeIdByCometbftPublicKey(
-            nodePublicKey.value.pk,
-        );
+        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
+        const vbId = await provider.getValidatorNodeIdByCometbftPublicKey(nodePublicKey.value.pk);
         return Hash.from(vbId);
     }
 });
@@ -107,13 +87,8 @@ const nodeOwnerAccountId = computedAsync(async () => {
     if (!node.value?.vbId) return undefined;
 
     try {
-        const provider =
-            ProviderFactory.createInMemoryProviderWithExternalProvider(
-                wallet.value.nodeEndpoint,
-            );
-        const nodeVb = await provider.loadValidatorNodeVirtualBlockchain(
-            Hash.from(node.value.vbId),
-        );
+        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
+        const nodeVb = await provider.loadValidatorNodeVirtualBlockchain(Hash.from(node.value.vbId));
         const orgId = await nodeVb.getOrganizationId();
         return orgId;
     } catch (e) {
@@ -125,12 +100,8 @@ const nodeOwnerAccountId = computedAsync(async () => {
 const nodeOwnerName = computedAsync(async () => {
     if (!nodeOwnerAccountId.value) return undefined;
     if (!wallet.value) return undefined;
-    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(
-        wallet.value.nodeEndpoint,
-    );
-    const orgVb = await provider.loadOrganizationVirtualBlockchain(
-        nodeOwnerAccountId.value,
-    );
+    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
+    const orgVb = await provider.loadOrganizationVirtualBlockchain(nodeOwnerAccountId.value);
     const orgDesc = await orgVb.getDescription();
     return orgDesc.name;
 });
@@ -138,14 +109,9 @@ const nodeOwnerName = computedAsync(async () => {
 const isNodeValidator = computedAsync(async () => {
     if (!nodeVbId.value) return undefined;
     if (!wallet.value) return undefined;
-    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(
-        wallet.value.nodeEndpoint,
-    );
-    const validatorNodeVb = await provider.loadValidatorNodeVirtualBlockchain(
-        nodeVbId.value,
-    );
-    const validatorNodeState =
-        await validatorNodeVb.getVirtualBlockchainState();
+    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
+    const validatorNodeVb = await provider.loadValidatorNodeVirtualBlockchain(nodeVbId.value);
+    const validatorNodeState = await validatorNodeVb.getVirtualBlockchainState();
     return validatorNodeState.internalState.lastKnownApprovalStatus;
 });
 const isNodeValidatorMessage = computed(() => {
@@ -185,9 +151,7 @@ const nodeStakeInformation = computedAsync(async () => {
     if (node.value === undefined) return undefined;
     if (node.value.vbId === undefined) return undefined;
 
-    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(
-        wallet.nodeEndpoint,
-    );
+    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
 
     // fetch the account id from the node's public key
     /*
@@ -205,11 +169,8 @@ const nodeStakeInformation = computedAsync(async () => {
   const accountId = await provider.getAccountIdByPublicKey(pk);
    */
 
-    const validatorNodeVbId =
-        await provider.getValidatorNodeIdByCometbftPublicKey(pk);
-    const validatorNodeVb = await provider.loadValidatorNodeVirtualBlockchain(
-        Hash.from(validatorNodeVbId),
-    );
+    const validatorNodeVbId = await provider.getValidatorNodeIdByCometbftPublicKey(pk);
+    const validatorNodeVb = await provider.loadValidatorNodeVirtualBlockchain(Hash.from(validatorNodeVbId));
     const orgVbId = await validatorNodeVb.getOrganizationId();
     const orgVb = await provider.loadOrganizationVirtualBlockchain(orgVbId);
     const nodeOwnerAccountVbId = orgVb.getAccountId();
@@ -220,30 +181,22 @@ const nodeStakeInformation = computedAsync(async () => {
     const stakingForThisNode = accountState.locks.filter(
         (lock) =>
             lock.type === LockType.NodeStaking &&
-            Utils.binaryIsEqual(
-                lock.parameters.validatorNodeId,
-                nodeVbId.toBytes(),
-            ),
+            Utils.binaryIsEqual(lock.parameters.validatorNodeId, nodeVbId.toBytes()),
     );
     if (stakingForThisNode.length === 0) return undefined;
     const stake = stakingForThisNode[0];
     if (stake.type !== LockType.NodeStaking)
-        throw new Error(
-            `Expected lock type to be NodeStaking, got ${LockType[stake.type]}`,
-        );
+        throw new Error(`Expected lock type to be NodeStaking, got ${LockType[stake.type]}`);
     return stake;
 });
 const currentStakedAmount = computed(() => {
     if (nodeStakeInformation.value === undefined) return undefined;
-    return CMTSToken.createAtomic(
-        nodeStakeInformation.value.lockedAmountInAtomics,
-    );
+    return CMTSToken.createAtomic(nodeStakeInformation.value.lockedAmountInAtomics);
 });
 
 const unstakingAmountInProgress = computed(() => {
     if (nodeStakeInformation.value === undefined) return undefined;
-    const { plannedUnlockAmountInAtomics } =
-        nodeStakeInformation.value.parameters;
+    const { plannedUnlockAmountInAtomics } = nodeStakeInformation.value.parameters;
     if (plannedUnlockAmountInAtomics === undefined) return undefined;
     return CMTSToken.createAtomic(plannedUnlockAmountInAtomics);
 });
@@ -295,13 +248,7 @@ const closeStakeDialog = () => {
 };
 
 const submitStake = async () => {
-    if (
-        !canStake.value ||
-        !wallet.value ||
-        !node.value?.vbId ||
-        stakeAmount.value === null
-    )
-        return;
+    if (!canStake.value || !wallet.value || !node.value?.vbId || stakeAmount.value === null) return;
 
     isStaking.value = true;
     try {
@@ -337,12 +284,7 @@ const closeClaimDialog = () => {
 };
 
 const submitClaim = async () => {
-    if (
-        !wallet.value ||
-        !node.value ||
-        nodeVbId.value ||
-        !organization.value?.vbId
-    ) {
+    if (!wallet.value || !node.value || nodeVbId.value || !organization.value?.vbId) {
         closeClaimDialog();
         return;
     }
@@ -364,9 +306,7 @@ const submitClaim = async () => {
 
 const maxUnstakeAmount = computed(() => {
     if (nodeStakeInformation.value === undefined) return 0;
-    return CMTSToken.createAtomic(
-        nodeStakeInformation.value.lockedAmountInAtomics,
-    ).getAmountAsAtomic();
+    return CMTSToken.createAtomic(nodeStakeInformation.value.lockedAmountInAtomics).getAmountAsAtomic();
 });
 
 const unstakeAmountError = computed(() => {
@@ -395,13 +335,7 @@ const closeUnstakeDialog = () => {
 };
 
 const submitUnstake = async () => {
-    if (
-        !canUnstake.value ||
-        !wallet.value ||
-        !node.value?.vbId ||
-        unstakeAmount.value === null
-    )
-        return;
+    if (!canUnstake.value || !wallet.value || !node.value?.vbId || unstakeAmount.value === null) return;
 
     isUnstaking.value = true;
     try {
@@ -448,22 +382,12 @@ const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
 
 // Register navbar actions - needs to be reactive to node state changes
 watch(
-    [
-        isNodePublished,
-        isNodeClaimed,
-        isOwnedByWallet,
-        nodeStakeInformation,
-        hasUnstakingOperationInProgress,
-    ],
+    [isNodePublished, isNodeClaimed, isOwnedByWallet, nodeStakeInformation, hasUnstakingOperationInProgress],
     () => {
         if (registerNavbarActions) {
             const actions = [];
 
-            if (
-                !node.value?.vbId &&
-                !isNodePublished.value &&
-                !isNodeClaimed.value
-            ) {
+            if (!node.value?.vbId && !isNodePublished.value && !isNodeClaimed.value) {
                 actions.push({
                     label: 'Claim Node',
                     icon: 'pi pi-lock',
@@ -472,10 +396,7 @@ watch(
                 });
             }
 
-            if (
-                isOwnedByWallet.value &&
-                nodeStakeInformation.value === undefined
-            ) {
+            if (isOwnedByWallet.value && nodeStakeInformation.value === undefined) {
                 actions.push({
                     label: 'Stake Tokens',
                     icon: 'pi pi-wallet',
@@ -484,10 +405,7 @@ watch(
                 });
             }
 
-            if (
-                isOwnedByWallet.value &&
-                nodeStakeInformation.value !== undefined
-            ) {
+            if (isOwnedByWallet.value && nodeStakeInformation.value !== undefined) {
                 actions.push({
                     label: 'Stake More',
                     icon: 'pi pi-plus',
@@ -527,11 +445,7 @@ watch(
                                 <span>Node Information</span>
                             </div>
                             <Button
-                                v-if="
-                                    !node.vbId &&
-                                    !isNodePublished &&
-                                    !isNodeClaimed
-                                "
+                                v-if="!node.vbId && !isNodePublished && !isNodeClaimed"
                                 @click="openClaimDialog"
                                 label="Claim Node"
                                 icon="pi pi-lock"
@@ -545,62 +459,34 @@ watch(
                         <div class="space-y-4">
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label
-                                        class="block text-sm font-medium text-gray-700 mb-2"
-                                    >
-                                        Node Name
-                                    </label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Node Name</label>
                                     <div class="text-gray-900">
                                         {{ node.name }}
                                     </div>
                                 </div>
 
                                 <div v-if="chainNameOnWhichNodeIsConnected">
-                                    <label
-                                        class="block text-sm font-medium text-gray-700 mb-2"
-                                    >
-                                        Chain
-                                    </label>
-                                    <div
-                                        class="flex items-center gap-2 text-gray-600"
-                                    >
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Chain</label>
+                                    <div class="flex items-center gap-2 text-gray-600">
                                         <i class="pi pi-server"></i>
                                         <span class="text-sm">
-                                            {{
-                                                chainNameOnWhichNodeIsConnected
-                                            }}
+                                            {{ chainNameOnWhichNodeIsConnected }}
                                         </span>
                                     </div>
                                 </div>
                             </div>
 
                             <div v-if="nodePublicKey">
-                                <label
-                                    class="block text-sm font-medium text-gray-700 mb-2"
-                                >
-                                    Node Public Key
-                                </label>
-                                <div
-                                    class="flex items-center gap-2 text-gray-600"
-                                >
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Node Public Key</label>
+                                <div class="flex items-center gap-2 text-gray-600">
                                     <i class="pi pi-key"></i>
-                                    <span class="text-sm">
-                                        {{ nodePublicKey.pk }} ({{
-                                            nodePublicKey.pkType
-                                        }})
-                                    </span>
+                                    <span class="text-sm">{{ nodePublicKey.pk }} ({{ nodePublicKey.pkType }})</span>
                                 </div>
                             </div>
 
                             <div>
-                                <label
-                                    class="block text-sm font-medium text-gray-700 mb-2"
-                                >
-                                    RPC Endpoint
-                                </label>
-                                <div
-                                    class="flex items-center gap-2 text-gray-600"
-                                >
+                                <label class="block text-sm font-medium text-gray-700 mb-2">RPC Endpoint</label>
+                                <div class="flex items-center gap-2 text-gray-600">
                                     <i class="pi pi-globe"></i>
                                     <span class="text-sm">
                                         {{ node.rpcEndpoint }}
@@ -609,14 +495,10 @@ watch(
                             </div>
 
                             <div v-if="node.vbId">
-                                <label
-                                    class="block text-sm font-medium text-gray-700 mb-2"
-                                >
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
                                     Virtual Blockchain ID
                                 </label>
-                                <code
-                                    class="bg-gray-100 px-3 py-2 rounded text-sm block overflow-x-auto"
-                                >
+                                <code class="bg-gray-100 px-3 py-2 rounded text-sm block overflow-x-auto">
                                     {{ node.vbId }}
                                 </code>
                             </div>
@@ -637,22 +519,14 @@ watch(
                             <div
                                 class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
                             >
-                                <i
-                                    class="pi pi-question-circle text-2xl text-gray-400"
-                                ></i>
+                                <i class="pi pi-question-circle text-2xl text-gray-400"></i>
                             </div>
-                            <p class="text-sm text-gray-500">
-                                Node has no Virtual Blockchain ID
-                            </p>
+                            <p class="text-sm text-gray-500">Node has no Virtual Blockchain ID</p>
                         </div>
                         <div v-else class="space-y-4">
                             <!-- Publication Status -->
                             <div>
-                                <label
-                                    class="block text-sm font-medium text-gray-700 mb-2"
-                                >
-                                    Publication Status
-                                </label>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Publication Status</label>
                                 <div class="flex items-center gap-2">
                                     <div
                                         class="px-3 py-1 rounded-full text-sm font-medium"
@@ -664,17 +538,9 @@ watch(
                                     >
                                         <i
                                             class="pi"
-                                            :class="
-                                                isNodePublished
-                                                    ? 'pi-check-circle'
-                                                    : 'pi-times-circle'
-                                            "
+                                            :class="isNodePublished ? 'pi-check-circle' : 'pi-times-circle'"
                                         ></i>
-                                        {{
-                                            isNodePublished
-                                                ? 'Published'
-                                                : 'Not Published'
-                                        }}
+                                        {{ isNodePublished ? 'Published' : 'Not Published' }}
                                     </div>
                                     <div
                                         class="px-3 py-1 rounded-full text-sm font-medium"
@@ -686,28 +552,16 @@ watch(
                                     >
                                         <i
                                             class="pi"
-                                            :class="
-                                                isNodeValidator
-                                                    ? 'pi-check-circle'
-                                                    : 'pi-times-circle'
-                                            "
+                                            :class="isNodeValidator ? 'pi-check-circle' : 'pi-times-circle'"
                                         ></i>
-                                        {{
-                                            isNodeValidator
-                                                ? 'Validator'
-                                                : 'Replicator'
-                                        }}
+                                        {{ isNodeValidator ? 'Validator' : 'Replicator' }}
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Claimed Status -->
                             <div v-if="isNodePublished">
-                                <label
-                                    class="block text-sm font-medium text-gray-700 mb-2"
-                                >
-                                    Claim Status
-                                </label>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Claim Status</label>
                                 <div class="flex items-center gap-2">
                                     <div
                                         class="px-3 py-1 rounded-full text-sm font-medium"
@@ -717,14 +571,7 @@ watch(
                                                 : 'bg-yellow-100 text-yellow-800'
                                         "
                                     >
-                                        <i
-                                            class="pi"
-                                            :class="
-                                                isNodeClaimed
-                                                    ? 'pi-lock'
-                                                    : 'pi-unlock'
-                                            "
-                                        ></i>
+                                        <i class="pi" :class="isNodeClaimed ? 'pi-lock' : 'pi-unlock'"></i>
                                         {{
                                             isNodeClaimed
                                                 ? nodeOwnerName
@@ -738,31 +585,17 @@ watch(
 
                             <!-- Owner Information -->
                             <div v-if="isNodeClaimed && nodeOwnerAccountId">
-                                <label
-                                    class="block text-sm font-medium text-gray-700 mb-2"
-                                >
-                                    Owner
-                                </label>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Owner</label>
                                 <div class="space-y-2">
-                                    <code
-                                        class="bg-gray-100 px-3 py-2 rounded text-xs block overflow-x-auto"
-                                    >
+                                    <code class="bg-gray-100 px-3 py-2 rounded text-xs block overflow-x-auto">
                                         {{ nodeOwnerAccountId.encode() }}
                                     </code>
-                                    <div
-                                        v-if="isOwnedByWallet"
-                                        class="flex items-center gap-2 text-sm text-green-700"
-                                    >
+                                    <div v-if="isOwnedByWallet" class="flex items-center gap-2 text-sm text-green-700">
                                         <i class="pi pi-check-circle"></i>
                                         <span>Owned by this wallet</span>
                                     </div>
-                                    <div
-                                        v-else
-                                        class="flex items-center gap-2 text-sm text-orange-700"
-                                    >
-                                        <i
-                                            class="pi pi-exclamation-triangle"
-                                        ></i>
+                                    <div v-else class="flex items-center gap-2 text-sm text-orange-700">
+                                        <i class="pi pi-exclamation-triangle"></i>
                                         <span>Owned by another account</span>
                                     </div>
                                 </div>
@@ -781,29 +614,20 @@ watch(
                     </template>
                     <template #content>
                         <!-- No Staking State -->
-                        <div
-                            v-if="nodeStakeInformation === undefined"
-                            class="text-center py-8"
-                        >
+                        <div v-if="nodeStakeInformation === undefined" class="text-center py-8">
                             <div
                                 class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
                             >
                                 <i class="pi pi-ban text-2xl text-gray-400"></i>
                             </div>
-                            <p class="text-sm text-gray-500">
-                                No staking detected for this node
-                            </p>
+                            <p class="text-sm text-gray-500">No staking detected for this node</p>
                         </div>
 
                         <!-- Has Staking -->
                         <div v-else class="space-y-4">
                             <!-- Staked Amount -->
                             <div>
-                                <label
-                                    class="block text-sm font-medium text-gray-700 mb-2"
-                                >
-                                    Staked Amount
-                                </label>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Staked Amount</label>
                                 <div class="flex items-center gap-2">
                                     <div class="">
                                         <span class="text-lg font-semibold">
@@ -815,68 +639,33 @@ watch(
 
                             <!-- Unstaking Operation -->
                             <div v-if="hasUnstakingOperationInProgress">
-                                <label
-                                    class="block text-sm font-medium text-gray-700 mb-2"
-                                >
-                                    Programmed Unstaking
-                                </label>
-                                <div
-                                    class="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-3"
-                                >
-                                    <div
-                                        class="flex items-center justify-between"
-                                    >
-                                        <span class="text-sm text-gray-600">
-                                            Amount
-                                        </span>
-                                        <span
-                                            class="text-sm font-semibold text-orange-800"
-                                        >
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Programmed Unstaking</label>
+                                <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-gray-600">Amount</span>
+                                        <span class="text-sm font-semibold text-orange-800">
                                             {{ unstakingAmountInProgress }}
                                         </span>
                                     </div>
-                                    <div
-                                        class="flex items-center justify-between"
-                                        v-if="unstakingAtTimestamp"
-                                    >
-                                        <span class="text-sm text-gray-600">
-                                            Unlock Date
-                                        </span>
-                                        <span
-                                            class="text-sm font-semibold text-orange-800"
-                                        >
-                                            {{
-                                                new Date(
-                                                    unstakingAtTimestamp * 1000,
-                                                ).toLocaleString()
-                                            }}
+                                    <div class="flex items-center justify-between" v-if="unstakingAtTimestamp">
+                                        <span class="text-sm text-gray-600">Unlock Date</span>
+                                        <span class="text-sm font-semibold text-orange-800">
+                                            {{ new Date(unstakingAtTimestamp * 1000).toLocaleString() }}
                                         </span>
                                     </div>
-                                    <div
-                                        class="flex items-center gap-2 text-xs text-orange-700 mt-2"
-                                    >
+                                    <div class="flex items-center gap-2 text-xs text-orange-700 mt-2">
                                         <i class="pi pi-clock"></i>
-                                        <span>
-                                            Unstaking operation in progress
-                                        </span>
+                                        <span>Unstaking operation in progress</span>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- No Unstaking Operation -->
                             <div v-else>
-                                <label
-                                    class="block text-sm font-medium text-gray-700 mb-2"
-                                >
-                                    Unstaking Status
-                                </label>
-                                <div
-                                    class="flex items-center gap-2 text-sm text-gray-500"
-                                >
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Unstaking Status</label>
+                                <div class="flex items-center gap-2 text-sm text-gray-500">
                                     <i class="pi pi-info-circle"></i>
-                                    <span>
-                                        No programmed unstaking operation
-                                    </span>
+                                    <span>No programmed unstaking operation</span>
                                 </div>
                             </div>
 
@@ -902,13 +691,7 @@ watch(
                         </div>
 
                         <!-- Action Buttons (No Staking) -->
-                        <div
-                            v-if="
-                                nodeStakeInformation === undefined &&
-                                isOwnedByWallet
-                            "
-                            class="mt-4"
-                        >
+                        <div v-if="nodeStakeInformation === undefined && isOwnedByWallet" class="mt-4">
                             <Button
                                 @click="openStakeDialog"
                                 label="Stake Tokens"
@@ -924,36 +707,19 @@ watch(
 
         <!-- Not Found State -->
         <div v-else class="text-center py-12">
-            <div
-                class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4"
-            >
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
                 <i class="pi pi-exclamation-triangle text-3xl text-red-600"></i>
             </div>
-            <h1 class="text-2xl font-bold text-gray-900 mb-2">
-                Node Not Found
-            </h1>
-            <p class="text-gray-500 mb-6">
-                The node you're looking for doesn't exist.
-            </p>
-            <Button
-                @click="router.push('/')"
-                label="Back to Home"
-                icon="pi pi-home"
-            />
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">Node Not Found</h1>
+            <p class="text-gray-500 mb-6">The node you're looking for doesn't exist.</p>
+            <Button @click="router.push('/')" label="Back to Home" icon="pi pi-home" />
         </div>
 
         <!-- Stake Dialog -->
-        <Dialog
-            v-model:visible="showStakeDialog"
-            modal
-            header="Stake Tokens"
-            :style="{ width: '30rem' }"
-        >
+        <Dialog v-model:visible="showStakeDialog" modal header="Stake Tokens" :style="{ width: '30rem' }">
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Amount (CMTS)
-                    </label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Amount (CMTS)</label>
                     <InputNumber
                         v-model="stakeAmount"
                         :min="MIN_STAKE"
@@ -965,13 +731,9 @@ watch(
                         placeholder="Enter amount to stake"
                     />
                     <small class="text-gray-500 mt-1 block">
-                        Min: {{ MIN_STAKE.toLocaleString() }} CMTS | Max:
-                        {{ MAX_STAKE.toLocaleString() }} CMTS
+                        Min: {{ MIN_STAKE.toLocaleString() }} CMTS | Max: {{ MAX_STAKE.toLocaleString() }} CMTS
                     </small>
-                    <small
-                        v-if="stakeAmountError"
-                        class="text-red-500 mt-1 block"
-                    >
+                    <small v-if="stakeAmountError" class="text-red-500 mt-1 block">
                         {{ stakeAmountError }}
                     </small>
                 </div>
@@ -992,17 +754,10 @@ watch(
         </Dialog>
 
         <!-- Unstake Dialog -->
-        <Dialog
-            v-model:visible="showUnstakeDialog"
-            modal
-            header="Unstake Tokens"
-            :style="{ width: '30rem' }"
-        >
+        <Dialog v-model:visible="showUnstakeDialog" modal header="Unstake Tokens" :style="{ width: '30rem' }">
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Amount (CMTS)
-                    </label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Amount (CMTS)</label>
                     <InputNumber
                         v-model="unstakeAmount"
                         :min="0"
@@ -1017,10 +772,7 @@ watch(
                         Max available:
                         {{ maxUnstakeAmount.toLocaleString() }} CMTS
                     </small>
-                    <small
-                        v-if="unstakeAmountError"
-                        class="text-red-500 mt-1 block"
-                    >
+                    <small v-if="unstakeAmountError" class="text-red-500 mt-1 block">
                         {{ unstakeAmountError }}
                     </small>
                 </div>
@@ -1042,32 +794,21 @@ watch(
         </Dialog>
 
         <!-- Claim Node Dialog -->
-        <Dialog
-            v-model:visible="showClaimDialog"
-            modal
-            header="Claim Node"
-            :style="{ width: '30rem' }"
-        >
+        <Dialog v-model:visible="showClaimDialog" modal header="Claim Node" :style="{ width: '30rem' }">
             <div class="space-y-4">
                 <p class="text-gray-700">
                     Are you sure you want to claim this node for organization
                     <strong>{{ organization?.name }}</strong>
                     ?
                 </p>
-                <div
-                    v-if="nodeVbId"
-                    class="bg-blue-50 border border-blue-200 rounded-lg p-3"
-                >
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Node VB ID
-                    </label>
+                <div v-if="nodeVbId" class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Node VB ID</label>
                     <code class="text-xs block overflow-x-auto">
                         {{ nodeVbId.encode() }}
                     </code>
                 </div>
                 <p class="text-sm text-gray-500">
-                    This action will associate the node with your organization
-                    on the blockchain.
+                    This action will associate the node with your organization on the blockchain.
                 </p>
             </div>
 

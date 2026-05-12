@@ -16,10 +16,7 @@ import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import type { MenuItem } from 'primevue/menuitem';
 import CredentialCard from './credentials/CredentialCard.vue';
-import {
-    parseCompactSdJwt,
-    SdJwtParseError,
-} from '../composables/credentials/parseSdJwtToken';
+import { parseCompactSdJwt, SdJwtParseError } from '../composables/credentials/parseSdJwtToken';
 
 const route = useRoute();
 const router = useRouter();
@@ -28,9 +25,7 @@ const toast = useToast();
 const confirm = useConfirm();
 
 const walletId = computed(() => Number(route.params.walletId));
-const wallet = computed(() =>
-    storageStore.organizations.find((w) => w.id === walletId.value),
-);
+const wallet = computed(() => storageStore.organizations.find((w) => w.id === walletId.value));
 const credentials = computed(() => wallet.value?.credentials ?? []);
 
 // ---------------------------------------------------------------------------
@@ -165,9 +160,7 @@ async function submitSdJwtTab() {
         showAddDialog.value = false;
     } catch (err) {
         const detail =
-            err instanceof SdJwtParseError
-                ? err.message
-                : 'An unexpected error occurred while parsing the token.';
+            err instanceof SdJwtParseError ? err.message : 'An unexpected error occurred while parsing the token.';
         toast.add({
             severity: 'error',
             summary: 'Parse error',
@@ -199,10 +192,7 @@ function requestDelete(credentialId: number) {
         acceptLabel: 'Delete',
         acceptClass: 'p-button-danger',
         accept: async () => {
-            await storageStore.deleteCredentialById(
-                walletId.value,
-                credentialId,
-            );
+            await storageStore.deleteCredentialById(walletId.value, credentialId);
             toast.add({
                 severity: 'success',
                 summary: 'Credential deleted',
@@ -225,17 +215,14 @@ const prettyBrowseJson = computed(() => {
     try {
         const parsed = JSON.parse(browsingCredential.value.data);
         const full = JSON.stringify(parsed, null, 2);
-        return full.length > MAX_BROWSE_LENGTH
-            ? full.slice(0, MAX_BROWSE_LENGTH) + '\n\n… (truncated)'
-            : full;
+        return full.length > MAX_BROWSE_LENGTH ? full.slice(0, MAX_BROWSE_LENGTH) + '\n\n… (truncated)' : full;
     } catch {
         return browsingCredential.value.data;
     }
 });
 
 function requestBrowse(credentialId: number) {
-    browsingCredential.value =
-        credentials.value.find((c) => c.id === credentialId) ?? null;
+    browsingCredential.value = credentials.value.find((c) => c.id === credentialId) ?? null;
     if (browsingCredential.value) showBrowseDialog.value = true;
 }
 
@@ -268,25 +255,15 @@ const menuItems = computed<MenuItem[]>(() => [
 
                 <!-- Empty state -->
                 <div v-if="credentials.length === 0" class="text-center py-12">
-                    <div
-                        class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
-                    >
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
                         <i class="pi pi-id-card text-2xl text-gray-400"></i>
                     </div>
                     <p class="text-gray-500 text-sm mb-4">No credentials yet</p>
-                    <Button
-                        @click="openAddDialog"
-                        label="Add Credential"
-                        icon="pi pi-plus"
-                        size="small"
-                    />
+                    <Button @click="openAddDialog" label="Add Credential" icon="pi pi-plus" size="small" />
                 </div>
 
                 <!-- Credentials grid -->
-                <div
-                    v-else
-                    class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
-                >
+                <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     <CredentialCard
                         v-for="credential in credentials"
                         :key="credential.id"
@@ -298,12 +275,7 @@ const menuItems = computed<MenuItem[]>(() => [
             </div>
 
             <!-- Add Credential Dialog -->
-            <Dialog
-                v-model:visible="showAddDialog"
-                header="Add Credential"
-                modal
-                class="w-full max-w-lg"
-            >
+            <Dialog v-model:visible="showAddDialog" header="Add Credential" modal class="w-full max-w-lg">
                 <Tabs v-model:value="addTab">
                     <TabList>
                         <Tab value="json">
@@ -321,10 +293,7 @@ const menuItems = computed<MenuItem[]>(() => [
                         <TabPanel value="json">
                             <div class="space-y-4 pt-4">
                                 <div>
-                                    <label
-                                        for="credential-name"
-                                        class="block text-sm font-medium text-gray-700 mb-2"
-                                    >
+                                    <label for="credential-name" class="block text-sm font-medium text-gray-700 mb-2">
                                         Name
                                         <span class="text-red-500">*</span>
                                     </label>
@@ -336,13 +305,8 @@ const menuItems = computed<MenuItem[]>(() => [
                                     />
                                 </div>
                                 <div>
-                                    <div
-                                        class="flex items-center justify-between mb-2"
-                                    >
-                                        <label
-                                            for="credential-data"
-                                            class="block text-sm font-medium text-gray-700"
-                                        >
+                                    <div class="flex items-center justify-between mb-2">
+                                        <label for="credential-data" class="block text-sm font-medium text-gray-700">
                                             JSON Data
                                             <span class="text-red-500">*</span>
                                         </label>
@@ -370,14 +334,10 @@ const menuItems = computed<MenuItem[]>(() => [
                         <TabPanel value="sd-jwt">
                             <div class="space-y-4 pt-4">
                                 <div>
-                                    <label
-                                        for="sd-jwt-name"
-                                        class="block text-sm font-medium text-gray-700 mb-2"
-                                    >
+                                    <label for="sd-jwt-name" class="block text-sm font-medium text-gray-700 mb-2">
                                         Name
                                         <span class="text-gray-400 font-normal">
-                                            (optional — defaults to credential
-                                            type)
+                                            (optional — defaults to credential type)
                                         </span>
                                     </label>
                                     <InputText
@@ -388,10 +348,7 @@ const menuItems = computed<MenuItem[]>(() => [
                                     />
                                 </div>
                                 <div>
-                                    <label
-                                        for="sd-jwt-token"
-                                        class="block text-sm font-medium text-gray-700 mb-2"
-                                    >
+                                    <label for="sd-jwt-token" class="block text-sm font-medium text-gray-700 mb-2">
                                         Compact SD-JWT-VC Token
                                         <span class="text-red-500">*</span>
                                     </label>
@@ -416,18 +373,8 @@ const menuItems = computed<MenuItem[]>(() => [
 
                 <template #footer>
                     <div class="flex justify-end gap-2">
-                        <Button
-                            label="Cancel"
-                            @click="showAddDialog = false"
-                            severity="secondary"
-                            outlined
-                        />
-                        <Button
-                            label="Add"
-                            icon="pi pi-check"
-                            :loading="sdJwtParsing"
-                            @click="handleAddSubmit"
-                        />
+                        <Button label="Cancel" @click="showAddDialog = false" severity="secondary" outlined />
+                        <Button label="Add" icon="pi pi-check" :loading="sdJwtParsing" @click="handleAddSubmit" />
                     </div>
                 </template>
             </Dialog>
@@ -446,12 +393,7 @@ const menuItems = computed<MenuItem[]>(() => [
                 >
                 <template #footer>
                     <div class="flex justify-end">
-                        <Button
-                            label="Close"
-                            @click="showBrowseDialog = false"
-                            severity="secondary"
-                            outlined
-                        />
+                        <Button label="Close" @click="showBrowseDialog = false" severity="secondary" outlined />
                     </div>
                 </template>
             </Dialog>
@@ -459,22 +401,12 @@ const menuItems = computed<MenuItem[]>(() => [
 
         <!-- Not Found State -->
         <div v-else class="text-center py-12 px-4">
-            <div
-                class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4"
-            >
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
                 <i class="pi pi-exclamation-triangle text-3xl text-red-600"></i>
             </div>
-            <h1 class="text-2xl font-bold text-gray-900 mb-2">
-                Wallet Not Found
-            </h1>
-            <p class="text-gray-500 mb-6">
-                The wallet you're looking for doesn't exist.
-            </p>
-            <Button
-                @click="router.push('/')"
-                label="Back to Home"
-                icon="pi pi-home"
-            />
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">Wallet Not Found</h1>
+            <p class="text-gray-500 mb-6">The wallet you're looking for doesn't exist.</p>
+            <Button @click="router.push('/')" label="Back to Home" icon="pi pi-home" />
         </div>
     </div>
 </template>

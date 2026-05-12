@@ -19,32 +19,18 @@ export const useOperatorAuthStore = defineStore('operatorAuth', () => {
     });
 
     function isAuthenticatedToOperator(operatorId: number) {
-        return authStore.value.authenticatedOperators.some(
-            (op) => op.operatorId === operatorId,
-        );
+        return authStore.value.authenticatedOperators.some((op) => op.operatorId === operatorId);
     }
-    function addCredential(
-        operatorId: number,
-        walletId: number,
-        authToken: string,
-    ) {
-        console.log(
-            `Adding credential for operator ${operatorId} with wallet ${walletId}`,
-        );
+    function addCredential(operatorId: number, walletId: number, authToken: string) {
+        console.log(`Adding credential for operator ${operatorId} with wallet ${walletId}`);
         const authenticatedOperators = authStore.value.authenticatedOperators;
         const credential = { walletId, authToken };
-        const operator = authenticatedOperators.find(
-            (op) => op.operatorId === operatorId,
-        );
+        const operator = authenticatedOperators.find((op) => op.operatorId === operatorId);
         if (operator) {
-            console.log(
-                `Adding credential to operator ${operator.operatorId} for wallet ${walletId}`,
-            );
+            console.log(`Adding credential to operator ${operator.operatorId} for wallet ${walletId}`);
             operator.credentials.push(credential);
         } else {
-            console.log(
-                `Creating new operator credential for ${operatorId} with wallet ${walletId}`,
-            );
+            console.log(`Creating new operator credential for ${operatorId} with wallet ${walletId}`);
             authStore.value.authenticatedOperators.push({
                 operatorId,
                 credentials: [credential],
@@ -53,16 +39,13 @@ export const useOperatorAuthStore = defineStore('operatorAuth', () => {
     }
 
     function disconnectFromOperator(operatorId: number) {
-        authStore.value.authenticatedOperators =
-            authStore.value.authenticatedOperators.filter(
-                (op) => op.operatorId !== operatorId,
-            );
+        authStore.value.authenticatedOperators = authStore.value.authenticatedOperators.filter(
+            (op) => op.operatorId !== operatorId,
+        );
     }
 
     function getValidToken(operatorId: number) {
-        const operator = authStore.value.authenticatedOperators.find(
-            (op) => op.operatorId === operatorId,
-        );
+        const operator = authStore.value.authenticatedOperators.find((op) => op.operatorId === operatorId);
         return operator?.credentials[0]?.authToken;
     }
 

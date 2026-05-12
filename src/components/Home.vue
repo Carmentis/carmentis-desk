@@ -44,9 +44,7 @@ const filteredOrganizations = computed(() => {
         return organizations.value;
     }
     const query = searchQuery.value.toLowerCase();
-    return organizations.value.filter((org) =>
-        org.name.toLowerCase().includes(query),
-    );
+    return organizations.value.filter((org) => org.name.toLowerCase().includes(query));
 });
 
 const filteredOperators = computed(() => {
@@ -54,9 +52,7 @@ const filteredOperators = computed(() => {
         return operators.value;
     }
     const query = searchQuery.value.toLowerCase();
-    return operators.value.filter((op) =>
-        op.name.toLowerCase().includes(query),
-    );
+    return operators.value.filter((op) => op.name.toLowerCase().includes(query));
 });
 
 function visitWallet(orgId: number) {
@@ -69,8 +65,7 @@ function visitOperator(operatorId: number) {
 
 function confirmClearAllOrganizations() {
     confirm.require({
-        message:
-            'Are you sure you want to clear all wallets? This action cannot be undone.',
+        message: 'Are you sure you want to clear all wallets? This action cannot be undone.',
         header: 'Clear All Wallets',
         icon: 'pi pi-exclamation-triangle',
         rejectClass: 'p-button-secondary p-button-outlined',
@@ -126,8 +121,7 @@ async function createOperator() {
 
 function confirmClearAllOperators() {
     confirm.require({
-        message:
-            'Are you sure you want to clear all operators? This action cannot be undone.',
+        message: 'Are you sure you want to clear all operators? This action cannot be undone.',
         header: 'Clear All Operators',
         icon: 'pi pi-exclamation-triangle',
         rejectClass: 'p-button-secondary p-button-outlined',
@@ -200,10 +194,8 @@ const menuItems = computed<MenuItem[]>(() => [
         icon: 'pi pi-cog',
         items: [
             {
-                label:
-                    currentTheme.value === 'light' ? 'Dark Mode' : 'Light Mode',
-                icon:
-                    currentTheme.value === 'light' ? 'pi pi-moon' : 'pi pi-sun',
+                label: currentTheme.value === 'light' ? 'Dark Mode' : 'Light Mode',
+                icon: currentTheme.value === 'light' ? 'pi pi-moon' : 'pi pi-sun',
                 command: () => toggleTheme(),
             },
             {
@@ -262,9 +254,7 @@ async function checkForUpdate() {
                                 break;
                             case 'Progress':
                                 downloaded += event.data.chunkLength;
-                                const progression = Math.round(
-                                    (downloaded / contentLength) * 100,
-                                );
+                                const progression = Math.round((downloaded / contentLength) * 100);
                                 downloadingProgress.value = progression;
                                 break;
                             case 'Finished':
@@ -299,12 +289,7 @@ async function checkForUpdate() {
             <template #end>
                 <div class="flex items-center gap-2">
                     <span class="p-input-icon-left">
-                        <InputText
-                            v-model="searchQuery"
-                            placeholder="Search..."
-                            class="w-64"
-                            size="small"
-                        />
+                        <InputText v-model="searchQuery" placeholder="Search..." class="w-64" size="small" />
                     </span>
                 </div>
             </template>
@@ -312,24 +297,15 @@ async function checkForUpdate() {
 
         <!-- Subtitle -->
         <div class="px-2">
-            <p class="text-sm text-gray-500">
-                Manage your wallets and operators
-            </p>
+            <p class="text-sm text-gray-500">Manage your wallets and operators</p>
         </div>
 
         <!-- Empty State -->
-        <div
-            v-if="organizations.length === 0 && operators.length === 0"
-            class="text-center py-12"
-        >
-            <div
-                class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4"
-            >
+        <div v-if="organizations.length === 0 && operators.length === 0" class="text-center py-12">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
                 <i class="pi pi-wallet text-3xl text-gray-400"></i>
             </div>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">
-                No information to display
-            </h3>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No information to display</h3>
             <p class="text-gray-500 mb-6"></p>
         </div>
 
@@ -349,54 +325,32 @@ async function checkForUpdate() {
                                 <div
                                     class="w-12 h-12 rounded-xl bg-gradient-to-br bg-gray-100 from-surface-100 to-surface-50 flex items-center justify-center group-hover:from-primary-50 group-hover:to-primary-100 transition-colors"
                                 >
-                                    <i
-                                        class="pi pi-wallet text-2xl text-surface-600"
-                                    ></i>
+                                    <i class="pi pi-wallet text-2xl text-surface-600"></i>
                                 </div>
                                 <div>
-                                    <h3
-                                        class="text-base font-semibold text-surface-900 truncate"
-                                    >
+                                    <h3 class="text-base font-semibold text-surface-900 truncate">
                                         {{ org.name }}
                                     </h3>
-                                    <span
-                                        class="text-xs text-surface-400 font-mono"
-                                    >
-                                        ID: {{ org.id }}
-                                    </span>
+                                    <span class="text-xs text-surface-400 font-mono">ID: {{ org.id }}</span>
                                 </div>
                             </div>
-                            <span
-                                class="px-2 py-1 text-xs font-semibold text-blue-600 bg-blue-100 rounded-md"
-                            >
+                            <span class="px-2 py-1 text-xs font-semibold text-blue-600 bg-blue-100 rounded-md">
                                 WALLET
                             </span>
                         </div>
 
                         <!-- Details -->
-                        <div
-                            class="space-y-2.5 text-sm border-t border-surface-100 pt-4"
-                        >
-                            <div
-                                class="flex items-center gap-2.5 text-surface-600"
-                            >
-                                <i
-                                    class="pi pi-server text-surface-400 text-xs"
-                                ></i>
+                        <div class="space-y-2.5 text-sm border-t border-surface-100 pt-4">
+                            <div class="flex items-center gap-2.5 text-surface-600">
+                                <i class="pi pi-server text-surface-400 text-xs"></i>
                                 <span class="truncate text-xs">
                                     {{ org.nodeEndpoint }}
                                 </span>
                             </div>
-                            <div
-                                class="flex items-center gap-2.5 text-surface-600"
-                            >
-                                <i
-                                    class="pi pi-building text-surface-400 text-xs"
-                                ></i>
+                            <div class="flex items-center gap-2.5 text-surface-600">
+                                <i class="pi pi-building text-surface-400 text-xs"></i>
                                 <span class="text-xs">
-                                    {{
-                                        org.organizations?.length || 0
-                                    }}
+                                    {{ org.organizations?.length || 0 }}
                                     organizations
                                 </span>
                             </div>
@@ -430,40 +384,24 @@ async function checkForUpdate() {
                                 <div
                                     class="w-12 h-12 rounded-xl bg-gradient-to-br bg-gray-100 from-surface-100 to-surface-50 flex items-center justify-center group-hover:from-primary-50 group-hover:to-primary-100 transition-colors"
                                 >
-                                    <i
-                                        class="pi pi-server text-2xl text-surface-600"
-                                    ></i>
+                                    <i class="pi pi-server text-2xl text-surface-600"></i>
                                 </div>
                                 <div>
-                                    <h3
-                                        class="text-base font-semibold text-surface-900 truncate"
-                                    >
+                                    <h3 class="text-base font-semibold text-surface-900 truncate">
                                         {{ operator.name }}
                                     </h3>
-                                    <span
-                                        class="text-xs text-surface-400 font-mono"
-                                    >
-                                        ID: {{ operator.id }}
-                                    </span>
+                                    <span class="text-xs text-surface-400 font-mono">ID: {{ operator.id }}</span>
                                 </div>
                             </div>
-                            <span
-                                class="px-2 py-1 text-xs font-semibold text-green-600 bg-green-100 rounded-md"
-                            >
+                            <span class="px-2 py-1 text-xs font-semibold text-green-600 bg-green-100 rounded-md">
                                 OPERATOR
                             </span>
                         </div>
 
                         <!-- Details -->
-                        <div
-                            class="space-y-2.5 text-sm border-t border-surface-100 pt-4"
-                        >
-                            <div
-                                class="flex items-center gap-2.5 text-surface-600"
-                            >
-                                <i
-                                    class="pi pi-globe text-surface-400 text-xs"
-                                ></i>
+                        <div class="space-y-2.5 text-sm border-t border-surface-100 pt-4">
+                            <div class="flex items-center gap-2.5 text-surface-600">
+                                <i class="pi pi-globe text-surface-400 text-xs"></i>
                                 <span class="truncate text-xs">
                                     {{ operator.httpEndpoint }}
                                 </span>
@@ -487,18 +425,10 @@ async function checkForUpdate() {
         <HelpDialog v-model:visible="showHelpDialog" />
 
         <!-- Operator Creation Dialog -->
-        <Dialog
-            v-model:visible="showOperatorDialog"
-            modal
-            header="Add Operator"
-            :style="{ width: '450px' }"
-        >
+        <Dialog v-model:visible="showOperatorDialog" modal header="Add Operator" :style="{ width: '450px' }">
             <div class="space-y-4 py-4">
                 <div>
-                    <label
-                        for="operatorName"
-                        class="block text-sm font-semibold text-gray-700 mb-2"
-                    >
+                    <label for="operatorName" class="block text-sm font-semibold text-gray-700 mb-2">
                         Operator Name
                     </label>
                     <InputText
@@ -510,10 +440,7 @@ async function checkForUpdate() {
                     />
                 </div>
                 <div>
-                    <label
-                        for="operatorEndpoint"
-                        class="block text-sm font-semibold text-gray-700 mb-2"
-                    >
+                    <label for="operatorEndpoint" class="block text-sm font-semibold text-gray-700 mb-2">
                         HTTP Endpoint
                     </label>
                     <InputText
@@ -526,11 +453,7 @@ async function checkForUpdate() {
                 </div>
             </div>
             <template #footer>
-                <Button
-                    label="Cancel"
-                    text
-                    @click="showOperatorDialog = false"
-                />
+                <Button label="Cancel" text @click="showOperatorDialog = false" />
                 <Button label="Create" @click="createOperator" />
             </template>
         </Dialog>

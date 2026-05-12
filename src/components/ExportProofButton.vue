@@ -3,10 +3,7 @@ import { ref } from 'vue';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
 import { invoke } from '@tauri-apps/api/core';
-import type {
-    AccountCrypto,
-    ApplicationLedgerVb,
-} from '@cmts-dev/carmentis-sdk-core';
+import type { AccountCrypto, ApplicationLedgerVb } from '@cmts-dev/carmentis-sdk-core';
 
 const props = defineProps<{
     vb: ApplicationLedgerVb | null;
@@ -25,10 +22,7 @@ async function exportProof() {
     try {
         const vbSeed = await props.vb.getGenesisSeed();
         const actorCrypto = props.accountCrypto.getActor(vbSeed.toBytes());
-        const proof = await props.vb.exportProof(
-            { author: props.author },
-            actorCrypto,
-        );
+        const proof = await props.vb.exportProof({ author: props.author }, actorCrypto);
 
         const json = JSON.stringify(proof, null, 2);
         const savedPath = await invoke<string>('save_file', {

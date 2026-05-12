@@ -1,30 +1,18 @@
 <template>
     <div class="overflow-hidden rounded-lg border border-gray-200">
         <!-- Breadcrumb navigation -->
-        <div
-            v-if="path.length > 0"
-            class="flex items-center mb-4 text-sm bg-gray-50 p-2 rounded-md overflow-x-auto"
-        >
-            <button
-                @click="path = []"
-                class="text-blue-600 hover:text-blue-800 flex items-center"
-            >
+        <div v-if="path.length > 0" class="flex items-center mb-4 text-sm bg-gray-50 p-2 rounded-md overflow-x-auto">
+            <button @click="path = []" class="text-blue-600 hover:text-blue-800 flex items-center">
                 <i class="pi pi-home mr-1"></i>
                 Root
             </button>
 
-            <div
-                v-for="(segment, index) in path"
-                :key="index"
-                class="flex items-center"
-            >
+            <div v-for="(segment, index) in path" :key="index" class="flex items-center">
                 <i class="pi pi-chevron-right mx-1 text-gray-400"></i>
                 <button
                     @click="path = path.slice(0, index + 1)"
                     :class="[
-                        index === path.length - 1
-                            ? 'text-gray-700 font-medium'
-                            : 'text-blue-600 hover:text-blue-800',
+                        index === path.length - 1 ? 'text-gray-700 font-medium' : 'text-blue-600 hover:text-blue-800',
                     ]"
                 >
                     {{ segment }}
@@ -33,10 +21,7 @@
         </div>
 
         <!-- Back button -->
-        <div
-            v-if="path.length > 0"
-            class="bg-gray-50 px-4 py-2 border-b border-gray-200"
-        >
+        <div v-if="path.length > 0" class="bg-gray-50 px-4 py-2 border-b border-gray-200">
             <button
                 @click="path = path.slice(0, -1)"
                 class="text-blue-600 hover:text-blue-800 flex items-center text-sm"
@@ -51,44 +36,28 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <tbody class="bg-white divide-y divide-gray-200">
                     <tr
-                        v-for="([key, value], index) in Object.entries(
-                            shownData,
-                        )"
+                        v-for="([key, value], index) in Object.entries(shownData)"
                         :key="index"
                         :class="[
                             'border-b border-gray-200',
-                            canNavigate(value)
-                                ? 'hover:bg-blue-50 cursor-pointer'
-                                : '',
+                            canNavigate(value) ? 'hover:bg-blue-50 cursor-pointer' : '',
                         ]"
                         @click="canNavigate(value) ? navigateTo(key) : null"
                     >
-                        <td
-                            class="py-3 px-4 font-medium text-gray-700 border-r border-gray-200 bg-gray-50 w-1/3"
-                        >
+                        <td class="py-3 px-4 font-medium text-gray-700 border-r border-gray-200 bg-gray-50 w-1/3">
                             {{ key }}
                         </td>
                         <td
                             :class="[
                                 'py-3 px-4',
-                                canNavigate(value)
-                                    ? 'text-blue-600 hover:text-blue-800'
-                                    : 'text-gray-700',
+                                canNavigate(value) ? 'text-blue-600 hover:text-blue-800' : 'text-gray-700',
                             ]"
                         >
-                            <div
-                                v-if="canNavigate(value)"
-                                class="flex items-center"
-                            >
+                            <div v-if="canNavigate(value)" class="flex items-center">
                                 <span>{{ formatValue(value) }}</span>
                                 <i class="pi pi-chevron-right ml-2"></i>
                             </div>
-                            <span
-                                v-else
-                                :class="
-                                    typeof value === 'string' ? 'break-all' : ''
-                                "
-                            >
+                            <span v-else :class="typeof value === 'string' ? 'break-all' : ''">
                                 {{ formatValue(value) }}
                             </span>
                         </td>
@@ -123,10 +92,7 @@ const isArrayOfStrings = (value: any): boolean => {
 };
 
 const isDate = (value: any): boolean => {
-    return (
-        value instanceof Date ||
-        (typeof value === 'string' && !isNaN(Date.parse(value)))
-    );
+    return value instanceof Date || (typeof value === 'string' && !isNaN(Date.parse(value)));
 };
 
 const canNavigate = (value: any): boolean => {
@@ -149,11 +115,7 @@ const formatValue = (value: any): string => {
     const isArray = Array.isArray(value);
     const isObject = typeof value === 'object' && value !== null;
 
-    if (
-        typeof value === 'string' ||
-        typeof value === 'number' ||
-        typeof value === 'boolean'
-    ) {
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
         return String(value);
     } else if (isArrayOfStr) {
         return value.join(', ');

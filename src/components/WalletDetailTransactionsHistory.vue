@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
 import { computed } from 'vue';
-import {
-    useAccountTransactionsHistory,
-    useHasAccountOnChainQuery,
-} from '../composables/useAccountBreakdown.ts';
+import { useAccountTransactionsHistory, useHasAccountOnChainQuery } from '../composables/useAccountBreakdown.ts';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -16,22 +13,18 @@ const route = useRoute();
 
 const walletId = computed(() => Number(route.params.walletId));
 
-const { accountHistoryQuery, limit, setLimit } = useAccountTransactionsHistory(
-    walletId.value,
-);
+const { accountHistoryQuery, limit, setLimit } = useAccountTransactionsHistory(walletId.value);
 
 const hasAccount = useHasAccountOnChainQuery(walletId.value);
 
 const transactions = computed(() => {
     if (accountHistoryQuery.data.value) {
-        return accountHistoryQuery.data.value
-            .getTransactions()
-            .map((transaction) => {
-              let linkedAccount = transaction.getLinkedAccount().encode();
-              if (linkedAccount.endsWith('000000000000000000000000000000002')) {
-                linkedAccount = "Fees Account"
-              }
-              return {
+        return accountHistoryQuery.data.value.getTransactions().map((transaction) => {
+            let linkedAccount = transaction.getLinkedAccount().encode();
+            if (linkedAccount.endsWith('000000000000000000000000000000002')) {
+                linkedAccount = 'Fees Account';
+            }
+            return {
                 height: transaction.getHeight(),
                 amount: transaction.getAmount(),
                 transferredAt: transaction.transferredAt().toLocaleString(),
@@ -39,8 +32,8 @@ const transactions = computed(() => {
                 linkedAccount,
                 isNegative: transaction.getAmount().isNegative(),
                 isZero: transaction.getAmount().isZero(),
-              }
-            });
+            };
+        });
     }
     return [];
 });
@@ -50,14 +43,10 @@ const transactions = computed(() => {
     <!-- No Account State -->
     <Card v-if="!hasAccount">
         <template #content>
-            <div
-                class="flex flex-col items-center justify-center p-6 text-center"
-            >
+            <div class="flex flex-col items-center justify-center p-6 text-center">
                 <i class="pi pi-wallet text-4xl text-gray-400 mb-3"></i>
                 <h3 class="text-lg font-semibold mb-2">No Account Yet</h3>
-                <p class="text-gray-600">
-                    This wallet does not have an account on the blockchain yet.
-                </p>
+                <p class="text-gray-600">This wallet does not have an account on the blockchain yet.</p>
             </div>
         </template>
     </Card>
@@ -66,10 +55,7 @@ const transactions = computed(() => {
     <Card v-else-if="accountHistoryQuery.isLoading.value">
         <template #content>
             <div class="flex flex-col items-center justify-center p-6">
-                <ProgressSpinner
-                    style="width: 50px; height: 50px"
-                    strokeWidth="4"
-                />
+                <ProgressSpinner style="width: 50px; height: 50px" strokeWidth="4" />
                 <p class="mt-4 text-gray-600">Loading transaction history...</p>
             </div>
         </template>
@@ -84,9 +70,7 @@ const transactions = computed(() => {
                     <span>Transaction History</span>
                 </div>
                 <div class="flex items-center gap-2 w-auto">
-                    <label for="limit" class="text-sm font-normal">
-                        Limit:
-                    </label>
+                    <label for="limit" class="text-sm font-normal">Limit:</label>
                     <InputNumber
                         id="limit"
                         v-model="limit"
@@ -96,9 +80,7 @@ const transactions = computed(() => {
                         showButtons
                         buttonLayout="horizontal"
                     />
-                    <Button @click="() => accountHistoryQuery.refetch()">
-                        Refetch
-                    </Button>
+                    <Button @click="() => accountHistoryQuery.refetch()">Refetch</Button>
                 </div>
             </div>
         </template>
@@ -108,14 +90,8 @@ const transactions = computed(() => {
                 <Column field="amount" header="Amount" sortable>
                     <template #body="slotProps">
                         <div class="flex items-center gap-2">
-                            <i
-                                v-if="slotProps.data.isZero"
-                                class="pi pi-equals"
-                            ></i>
-                            <i
-                                v-else-if="!slotProps.data.isNegative"
-                                class="pi pi-arrow-up text-green-500"
-                            ></i>
+                            <i v-if="slotProps.data.isZero" class="pi pi-equals"></i>
+                            <i v-else-if="!slotProps.data.isNegative" class="pi pi-arrow-up text-green-500"></i>
                             <i v-else class="pi pi-arrow-down text-red-500"></i>
                             <span>{{ slotProps.data.amount }}</span>
                         </div>

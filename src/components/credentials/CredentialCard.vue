@@ -14,9 +14,7 @@ const emit = defineEmits<{
     (e: 'browse', id: number): void;
 }>();
 
-const credentialType = computed(() =>
-    detectCredentialType(props.credential.data),
-);
+const credentialType = computed(() => detectCredentialType(props.credential.data));
 </script>
 
 <template>

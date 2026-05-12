@@ -23,9 +23,7 @@ export class SdJwtParseError extends Error {
  *
  * Throws `SdJwtParseError` on any validation or decoding failure.
  */
-export async function parseCompactSdJwt(
-    token: string,
-): Promise<SdJwtCredential> {
+export async function parseCompactSdJwt(token: string): Promise<SdJwtCredential> {
     const trimmed = token.trim();
 
     if (!trimmed.includes('~')) {
@@ -38,17 +36,13 @@ export async function parseCompactSdJwt(
     try {
         sdJwt = await SDJwt.fromEncode(trimmed, digest);
     } catch (err) {
-        throw new SdJwtParseError(
-            `Failed to decode SD-JWT token: ${err instanceof Error ? err.message : String(err)}`,
-        );
+        throw new SdJwtParseError(`Failed to decode SD-JWT token: ${err instanceof Error ? err.message : String(err)}`);
     }
 
     const { jwt, disclosures } = sdJwt;
 
     if (!jwt?.header || !jwt?.payload) {
-        throw new SdJwtParseError(
-            'Decoded SD-JWT is missing header or payload.',
-        );
+        throw new SdJwtParseError('Decoded SD-JWT is missing header or payload.');
     }
 
     const header = jwt.header as Record<string, unknown>;
@@ -57,9 +51,7 @@ export async function parseCompactSdJwt(
     // Validate the token is actually an SD-JWT.
     // `typ` is optional in some SD-JWT issuers — presence of `_sd_alg` is sufficient.
     if (typeof payload._sd_alg !== 'string') {
-        throw new SdJwtParseError(
-            'Missing "_sd_alg" in payload — this does not appear to be an SD-JWT.',
-        );
+        throw new SdJwtParseError('Missing "_sd_alg" in payload — this does not appear to be an SD-JWT.');
     }
 
     const mappedDisclosures = (disclosures ?? []).map((d) => ({

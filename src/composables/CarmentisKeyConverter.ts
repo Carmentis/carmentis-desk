@@ -1,21 +1,14 @@
-import {
-    Secp256k1PrivateSignatureKey,
-    Secp256k1PublicSignatureKey,
-} from '@cmts-dev/carmentis-sdk/client';
+import { Secp256k1PrivateSignatureKey, Secp256k1PublicSignatureKey } from '@cmts-dev/carmentis-sdk/client';
 import { importJWK, JWK } from 'jose';
 
 // secp256k1 field prime
-const SECP256K1_P =
-    0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
+const SECP256K1_P = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
 
 export class CarmentisKeyConverter {
-    static async convertSecp256k1PrivateKeyToJwk(
-        privateKey: Secp256k1PrivateSignatureKey,
-    ): Promise<CryptoKey> {
+    static async convertSecp256k1PrivateKeyToJwk(privateKey: Secp256k1PrivateSignatureKey): Promise<CryptoKey> {
         const privateKeyBytes = privateKey.getPrivateKeyAsBytes();
 
-        const publicKey =
-            (await privateKey.getPublicKey()) as Secp256k1PublicSignatureKey;
+        const publicKey = (await privateKey.getPublicKey()) as Secp256k1PublicSignatureKey;
         const compressedPublicKey = await publicKey.getPublicKeyAsBytes();
 
         const { x, y } = decompressSecp256k1Point(compressedPublicKey);
@@ -41,10 +34,7 @@ function decompressSecp256k1Point(compressed: Uint8Array): {
     x: Uint8Array;
     y: Uint8Array;
 } {
-    if (
-        compressed.length !== 33 ||
-        (compressed[0] !== 0x02 && compressed[0] !== 0x03)
-    ) {
+    if (compressed.length !== 33 || (compressed[0] !== 0x02 && compressed[0] !== 0x03)) {
         throw new Error('Invalid compressed secp256k1 public key');
     }
 
@@ -90,8 +80,5 @@ function bigIntTo32Bytes(n: bigint): Uint8Array {
 
 function bytesToBase64Url(bytes: Uint8Array): string {
     const binary = String.fromCharCode(...bytes);
-    return btoa(binary)
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }

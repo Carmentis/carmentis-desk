@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import {
-    CryptoEncoderFactory,
-    SeedEncoder,
-    WalletCrypto,
-} from '@cmts-dev/carmentis-sdk/client';
+import { CryptoEncoderFactory, SeedEncoder, WalletCrypto } from '@cmts-dev/carmentis-sdk/client';
 import { ref } from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
@@ -77,14 +73,11 @@ function reject() {
             <template #content>
                 <div class="space-y-4">
                     <p class="text-sm text-gray-700 mb-2">
-                        An application is requesting your authorization to
-                        authenticate with your public key.
+                        An application is requesting your authorization to authenticate with your public key.
                     </p>
 
                     <div>
-                        <p class="text-xs text-gray-500 mb-1">
-                            Wallet for authentication
-                        </p>
+                        <p class="text-xs text-gray-500 mb-1">Wallet for authentication</p>
                         <Dropdown
                             id="walletSelect"
                             v-model="chosenWallet"
@@ -94,13 +87,8 @@ function reject() {
                             class="w-full"
                         >
                             <template #value="slotProps">
-                                <div
-                                    v-if="slotProps.value"
-                                    class="flex items-center gap-2"
-                                >
-                                    <i
-                                        class="pi pi-wallet text-surface-500"
-                                    ></i>
+                                <div v-if="slotProps.value" class="flex items-center gap-2">
+                                    <i class="pi pi-wallet text-surface-500"></i>
                                     <span>{{ slotProps.value.name }}</span>
                                 </div>
                                 <span v-else class="text-surface-500">
@@ -109,9 +97,7 @@ function reject() {
                             </template>
                             <template #option="slotProps">
                                 <div class="flex items-center gap-2">
-                                    <i
-                                        class="pi pi-wallet text-surface-500"
-                                    ></i>
+                                    <i class="pi pi-wallet text-surface-500"></i>
                                     <div>
                                         <div class="font-semibold">
                                             {{ slotProps.option.name }}
@@ -126,9 +112,7 @@ function reject() {
                     </div>
 
                     <div>
-                        <p class="text-xs text-gray-500 mb-1">
-                            Message to sign
-                        </p>
+                        <p class="text-xs text-gray-500 mb-1">Message to sign</p>
                         <p>{{ props.walletRequest.base64EncodedChallenge }}</p>
                     </div>
 

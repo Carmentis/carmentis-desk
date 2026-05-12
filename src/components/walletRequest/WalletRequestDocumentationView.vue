@@ -17,18 +17,10 @@ onMounted(async () => {
 <template>
     <div class="space-y-4">
         <div class="flex items-center gap-3">
-            <Button
-                icon="pi pi-arrow-left"
-                severity="secondary"
-                outlined
-                size="small"
-                @click="router.push('/')"
-            />
+            <Button icon="pi pi-arrow-left" severity="secondary" outlined size="small" @click="router.push('/')" />
             <div class="flex items-center gap-2">
                 <i class="pi pi-book text-xl text-primary"></i>
-                <h1 class="text-xl font-bold text-surface-900">
-                    Wallet Request Documentation
-                </h1>
+                <h1 class="text-xl font-bold text-surface-900">Wallet Request Documentation</h1>
             </div>
         </div>
 

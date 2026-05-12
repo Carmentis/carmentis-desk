@@ -11,12 +11,7 @@ const uri = computed(() => props.uri);
 async function handleQuery() {
     const url = new URL(uri.value);
     if (uri.value === '') return;
-    console.log(
-        'Received OpenID URL:',
-        uri.value,
-        'query:',
-        url.searchParams.toString(),
-    );
+    console.log('Received OpenID URL:', uri.value, 'query:', url.searchParams.toString());
     console.log(url);
     const requestUri = url.searchParams.get('request_uri');
     if (requestUri) {

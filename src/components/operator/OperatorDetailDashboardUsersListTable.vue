@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
 import { computed, ref } from 'vue';
-import {
-    useGetAllUsers,
-    useCreateUserMutation,
-    useDeleteUserMutation,
-} from '../../composables/operator.ts';
+import { useGetAllUsers, useCreateUserMutation, useDeleteUserMutation } from '../../composables/operator.ts';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -115,9 +111,7 @@ function confirmDeleteUser(user: any) {
                 toast.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail:
-                        error?.response?.data?.message ||
-                        'Failed to delete user',
+                    detail: error?.response?.data?.message || 'Failed to delete user',
                     life: 3000,
                 });
             }
@@ -134,12 +128,7 @@ function confirmDeleteUser(user: any) {
                     <i class="pi pi-users text-2xl text-primary-500"></i>
                     <span>Users</span>
                 </div>
-                <Button
-                    label="Add User"
-                    icon="pi pi-plus"
-                    size="small"
-                    @click="openCreateUserDialog"
-                />
+                <Button label="Add User" icon="pi pi-plus" size="small" @click="openCreateUserDialog" />
             </div>
         </template>
         <template #content>
@@ -151,34 +140,21 @@ function confirmDeleteUser(user: any) {
             </div>
 
             <!-- Error State -->
-            <Message
-                v-else-if="getAllUsersRequest.isError.value"
-                severity="error"
-                :closable="false"
-            >
+            <Message v-else-if="getAllUsersRequest.isError.value" severity="error" :closable="false">
                 Failed to load users:
                 {{ getAllUsersRequest.error.value?.message }}
             </Message>
 
             <!-- Empty State -->
             <div
-                v-else-if="
-                    !getAllUsersRequest.data.value ||
-                    getAllUsersRequest.data.value.length === 0
-                "
+                v-else-if="!getAllUsersRequest.data.value || getAllUsersRequest.data.value.length === 0"
                 class="text-center py-8"
             >
-                <div
-                    class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-surface-100 mb-4"
-                >
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-surface-100 mb-4">
                     <i class="pi pi-users text-3xl text-surface-400"></i>
                 </div>
-                <h3 class="text-lg font-medium text-surface-900 mb-2">
-                    No users found
-                </h3>
-                <p class="text-surface-500">
-                    No users are currently registered with this operator.
-                </p>
+                <h3 class="text-lg font-medium text-surface-900 mb-2">No users found</h3>
+                <p class="text-surface-500">No users are currently registered with this operator.</p>
             </div>
 
             <!-- Data Table -->
@@ -187,9 +163,7 @@ function confirmDeleteUser(user: any) {
                     <span class="text-surface-600 text-sm">
                         <i class="pi pi-info-circle mr-2"></i>
                         {{ getAllUsersRequest.data.value.length }} user{{
-                            getAllUsersRequest.data.value.length !== 1
-                                ? 's'
-                                : ''
+                            getAllUsersRequest.data.value.length !== 1 ? 's' : ''
                         }}
                         found
                     </span>
@@ -205,12 +179,7 @@ function confirmDeleteUser(user: any) {
                     responsiveLayout="scroll"
                     class="text-sm"
                 >
-                    <Column
-                        field="pseudo"
-                        header="User"
-                        sortable
-                        style="min-width: 200px"
-                    >
+                    <Column field="pseudo" header="User" sortable style="min-width: 200px">
                         <template #body="slotProps">
                             <div class="flex items-center gap-3">
                                 <Avatar
@@ -223,9 +192,7 @@ function confirmDeleteUser(user: any) {
                                     <div class="font-semibold text-surface-900">
                                         {{ slotProps.data.pseudo }}
                                     </div>
-                                    <div class="text-xs text-surface-500">
-                                        User
-                                    </div>
+                                    <div class="text-xs text-surface-500">User</div>
                                 </div>
                             </div>
                         </template>
@@ -234,17 +201,9 @@ function confirmDeleteUser(user: any) {
                     <Column field="publicKey" header="Public Key" sortable>
                         <template #body="slotProps">
                             <div class="flex items-center gap-2">
-                                <i
-                                    class="pi pi-key text-surface-400 text-xs"
-                                ></i>
-                                <code
-                                    class="text-xs bg-surface-50 px-2 py-1 rounded text-surface-700 font-mono"
-                                >
-                                    {{
-                                        truncatePublicKey(
-                                            slotProps.data.publicKey,
-                                        )
-                                    }}
+                                <i class="pi pi-key text-surface-400 text-xs"></i>
+                                <code class="text-xs bg-surface-50 px-2 py-1 rounded text-surface-700 font-mono">
+                                    {{ truncatePublicKey(slotProps.data.publicKey) }}
                                 </code>
                             </div>
                         </template>
@@ -268,34 +227,14 @@ function confirmDeleteUser(user: any) {
     </Card>
 
     <!-- Create User Dialog -->
-    <Dialog
-        v-model:visible="showCreateUserDialog"
-        modal
-        header="Add User"
-        :style="{ width: '500px' }"
-    >
+    <Dialog v-model:visible="showCreateUserDialog" modal header="Add User" :style="{ width: '500px' }">
         <div class="space-y-4 py-4">
             <div>
-                <label
-                    for="userPseudo"
-                    class="block text-sm font-semibold text-gray-700 mb-2"
-                >
-                    Pseudo
-                </label>
-                <InputText
-                    id="userPseudo"
-                    v-model="newUserPseudo"
-                    placeholder="Enter user pseudo"
-                    class="w-full"
-                />
+                <label for="userPseudo" class="block text-sm font-semibold text-gray-700 mb-2">Pseudo</label>
+                <InputText id="userPseudo" v-model="newUserPseudo" placeholder="Enter user pseudo" class="w-full" />
             </div>
             <div>
-                <label
-                    for="userPublicKey"
-                    class="block text-sm font-semibold text-gray-700 mb-2"
-                >
-                    Public Key
-                </label>
+                <label for="userPublicKey" class="block text-sm font-semibold text-gray-700 mb-2">Public Key</label>
                 <Textarea
                     id="userPublicKey"
                     v-model="newUserPublicKey"
@@ -307,11 +246,7 @@ function confirmDeleteUser(user: any) {
         </div>
         <template #footer>
             <Button label="Cancel" text @click="showCreateUserDialog = false" />
-            <Button
-                label="Create"
-                @click="createUser"
-                :loading="createUserMutation.isPending.value"
-            />
+            <Button label="Create" @click="createUser" :loading="createUserMutation.isPending.value" />
         </template>
     </Dialog>
 </template>

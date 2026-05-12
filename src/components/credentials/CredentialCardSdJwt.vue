@@ -68,8 +68,7 @@ const PREVIEW_LENGTH = 60;
 function previewValue(v: unknown): string {
     if (v === null || v === undefined) return 'null';
     if (typeof v === 'object') {
-        if (Array.isArray(v))
-            return `[ ${v.length} item${v.length !== 1 ? 's' : ''} ]`;
+        if (Array.isArray(v)) return `[ ${v.length} item${v.length !== 1 ? 's' : ''} ]`;
         const n = Object.keys(v as object).length;
         return `{ ${n} key${n !== 1 ? 's' : ''} }`;
     }
@@ -99,11 +98,7 @@ const disclosedClaims = computed(() =>
         })),
 );
 
-const arrayDisclosureCount = computed(
-    () =>
-        (sdJwt.value?.disclosures ?? []).filter((d) => d.key === undefined)
-            .length,
-);
+const arrayDisclosureCount = computed(() => (sdJwt.value?.disclosures ?? []).filter((d) => d.key === undefined).length);
 </script>
 
 <template>
@@ -114,12 +109,8 @@ const arrayDisclosureCount = computed(
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2 mb-1">
-                            <i
-                                class="pi pi-shield text-white/90 text-sm shrink-0"
-                            ></i>
-                            <span
-                                class="text-white font-semibold text-sm leading-tight break-words"
-                            >
+                            <i class="pi pi-shield text-white/90 text-sm shrink-0"></i>
+                            <span class="text-white font-semibold text-sm leading-tight break-words">
                                 {{ credential.name }}
                             </span>
                         </div>
@@ -131,10 +122,7 @@ const arrayDisclosureCount = computed(
                             {{ sdJwt.jwt.payload.vct }}
                         </span>
                     </div>
-                    <Tag
-                        value="SD-JWT"
-                        class="shrink-0 !bg-white/20 !text-white !border-white/30 text-xs"
-                    />
+                    <Tag value="SD-JWT" class="shrink-0 !bg-white/20 !text-white !border-white/30 text-xs" />
                 </div>
             </div>
         </template>
@@ -144,58 +132,32 @@ const arrayDisclosureCount = computed(
                 <!-- Core metadata -->
                 <dl class="space-y-0 divide-y divide-gray-50">
                     <div class="flex gap-3 py-1.5">
-                        <dt
-                            class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5"
-                        >
-                            Issuer
-                        </dt>
-                        <dd
-                            class="min-w-0 flex-1 text-xs font-mono text-gray-700 break-all leading-snug"
-                        >
+                        <dt class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5">Issuer</dt>
+                        <dd class="min-w-0 flex-1 text-xs font-mono text-gray-700 break-all leading-snug">
                             {{ sdJwt.jwt.payload.iss }}
                         </dd>
                     </div>
                     <div v-if="subject" class="flex gap-3 py-1.5">
-                        <dt
-                            class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5"
-                        >
-                            Subject
-                        </dt>
-                        <dd
-                            class="min-w-0 flex-1 text-xs font-mono text-gray-700 break-all leading-snug"
-                        >
+                        <dt class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5">Subject</dt>
+                        <dd class="min-w-0 flex-1 text-xs font-mono text-gray-700 break-all leading-snug">
                             {{ subject }}
                         </dd>
                     </div>
                     <div class="flex gap-3 py-1.5">
-                        <dt
-                            class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5"
-                        >
-                            Issued
-                        </dt>
+                        <dt class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5">Issued</dt>
                         <dd class="min-w-0 flex-1 text-sm text-gray-700">
                             {{ issuedAt ?? '—' }}
                         </dd>
                     </div>
                     <div class="flex gap-3 py-1.5">
-                        <dt
-                            class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5"
-                        >
-                            Expires
-                        </dt>
+                        <dt class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5">Expires</dt>
                         <dd class="min-w-0 flex-1 text-sm text-gray-700">
                             {{ expireAt ?? '—' }}
                         </dd>
                     </div>
                     <div class="flex gap-3 py-1.5">
-                        <dt
-                            class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5"
-                        >
-                            Algorithm
-                        </dt>
-                        <dd
-                            class="min-w-0 flex-1 text-xs font-mono text-gray-500"
-                        >
+                        <dt class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5">Algorithm</dt>
+                        <dd class="min-w-0 flex-1 text-xs font-mono text-gray-500">
                             {{ sdJwt.jwt.header.alg }} /
                             {{ sdJwt.jwt.payload._sd_alg }}
                         </dd>
@@ -205,9 +167,7 @@ const arrayDisclosureCount = computed(
                 <!-- Disclosed claims -->
                 <div v-if="disclosedClaims.length > 0">
                     <div class="flex items-center gap-2 mb-2">
-                        <span
-                            class="text-xs font-semibold text-gray-400 uppercase tracking-wider"
-                        >
+                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                             Disclosed claims
                         </span>
                         <span class="text-xs text-gray-300">
@@ -215,9 +175,7 @@ const arrayDisclosureCount = computed(
                         </span>
                     </div>
 
-                    <dl
-                        class="rounded-md border border-gray-100 divide-y divide-gray-100 overflow-hidden"
-                    >
+                    <dl class="rounded-md border border-gray-100 divide-y divide-gray-100 overflow-hidden">
                         <div
                             v-for="claim in disclosedClaims"
                             :key="claim.id"
@@ -240,49 +198,28 @@ const arrayDisclosureCount = computed(
                                             ? 'break-all whitespace-pre-wrap'
                                             : 'block truncate'
                                     "
-                                    :title="
-                                        !expandedClaims.has(claim.id) &&
-                                        !claim.expandable
-                                            ? undefined
-                                            : claim.full
-                                    "
+                                    :title="!expandedClaims.has(claim.id) && !claim.expandable ? undefined : claim.full"
                                 >
-                                    {{
-                                        expandedClaims.has(claim.id)
-                                            ? claim.full
-                                            : claim.preview
-                                    }}
+                                    {{ expandedClaims.has(claim.id) ? claim.full : claim.preview }}
                                 </span>
                                 <button
                                     v-if="claim.expandable"
                                     class="text-xs text-blue-500 hover:text-blue-700 hover:underline mt-0.5 block"
                                     @click="toggleExpand(claim.id)"
                                 >
-                                    {{
-                                        expandedClaims.has(claim.id)
-                                            ? 'Show less'
-                                            : 'Show more'
-                                    }}
+                                    {{ expandedClaims.has(claim.id) ? 'Show less' : 'Show more' }}
                                 </button>
                             </dd>
                         </div>
                     </dl>
 
-                    <p
-                        v-if="arrayDisclosureCount > 0"
-                        class="text-xs text-gray-400 mt-1.5"
-                    >
-                        + {{ arrayDisclosureCount }} array-element disclosure{{
-                            arrayDisclosureCount !== 1 ? 's' : ''
-                        }}
+                    <p v-if="arrayDisclosureCount > 0" class="text-xs text-gray-400 mt-1.5">
+                        + {{ arrayDisclosureCount }} array-element disclosure{{ arrayDisclosureCount !== 1 ? 's' : '' }}
                     </p>
                 </div>
             </div>
 
-            <div
-                v-else
-                class="flex items-center gap-2 text-sm text-red-500 py-2"
-            >
+            <div v-else class="flex items-center gap-2 text-sm text-red-500 py-2">
                 <i class="pi pi-exclamation-circle shrink-0"></i>
                 <span>Could not parse SD-JWT</span>
             </div>
@@ -319,8 +256,5 @@ const arrayDisclosureCount = computed(
         </template>
     </Card>
 
-    <SdJwtPresentationDialog
-        v-model:visible="showPresentDialog"
-        :credential="credential"
-    />
+    <SdJwtPresentationDialog v-model:visible="showPresentDialog" :credential="credential" />
 </template>

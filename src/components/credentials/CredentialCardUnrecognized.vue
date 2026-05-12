@@ -43,11 +43,7 @@ interface PreviewEntry {
 const jsonPreview = computed<PreviewEntry[] | null>(() => {
     try {
         const parsed = JSON.parse(props.credential.data);
-        if (
-            typeof parsed !== 'object' ||
-            parsed === null ||
-            Array.isArray(parsed)
-        ) {
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
             const s = String(props.credential.data);
             return [
                 {
@@ -69,17 +65,14 @@ const jsonPreview = computed<PreviewEntry[] | null>(() => {
                 if (v === null) {
                     preview = full = 'null';
                 } else if (Array.isArray(v)) {
-                    preview =
-                        full = `[ ${v.length} item${v.length !== 1 ? 's' : ''} ]`;
+                    preview = full = `[ ${v.length} item${v.length !== 1 ? 's' : ''} ]`;
                 } else if (typeof v === 'object') {
                     const n = Object.keys(v).length;
                     preview = full = `{ ${n} key${n !== 1 ? 's' : ''} }`;
                 } else {
                     full = String(v);
                     expandable = full.length > PREVIEW_LENGTH;
-                    preview = expandable
-                        ? full.slice(0, PREVIEW_LENGTH) + '…'
-                        : full;
+                    preview = expandable ? full.slice(0, PREVIEW_LENGTH) + '…' : full;
                 }
                 return { key: k, preview, full, expandable };
             });
@@ -91,11 +84,7 @@ const jsonPreview = computed<PreviewEntry[] | null>(() => {
 const totalKeys = computed<number | null>(() => {
     try {
         const parsed = JSON.parse(props.credential.data);
-        if (
-            typeof parsed === 'object' &&
-            parsed !== null &&
-            !Array.isArray(parsed)
-        ) {
+        if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
             return Object.keys(parsed).length;
         }
         return null;
@@ -104,11 +93,7 @@ const totalKeys = computed<number | null>(() => {
     }
 });
 
-const hiddenKeyCount = computed(() =>
-    totalKeys.value !== null
-        ? Math.max(0, totalKeys.value - MAX_PREVIEW_KEYS)
-        : 0,
-);
+const hiddenKeyCount = computed(() => (totalKeys.value !== null ? Math.max(0, totalKeys.value - MAX_PREVIEW_KEYS) : 0));
 </script>
 
 <template>
@@ -119,19 +104,13 @@ const hiddenKeyCount = computed(() =>
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2">
-                            <i
-                                class="pi pi-id-card text-white/90 text-sm shrink-0"
-                            ></i>
-                            <span
-                                class="text-white font-semibold text-sm leading-tight break-words"
-                            >
+                            <i class="pi pi-id-card text-white/90 text-sm shrink-0"></i>
+                            <span class="text-white font-semibold text-sm leading-tight break-words">
                                 {{ credential.name }}
                             </span>
                         </div>
                     </div>
-                    <span
-                        class="shrink-0 text-xs text-gray-200 font-medium uppercase tracking-wide pt-0.5"
-                    >
+                    <span class="shrink-0 text-xs text-gray-200 font-medium uppercase tracking-wide pt-0.5">
                         Unknown
                     </span>
                 </div>
@@ -140,9 +119,7 @@ const hiddenKeyCount = computed(() =>
 
         <template #content>
             <div v-if="jsonPreview">
-                <dl
-                    class="rounded-md border border-gray-100 divide-y divide-gray-100 overflow-hidden"
-                >
+                <dl class="rounded-md border border-gray-100 divide-y divide-gray-100 overflow-hidden">
                     <div
                         v-for="entry in jsonPreview"
                         :key="entry.key"
@@ -161,52 +138,29 @@ const hiddenKeyCount = computed(() =>
                             <span
                                 class="text-sm text-gray-700 leading-snug"
                                 :class="
-                                    expandedEntries.has(entry.key)
-                                        ? 'break-all whitespace-pre-wrap'
-                                        : 'block truncate'
+                                    expandedEntries.has(entry.key) ? 'break-all whitespace-pre-wrap' : 'block truncate'
                                 "
-                                :title="
-                                    !expandedEntries.has(entry.key) &&
-                                    !entry.expandable
-                                        ? undefined
-                                        : entry.full
-                                "
+                                :title="!expandedEntries.has(entry.key) && !entry.expandable ? undefined : entry.full"
                             >
-                                {{
-                                    expandedEntries.has(entry.key)
-                                        ? entry.full
-                                        : entry.preview
-                                }}
+                                {{ expandedEntries.has(entry.key) ? entry.full : entry.preview }}
                             </span>
                             <button
                                 v-if="entry.expandable"
                                 class="text-xs text-blue-500 hover:text-blue-700 hover:underline mt-0.5 block"
                                 @click="toggleExpand(entry.key)"
                             >
-                                {{
-                                    expandedEntries.has(entry.key)
-                                        ? 'Show less'
-                                        : 'Show more'
-                                }}
+                                {{ expandedEntries.has(entry.key) ? 'Show less' : 'Show more' }}
                             </button>
                         </dd>
                     </div>
                 </dl>
 
-                <p
-                    v-if="hiddenKeyCount > 0"
-                    class="text-xs text-gray-400 mt-2 px-1"
-                >
-                    … and {{ hiddenKeyCount }} more key{{
-                        hiddenKeyCount !== 1 ? 's' : ''
-                    }}
+                <p v-if="hiddenKeyCount > 0" class="text-xs text-gray-400 mt-2 px-1">
+                    … and {{ hiddenKeyCount }} more key{{ hiddenKeyCount !== 1 ? 's' : '' }}
                 </p>
             </div>
 
-            <div
-                v-else
-                class="flex items-center gap-2 text-sm text-red-500 py-2"
-            >
+            <div v-else class="flex items-center gap-2 text-sm text-red-500 py-2">
                 <i class="pi pi-exclamation-circle shrink-0"></i>
                 <span>Invalid JSON</span>
             </div>

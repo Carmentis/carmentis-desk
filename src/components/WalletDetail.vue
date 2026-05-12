@@ -66,21 +66,15 @@ const deleteWallet = () => {
 };
 
 const walletId = computed(() => Number(route.params.walletId));
-const wallet = computed(() =>
-    storageStore.organizations.find((w) => w.id === walletId.value),
-);
+const wallet = computed(() => storageStore.organizations.find((w) => w.id === walletId.value));
 
 // wallet key pair
 const walletKeyPair = computedAsync(async () => {
     if (!wallet.value) return undefined;
     const seedEncoder = new SeedEncoder();
-    const walletSeed = WalletCrypto.fromSeed(
-        seedEncoder.decode(wallet.value.seed),
-    );
+    const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.value.seed));
     const accountCrypto = walletSeed.getDefaultAccountCrypto();
-    const sk = await accountCrypto.getPrivateSignatureKey(
-        SignatureSchemeId.SECP256K1,
-    );
+    const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
     const pk = await sk.getPublicKey();
     const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
     return {
@@ -104,8 +98,7 @@ watch(transferPublicKey, async () => {
         // attempt to parse the public key
         const encoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
         const pk = await encoder.decodePublicKey(transferPublicKey.value);
-        isCreatingNewAccount.value =
-            !(await walletStore.isAccountFoundByPublicKey(walletId.value, pk));
+        isCreatingNewAccount.value = !(await walletStore.isAccountFoundByPublicKey(walletId.value, pk));
     } catch (e) {
         isCreatingNewAccount.value = undefined;
     }
@@ -365,43 +358,24 @@ const menuItems = computed<MenuItem[]>(() => [
                                     icon="pi pi-copy"
                                     :model="copyMenuItems"
                                     size="small"
-                                    @click="
-                                        copyToClipboard(
-                                            walletKeyPair?.pk,
-                                            'Public key',
-                                        )
-                                    "
+                                    @click="copyToClipboard(walletKeyPair?.pk, 'Public key')"
                                 />
                             </div>
                         </template>
                         <template #subtitle>
                             <p class="text-sm text-surface-500">
-                                Your cryptographic key pair and seed. Keep the
-                                private key and seed strictly confidential —
-                                anyone with access to them can control this
-                                wallet.
+                                Your cryptographic key pair and seed. Keep the private key and seed strictly
+                                confidential — anyone with access to them can control this wallet.
                             </p>
                         </template>
                         <template #content>
                             <div class="space-y-4">
                                 <div>
-                                    <label
-                                        class="block text-sm font-medium text-gray-700 mb-2"
-                                    >
-                                        Public Key
-                                    </label>
-                                    <InputText
-                                        v-model="pk"
-                                        :disabled="true"
-                                        class="w-full"
-                                    />
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Public Key</label>
+                                    <InputText v-model="pk" :disabled="true" class="w-full" />
                                 </div>
                                 <div class="w-full">
-                                    <label
-                                        class="block text-sm font-medium text-gray-700 mb-2"
-                                    >
-                                        Private Key
-                                    </label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Private Key</label>
                                     <Password
                                         v-model="sk"
                                         :feedback="false"
@@ -411,11 +385,7 @@ const menuItems = computed<MenuItem[]>(() => [
                                     />
                                 </div>
                                 <div class="w-full">
-                                    <label
-                                        class="block text-sm font-medium text-gray-700 mb-2"
-                                    >
-                                        Private seed
-                                    </label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Private seed</label>
                                     <Password
                                         v-model="wallet.seed"
                                         :feedback="false"
@@ -430,12 +400,7 @@ const menuItems = computed<MenuItem[]>(() => [
                     </Card>
 
                     <!-- No account found on chain Card -->
-                    <Card
-                        v-if="
-                            breakdownQuery.error.value ||
-                            accountIdQuery.error.value
-                        "
-                    >
+                    <Card v-if="breakdownQuery.error.value || accountIdQuery.error.value">
                         <template #title>
                             <div class="flex items-center gap-2">
                                 <i class="pi pi-wallet text-xl"></i>
@@ -444,34 +409,20 @@ const menuItems = computed<MenuItem[]>(() => [
                         </template>
                         <template #subtitle>
                             <p class="text-sm text-surface-500">
-                                Your on-chain token holdings broken down by
-                                spendable, vested, and staked amounts.
+                                Your on-chain token holdings broken down by spendable, vested, and staked amounts.
                             </p>
                         </template>
                         <template #content>
                             <div class="text-center py-12">
-                                <i
-                                    class="pi pi-exclamation-circle text-3xl text-amber-500 mb-2"
-                                ></i>
-                                <h1
-                                    class="text-2xl font-bold text-gray-900 mb-2"
-                                >
-                                    No account found
-                                </h1>
-                                <p class="text-gray-600 text-sm">
-                                    Purchase tokens to see your balance.
-                                </p>
+                                <i class="pi pi-exclamation-circle text-3xl text-amber-500 mb-2"></i>
+                                <h1 class="text-2xl font-bold text-gray-900 mb-2">No account found</h1>
+                                <p class="text-gray-600 text-sm">Purchase tokens to see your balance.</p>
                             </div>
                         </template>
                     </Card>
 
                     <!-- Balance Card Loading -->
-                    <Card
-                        v-else-if="
-                            accountIdQuery.isLoading.value ||
-                            breakdownQuery.isLoading.value
-                        "
-                    >
+                    <Card v-else-if="accountIdQuery.isLoading.value || breakdownQuery.isLoading.value">
                         <template #title>
                             <div class="flex items-center gap-2">
                                 <i class="pi pi-wallet text-xl"></i>
@@ -480,41 +431,22 @@ const menuItems = computed<MenuItem[]>(() => [
                         </template>
                         <template #subtitle>
                             <p class="text-sm text-surface-500">
-                                Your on-chain token holdings broken down by
-                                spendable, vested, and staked amounts.
+                                Your on-chain token holdings broken down by spendable, vested, and staked amounts.
                             </p>
                         </template>
                         <template #content>
                             <div class="grid grid-cols-1 gap-4">
-                                <div
-                                    class="bg-gray-50 rounded-lg p-4 animate-pulse"
-                                >
-                                    <div
-                                        class="h-4 bg-gray-200 rounded w-20 mb-2"
-                                    ></div>
-                                    <div
-                                        class="h-8 bg-gray-200 rounded w-24"
-                                    ></div>
+                                <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
+                                    <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                                    <div class="h-8 bg-gray-200 rounded w-24"></div>
                                 </div>
-                                <div
-                                    class="bg-gray-50 rounded-lg p-4 animate-pulse"
-                                >
-                                    <div
-                                        class="h-4 bg-gray-200 rounded w-20 mb-2"
-                                    ></div>
-                                    <div
-                                        class="h-8 bg-gray-200 rounded w-24"
-                                    ></div>
+                                <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
+                                    <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                                    <div class="h-8 bg-gray-200 rounded w-24"></div>
                                 </div>
-                                <div
-                                    class="bg-gray-50 rounded-lg p-4 animate-pulse"
-                                >
-                                    <div
-                                        class="h-4 bg-gray-200 rounded w-20 mb-2"
-                                    ></div>
-                                    <div
-                                        class="h-8 bg-gray-200 rounded w-24"
-                                    ></div>
+                                <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
+                                    <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                                    <div class="h-8 bg-gray-200 rounded w-24"></div>
                                 </div>
                             </div>
                         </template>
@@ -523,26 +455,14 @@ const menuItems = computed<MenuItem[]>(() => [
                     <!-- Balance Card -->
                     <Card v-else-if="breakdownQuery.data.value">
                         <template #title>
-                            <div
-                                class="flex flex-wrap items-center justify-between gap-2"
-                            >
+                            <div class="flex flex-wrap items-center justify-between gap-2">
                                 <div class="flex items-center gap-2">
                                     <i class="pi pi-wallet text-xl"></i>
                                     <span>Balance</span>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <span
-                                        v-if="
-                                            breakdownQuery.dataUpdatedAt.value
-                                        "
-                                        class="text-xs text-gray-500"
-                                    >
-                                        {{
-                                            new Date(
-                                                breakdownQuery.dataUpdatedAt
-                                                    .value,
-                                            ).toLocaleString()
-                                        }}
+                                    <span v-if="breakdownQuery.dataUpdatedAt.value" class="text-xs text-gray-500">
+                                        {{ new Date(breakdownQuery.dataUpdatedAt.value).toLocaleString() }}
                                     </span>
                                     <Button
                                         @click="openTransferDialog"
@@ -555,52 +475,27 @@ const menuItems = computed<MenuItem[]>(() => [
                         </template>
                         <template #subtitle>
                             <p class="text-sm text-surface-500">
-                                Your on-chain token holdings broken down by
-                                spendable, vested, and staked amounts.
+                                Your on-chain token holdings broken down by spendable, vested, and staked amounts.
                             </p>
                         </template>
                         <template #content>
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div class="bg-gray-50 rounded-lg p-4">
-                                    <div
-                                        class="text-sm text-gray-600 font-medium mb-1"
-                                    >
-                                        Spendable
-                                    </div>
-                                    <div
-                                        class="text-2xl font-bold text-gray-900"
-                                    >
-                                        {{
-                                            breakdownQuery.data.value.getSpendable()
-                                        }}
+                                    <div class="text-sm text-gray-600 font-medium mb-1">Spendable</div>
+                                    <div class="text-2xl font-bold text-gray-900">
+                                        {{ breakdownQuery.data.value.getSpendable() }}
                                     </div>
                                 </div>
                                 <div class="bg-gray-50 rounded-lg p-4">
-                                    <div
-                                        class="text-sm text-gray-600 font-medium mb-1"
-                                    >
-                                        Vested
-                                    </div>
-                                    <div
-                                        class="text-2xl font-bold text-gray-900"
-                                    >
-                                        {{
-                                            breakdownQuery.data.value.getVested()
-                                        }}
+                                    <div class="text-sm text-gray-600 font-medium mb-1">Vested</div>
+                                    <div class="text-2xl font-bold text-gray-900">
+                                        {{ breakdownQuery.data.value.getVested() }}
                                     </div>
                                 </div>
                                 <div class="bg-gray-50 rounded-lg p-4">
-                                    <div
-                                        class="text-sm text-gray-600 font-medium mb-1"
-                                    >
-                                        Staked
-                                    </div>
-                                    <div
-                                        class="text-2xl font-bold text-gray-900"
-                                    >
-                                        {{
-                                            breakdownQuery.data.value.getStaked()
-                                        }}
+                                    <div class="text-sm text-gray-600 font-medium mb-1">Staked</div>
+                                    <div class="text-2xl font-bold text-gray-900">
+                                        {{ breakdownQuery.data.value.getStaked() }}
                                     </div>
                                 </div>
                             </div>
@@ -611,16 +506,10 @@ const menuItems = computed<MenuItem[]>(() => [
                 <!-- Organizations Card -->
                 <Card>
                     <template #title>
-                        <div
-                            class="flex flex-wrap items-center justify-between gap-2"
-                        >
+                        <div class="flex flex-wrap items-center justify-between gap-2">
                             <div class="flex items-center gap-2">
                                 <i class="pi pi-building text-xl"></i>
-                                <span>
-                                    Organizations ({{
-                                        wallet.organizations.length
-                                    }})
-                                </span>
+                                <span>Organizations ({{ wallet.organizations.length }})</span>
                             </div>
                             <div class="flex flex-wrap gap-2">
                                 <Button
@@ -641,26 +530,18 @@ const menuItems = computed<MenuItem[]>(() => [
                     </template>
                     <template #subtitle>
                         <p class="text-sm text-surface-500">
-                            Legal entities registered on the Carmentis network.
-                            Each organization can run validator nodes and deploy
-                            applications.
+                            Legal entities registered on the Carmentis network. Each organization can run validator
+                            nodes and deploy applications.
                         </p>
                     </template>
                     <template #content>
-                        <div
-                            v-if="wallet.organizations.length === 0"
-                            class="text-center py-8"
-                        >
+                        <div v-if="wallet.organizations.length === 0" class="text-center py-8">
                             <div
                                 class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
                             >
-                                <i
-                                    class="pi pi-building text-2xl text-gray-400"
-                                ></i>
+                                <i class="pi pi-building text-2xl text-gray-400"></i>
                             </div>
-                            <p class="text-gray-500 text-sm mb-4">
-                                No organizations yet
-                            </p>
+                            <p class="text-gray-500 text-sm mb-4">No organizations yet</p>
                             <div class="flex gap-2 justify-center">
                                 <Button
                                     @click="openCreateOrgDialog"
@@ -687,9 +568,7 @@ const menuItems = computed<MenuItem[]>(() => [
                                 <div class="flex items-start justify-between">
                                     <div class="space-y-2 flex-1">
                                         <div class="flex items-center gap-3">
-                                            <div
-                                                class="font-medium text-gray-900"
-                                            >
+                                            <div class="font-medium text-gray-900">
                                                 {{ org.name }}
                                             </div>
                                             <div
@@ -700,38 +579,22 @@ const menuItems = computed<MenuItem[]>(() => [
                                                 {{ org.vbId }}
                                             </div>
                                         </div>
-                                        <div
-                                            class="text-sm text-gray-600 space-y-1"
-                                        >
-                                            <div
-                                                class="flex items-center gap-4"
-                                            >
-                                                <span
-                                                    class="flex items-center gap-1"
-                                                >
-                                                    <i
-                                                        class="pi pi-sitemap text-gray-400"
-                                                    ></i>
+                                        <div class="text-sm text-gray-600 space-y-1">
+                                            <div class="flex items-center gap-4">
+                                                <span class="flex items-center gap-1">
+                                                    <i class="pi pi-sitemap text-gray-400"></i>
                                                     {{ org.nodes.length }}
                                                     node(s)
                                                 </span>
-                                                <span
-                                                    class="flex items-center gap-1"
-                                                >
-                                                    <i
-                                                        class="pi pi-box text-gray-400"
-                                                    ></i>
-                                                    {{
-                                                        org.applications.length
-                                                    }}
+                                                <span class="flex items-center gap-1">
+                                                    <i class="pi pi-box text-gray-400"></i>
+                                                    {{ org.applications.length }}
                                                     app(s)
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
-                                    <i
-                                        class="pi pi-chevron-right text-gray-400"
-                                    ></i>
+                                    <i class="pi pi-chevron-right text-gray-400"></i>
                                 </div>
                             </div>
                         </div>
@@ -743,27 +606,19 @@ const menuItems = computed<MenuItem[]>(() => [
                     <template #title>
                         <div class="flex items-center gap-2">
                             <i class="pi pi-box text-xl"></i>
-                            <span>
-                                Application Ledgers ({{
-                                    (wallet.participations ?? []).length
-                                }})
-                            </span>
+                            <span>Application Ledgers ({{ (wallet.participations ?? []).length }})</span>
                         </div>
                     </template>
                     <template #subtitle>
                         <p class="text-sm text-surface-500">
-                            Applications this wallet has interacted with through
-                            the anchoring protocol. Click on a card to explore
-                            the associated virtual blockchain records.
+                            Applications this wallet has interacted with through the anchoring protocol. Click on a card
+                            to explore the associated virtual blockchain records.
                         </p>
                     </template>
                     <template #content>
-                        <div
-                            class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
-                        >
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                             <WalletDetailAppParticipationCard
-                                v-for="participation in wallet.participations ??
-                                []"
+                                v-for="participation in wallet.participations ?? []"
                                 :key="participation.id"
                                 :participation="participation"
                                 :node-endpoint="wallet.nodeEndpoint"
@@ -776,12 +631,7 @@ const menuItems = computed<MenuItem[]>(() => [
                 <WalletDetailTransactionsHistory />
             </div>
             <!-- Transfer Dialog -->
-            <Dialog
-                v-model:visible="showTransferDialog"
-                header="Transfer Tokens"
-                modal
-                class="w-full max-w-md"
-            >
+            <Dialog v-model:visible="showTransferDialog" header="Transfer Tokens" modal class="w-full max-w-md">
                 <div class="space-y-4">
                     <div v-if="isCreatingNewAccount === true">
                         <Message>You are creating a new account</Message>
@@ -790,10 +640,7 @@ const menuItems = computed<MenuItem[]>(() => [
                         <Message>The account has been found online.</Message>
                     </div>
                     <div>
-                        <label
-                            for="transfer-public-key"
-                            class="block text-sm font-medium text-gray-700 mb-2"
-                        >
+                        <label for="transfer-public-key" class="block text-sm font-medium text-gray-700 mb-2">
                             Recipient Public Key
                             <span class="text-red-500">*</span>
                         </label>
@@ -805,10 +652,7 @@ const menuItems = computed<MenuItem[]>(() => [
                         />
                     </div>
                     <div>
-                        <label
-                            for="transfer-amount"
-                            class="block text-sm font-medium text-gray-700 mb-2"
-                        >
+                        <label for="transfer-amount" class="block text-sm font-medium text-gray-700 mb-2">
                             Amount
                             <span class="text-red-500">*</span>
                         </label>
@@ -823,17 +667,8 @@ const menuItems = computed<MenuItem[]>(() => [
                 </div>
                 <template #footer>
                     <div class="flex justify-end gap-2">
-                        <Button
-                            label="Cancel"
-                            @click="showTransferDialog = false"
-                            severity="secondary"
-                            outlined
-                        />
-                        <Button
-                            label="Transfer"
-                            @click="submitTransferDialog"
-                            icon="pi pi-send"
-                        />
+                        <Button label="Cancel" @click="showTransferDialog = false" severity="secondary" outlined />
+                        <Button label="Transfer" @click="submitTransferDialog" icon="pi pi-send" />
                     </div>
                 </template>
             </Dialog>
@@ -841,20 +676,13 @@ const menuItems = computed<MenuItem[]>(() => [
             <!-- Organization Dialog -->
             <Dialog
                 v-model:visible="showOrgDialog"
-                :header="
-                    orgDialogMode === 'create'
-                        ? 'Create Organization'
-                        : 'Import Organization'
-                "
+                :header="orgDialogMode === 'create' ? 'Create Organization' : 'Import Organization'"
                 modal
                 class="w-full max-w-md"
             >
                 <div class="space-y-4">
                     <div>
-                        <label
-                            for="org-name"
-                            class="block text-sm font-medium text-gray-700 mb-2"
-                        >
+                        <label for="org-name" class="block text-sm font-medium text-gray-700 mb-2">
                             Organization Name
                             <span class="text-red-500">*</span>
                         </label>
@@ -866,33 +694,18 @@ const menuItems = computed<MenuItem[]>(() => [
                         />
                     </div>
                     <div v-if="orgDialogMode === 'import'">
-                        <label
-                            for="org-vbid"
-                            class="block text-sm font-medium text-gray-700 mb-2"
-                        >
+                        <label for="org-vbid" class="block text-sm font-medium text-gray-700 mb-2">
                             Virtual Blockchain ID
                             <span class="text-red-500">*</span>
                         </label>
-                        <InputText
-                            id="org-vbid"
-                            v-model="orgVbId"
-                            placeholder="Enter VB ID"
-                            class="w-full"
-                        />
+                        <InputText id="org-vbid" v-model="orgVbId" placeholder="Enter VB ID" class="w-full" />
                     </div>
                 </div>
                 <template #footer>
                     <div class="flex justify-end gap-2">
+                        <Button label="Cancel" @click="showOrgDialog = false" severity="secondary" outlined />
                         <Button
-                            label="Cancel"
-                            @click="showOrgDialog = false"
-                            severity="secondary"
-                            outlined
-                        />
-                        <Button
-                            :label="
-                                orgDialogMode === 'create' ? 'Create' : 'Import'
-                            "
+                            :label="orgDialogMode === 'create' ? 'Create' : 'Import'"
                             @click="submitOrgDialog"
                             icon="pi pi-check"
                         />
@@ -903,17 +716,11 @@ const menuItems = computed<MenuItem[]>(() => [
 
         <!-- Not Found State -->
         <div v-else class="text-center py-12 px-4">
-            <div
-                class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4"
-            >
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
                 <i class="pi pi-exclamation-triangle text-3xl text-red-600"></i>
             </div>
-            <h1 class="text-2xl font-bold text-gray-900 mb-2">
-                Wallet Not Found
-            </h1>
-            <p class="text-gray-500 mb-6">
-                The wallet you're looking for doesn't exist.
-            </p>
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">Wallet Not Found</h1>
+            <p class="text-gray-500 mb-6">The wallet you're looking for doesn't exist.</p>
             <Button @click="goBack" label="Back to Home" icon="pi pi-home" />
         </div>
     </div>

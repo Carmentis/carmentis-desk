@@ -21,9 +21,7 @@ const goBack = () => {
 };
 
 const operatorId = computed(() => Number(route.params.operatorId));
-const operator = computed(() =>
-    storageStore.operators.find((op) => op.id === operatorId.value),
-);
+const operator = computed(() => storageStore.operators.find((op) => op.id === operatorId.value));
 
 const deleteOperator = () => {
     confirm.require({
@@ -44,9 +42,7 @@ const deleteOperator = () => {
 const isInitializedQuery = useIsOperatorInitialized(operatorId.value);
 const operatorAuthStore = useOperatorAuthStore();
 const { isAuthenticatedToOperator } = operatorAuthStore;
-const authenticated = computed(() =>
-    isAuthenticatedToOperator(operatorId.value),
-);
+const authenticated = computed(() => isAuthenticatedToOperator(operatorId.value));
 
 const disconnectFromOperator = () => {
     confirm.require({
@@ -74,29 +70,14 @@ const hasWallets = computed(() => storageStore.organizations.length > 0);
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-6 flex-1">
                         <div class="flex items-center gap-3">
-                            <Button
-                                icon="pi pi-arrow-left"
-                                text
-                                rounded
-                                @click="goBack"
-                            />
+                            <Button icon="pi pi-arrow-left" text rounded @click="goBack" />
 
-                            <div
-                                class="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center"
-                            >
-                                <i
-                                    class="pi pi-server text-xl text-primary-500"
-                                ></i>
+                            <div class="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center">
+                                <i class="pi pi-server text-xl text-primary-500"></i>
                             </div>
                             <div>
-                                <p
-                                    class="text-xs text-surface-500 uppercase font-semibold"
-                                >
-                                    Operator
-                                </p>
-                                <p
-                                    class="text-base font-semibold text-surface-900"
-                                >
+                                <p class="text-xs text-surface-500 uppercase font-semibold">Operator</p>
+                                <p class="text-base font-semibold text-surface-900">
                                     {{ operator?.name }}
                                 </p>
                             </div>
@@ -105,11 +86,7 @@ const hasWallets = computed(() => storageStore.organizations.length > 0);
                         <div class="h-8 w-px bg-surface-200"></div>
 
                         <div>
-                            <p
-                                class="text-xs text-surface-500 uppercase font-semibold"
-                            >
-                                Endpoint
-                            </p>
+                            <p class="text-xs text-surface-500 uppercase font-semibold">Endpoint</p>
                             <p class="text-sm font-mono text-surface-700">
                                 {{ operator?.httpEndpoint }}
                             </p>
@@ -118,11 +95,7 @@ const hasWallets = computed(() => storageStore.organizations.length > 0);
                         <div class="h-8 w-px bg-surface-200"></div>
 
                         <div>
-                            <p
-                                class="text-xs text-surface-500 uppercase font-semibold"
-                            >
-                                ID
-                            </p>
+                            <p class="text-xs text-surface-500 uppercase font-semibold">ID</p>
                             <p class="text-sm font-mono text-surface-700">
                                 {{ operator?.id }}
                             </p>
@@ -157,20 +130,13 @@ const hasWallets = computed(() => storageStore.organizations.length > 0);
             <Card class="border-amber-200 bg-amber-50 max-w-2xl w-full">
                 <template #content>
                     <div class="text-center p-6">
-                        <div
-                            class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 mb-4"
-                        >
-                            <i
-                                class="pi pi-exclamation-triangle text-3xl text-amber-600"
-                            ></i>
+                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 mb-4">
+                            <i class="pi pi-exclamation-triangle text-3xl text-amber-600"></i>
                         </div>
-                        <h3 class="text-xl font-semibold text-amber-900 mb-3">
-                            No Wallet Available
-                        </h3>
+                        <h3 class="text-xl font-semibold text-amber-900 mb-3">No Wallet Available</h3>
                         <p class="text-sm text-amber-800 mb-6 max-w-md mx-auto">
-                            You need to create a wallet before you can use this
-                            operator. A wallet is required to authenticate and
-                            perform actions with the operator.
+                            You need to create a wallet before you can use this operator. A wallet is required to
+                            authenticate and perform actions with the operator.
                         </p>
                         <Button
                             label="Create Wallet"
@@ -184,9 +150,7 @@ const hasWallets = computed(() => storageStore.organizations.length > 0);
         </div>
 
         <div v-if="hasWallets">
-            <OperatorDetailSetup
-                v-if="isInitializedQuery.data.value === false"
-            />
+            <OperatorDetailSetup v-if="isInitializedQuery.data.value === false" />
             <div v-if="isInitializedQuery.data.value === true">
                 <OperatorDetailLogin v-if="!authenticated" />
                 <OperatorDetailDashboard v-else />
@@ -195,19 +159,11 @@ const hasWallets = computed(() => storageStore.organizations.length > 0);
 
         <!-- Not Found State -->
         <div v-if="!operator" class="text-center py-12">
-            <div
-                class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4"
-            >
-                <i
-                    class="pi pi-exclamation-triangle text-3xl text-gray-400"
-                ></i>
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                <i class="pi pi-exclamation-triangle text-3xl text-gray-400"></i>
             </div>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">
-                Operator not found
-            </h3>
-            <p class="text-gray-500 mb-6">
-                The operator you're looking for doesn't exist.
-            </p>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Operator not found</h3>
+            <p class="text-gray-500 mb-6">The operator you're looking for doesn't exist.</p>
             <Button label="Go Back" icon="pi pi-arrow-left" @click="goBack" />
         </div>
     </div>

@@ -14,10 +14,7 @@ const chosenWallet = ref(wallets.value[0]);
     <Card class="bg-blue-700">
         <template #content>
             <h1>Select the wallet to use</h1>
-            <DropdownWalletSelection
-                :wallets="wallets"
-                :chosen-wallet="chosenWallet"
-            />
+            <DropdownWalletSelection :wallets="wallets" :chosen-wallet="chosenWallet" />
         </template>
     </Card>
 </template>

@@ -26,21 +26,11 @@ const isLoading = ref(true);
 
 onMounted(async () => {
     try {
-        const provider =
-            ProviderFactory.createInMemoryProviderWithExternalProvider(
-                props.nodeEndpoint,
-            );
-        const appVb = await provider.loadApplicationVirtualBlockchain(
-            Hash.fromHex(props.participation.id),
-        );
-        appDescription.value =
-            (await appVb.getApplicationDescription()) as AppDescription;
+        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(props.nodeEndpoint);
+        const appVb = await provider.loadApplicationVirtualBlockchain(Hash.fromHex(props.participation.id));
+        appDescription.value = (await appVb.getApplicationDescription()) as AppDescription;
     } catch (e) {
-        console.warn(
-            'Could not load application description for',
-            props.participation.id,
-            e,
-        );
+        console.warn('Could not load application description for', props.participation.id, e);
     } finally {
         isLoading.value = false;
     }
@@ -50,18 +40,13 @@ onMounted(async () => {
 <template>
     <Card
         class="h-full cursor-pointer transition-shadow hover:shadow-md"
-        @click="
-            router.push(`/wallet/${walletId}/participation/${participation.id}`)
-        "
+        @click="router.push(`/wallet/${walletId}/participation/${participation.id}`)"
     >
         <template #content>
             <div class="flex flex-col gap-4">
                 <!-- App identity -->
                 <div class="flex items-start gap-3">
-                    <div
-                        v-if="isLoading"
-                        class="w-10 h-10 rounded-xl bg-surface-100 flex-shrink-0 animate-pulse"
-                    ></div>
+                    <div v-if="isLoading" class="w-10 h-10 rounded-xl bg-surface-100 flex-shrink-0 animate-pulse"></div>
                     <img
                         v-else-if="appDescription?.logoUrl"
                         :src="appDescription.logoUrl"
@@ -81,13 +66,8 @@ onMounted(async () => {
                             <Skeleton height="0.75rem" width="80%" />
                         </div>
                         <div v-else>
-                            <p
-                                class="text-sm font-semibold text-surface-800 truncate"
-                            >
-                                {{
-                                    appDescription?.name ??
-                                    'Unknown Application'
-                                }}
+                            <p class="text-sm font-semibold text-surface-800 truncate">
+                                {{ appDescription?.name ?? 'Unknown Application' }}
                             </p>
                             <a
                                 v-if="appDescription?.homepageUrl"
@@ -104,9 +84,7 @@ onMounted(async () => {
 
                 <!-- App ID -->
                 <div class="bg-surface-50 rounded-lg px-3 py-2">
-                    <p class="text-xs text-surface-400 mb-0.5">
-                        Application ID
-                    </p>
+                    <p class="text-xs text-surface-400 mb-0.5">Application ID</p>
                     <p class="text-xs font-mono text-surface-600 truncate">
                         {{ participation.id }}
                     </p>
@@ -120,9 +98,7 @@ onMounted(async () => {
                             <span class="font-semibold text-surface-800">
                                 {{ participation.appLedgers.length }}
                             </span>
-                            validated ledger{{
-                                participation.appLedgers.length !== 1 ? 's' : ''
-                            }}
+                            validated ledger{{ participation.appLedgers.length !== 1 ? 's' : '' }}
                         </span>
                     </div>
                     <i class="pi pi-chevron-right text-surface-300 text-sm"></i>

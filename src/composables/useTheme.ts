@@ -27,8 +27,7 @@ export function useTheme() {
     };
 
     const toggleTheme = async () => {
-        const newTheme: Theme =
-            currentTheme.value === 'light' ? 'dark' : 'light';
+        const newTheme: Theme = currentTheme.value === 'light' ? 'dark' : 'light';
         currentTheme.value = newTheme;
         applyTheme(newTheme);
 

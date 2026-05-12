@@ -1,15 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import {
-    ApplicationLedgerVb,
-    AccountCrypto,
-    Utils,
-    EncoderFactory,
-} from '@cmts-dev/carmentis-sdk/client';
-import {
-    CryptoEncoderFactory,
-    SignatureSchemeId,
-} from '@cmts-dev/carmentis-sdk/client';
+import { ApplicationLedgerVb, AccountCrypto, Utils, EncoderFactory } from '@cmts-dev/carmentis-sdk/client';
+import { CryptoEncoderFactory, SignatureSchemeId } from '@cmts-dev/carmentis-sdk/client';
 import JsonViewer from './JsonViewer.vue';
 import Button from 'primevue/button';
 import Skeleton from 'primevue/skeleton';
@@ -35,14 +27,10 @@ async function loadRecord(h: number) {
     error.value = null;
     try {
         const genesisSeed = await props.applicationLedger.getGenesisSeed();
-        const actorCrypto = props.accountCrypto.deriveActorFromVbSeed(
-            genesisSeed.toBytes(),
-        );
+        const actorCrypto = props.accountCrypto.deriveActorFromVbSeed(genesisSeed.toBytes());
         console.log(`Record navigator: Genesis seed: ${genesisSeed.toBytes()}`);
 
-        const pk = await actorCrypto.getPublicSignatureKey(
-            SignatureSchemeId.SECP256K1,
-        );
+        const pk = await actorCrypto.getPublicSignatureKey(SignatureSchemeId.SECP256K1);
         const encodedGenesisSeed = genesisSeed.encode();
         const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
 
@@ -69,10 +57,7 @@ function goToPrev() {
 }
 
 function goToNext() {
-    const newHeight = Math.min(
-        (height.value ?? currentHeight.value) + 1,
-        maxHeight.value,
-    );
+    const newHeight = Math.min((height.value ?? currentHeight.value) + 1, maxHeight.value);
     height.value = newHeight;
 }
 
@@ -93,12 +78,8 @@ watch(
 <template>
     <div class="flex flex-col gap-4 h-full">
         <!-- Navigation controls -->
-        <div
-            class="flex justify-between items-center p-2 bg-gray-100 rounded-lg"
-        >
-            <span class="text-sm font-medium text-gray-700">
-                Block {{ currentHeight }} / {{ maxHeight }}
-            </span>
+        <div class="flex justify-between items-center p-2 bg-gray-100 rounded-lg">
+            <span class="text-sm font-medium text-gray-700">Block {{ currentHeight }} / {{ maxHeight }}</span>
             <div class="flex gap-1">
                 <Button
                     icon="pi pi-angle-double-left"
@@ -140,10 +121,7 @@ watch(
             <Skeleton height="2rem" />
             <Skeleton height="10rem" />
         </div>
-        <div
-            v-else-if="error"
-            class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700"
-        >
+        <div v-else-if="error" class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
             Error loading record: {{ error.message }}
         </div>
         <JsonViewer v-else-if="record" :data="record" :key="currentHeight" />

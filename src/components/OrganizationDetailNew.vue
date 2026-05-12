@@ -38,20 +38,14 @@ const router = useRouter();
 const storageStore = useStorageStore();
 const onChainStore = useOnChainStore();
 const { isPublishingOrganization } = storeToRefs(onChainStore);
-const registerNavbarActions = inject<(actions: any[]) => void>(
-    'registerNavbarActions',
-);
+const registerNavbarActions = inject<(actions: any[]) => void>('registerNavbarActions');
 
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 
-const wallet = computed(() =>
-    storageStore.organizations.find((w) => w.id === walletId.value),
-);
+const wallet = computed(() => storageStore.organizations.find((w) => w.id === walletId.value));
 
-const organization = computed(() =>
-    wallet.value?.organizations.find((org) => org.id === orgId.value),
-);
+const organization = computed(() => wallet.value?.organizations.find((org) => org.id === orgId.value));
 
 const goBack = () => {
     router.push(`/wallet/${walletId.value}`);
@@ -80,13 +74,9 @@ const breadcrumbItems = computed(() => {
 const walletKeyPair = computedAsync(async () => {
     if (!wallet.value) return undefined;
     const seedEncoder = new SeedEncoder();
-    const walletSeed = WalletCrypto.fromSeed(
-        seedEncoder.decode(wallet.value.seed),
-    );
+    const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.value.seed));
     const accountCrypto = walletSeed.getDefaultAccountCrypto();
-    const sk = await accountCrypto.getPrivateSignatureKey(
-        SignatureSchemeId.SECP256K1,
-    );
+    const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
     const pk = await sk.getPublicKey();
     const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
     return {
@@ -100,14 +90,10 @@ const pk = computed(() => walletKeyPair.value?.pk);
 const walletAccountId = computedAsync(async () => {
     if (wallet.value === undefined) return undefined;
     if (!pk.value) return undefined;
-    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(
-        wallet.value.nodeEndpoint,
-    );
+    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
     try {
         const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
-        return await provider.getAccountIdByPublicKey(
-            await sigEncoder.decodePublicKey(pk.value),
-        );
+        return await provider.getAccountIdByPublicKey(await sigEncoder.decodePublicKey(pk.value));
     } catch (e) {
         if (CarmentisError.isCarmentisError(e)) {
             return Utils.getNullHash();
@@ -121,9 +107,7 @@ const walletAccountState = computedAsync(async () => {
     if (wallet.value === undefined) return undefined;
     if (!pk.value) return undefined;
     if (walletAccountId.value === undefined) return undefined;
-    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(
-        wallet.value.nodeEndpoint,
-    );
+    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
     const accountId = await walletAccountId.value;
     const accountState = await provider.getAccountState(accountId);
     return accountState;
@@ -149,14 +133,8 @@ watch(manualNodeRpcEndpoint, async () => {
             if (pk) {
                 const b64 = EncoderFactory.bytesToBase64Encoder();
                 const hex = EncoderFactory.bytesToHexEncoder();
-                const provider =
-                    ProviderFactory.createInMemoryProviderWithExternalProvider(
-                        wallet.value.nodeEndpoint,
-                    );
-                const vbId =
-                    await provider.getValidatorNodeIdByCometbftPublicKey(
-                        b64.encode(pk.data),
-                    );
+                const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
+                const vbId = await provider.getValidatorNodeIdByCometbftPublicKey(b64.encode(pk.data));
                 toast.add({
                     severity: 'success',
                     summary: 'Node found',
@@ -195,9 +173,7 @@ async function submitManualNodeImport() {
         newNode.vbId = manualNodeVbId.value;
     }
 
-    await storageStore.importExistingNodes(walletId.value, orgId.value, [
-        newNode,
-    ]);
+    await storageStore.importExistingNodes(walletId.value, orgId.value, [newNode]);
 
     // Reset form
     manualNodeName.value = '';
@@ -224,9 +200,7 @@ async function deleteNode(nodeId: number) {
 }
 
 function visitNode(nodeId: number) {
-    router.push(
-        `/wallet/${walletId.value}/organization/${orgId.value}/node/${nodeId}`,
-    );
+    router.push(`/wallet/${walletId.value}/organization/${orgId.value}/node/${nodeId}`);
 }
 
 // organization nodes to claim
@@ -246,19 +220,11 @@ async function fetchNodesOnChain() {
     }
 
     const locks = accountState.locks;
-    const stakingLocks = locks.filter(
-        (lock) => lock.type === LockType.NodeStaking,
-    );
-    const nodesIds = stakingLocks.map((sl) =>
-        Hash.from(sl.parameters.validatorNodeId as Uint8Array),
-    );
+    const stakingLocks = locks.filter((lock) => lock.type === LockType.NodeStaking);
+    const nodesIds = stakingLocks.map((sl) => Hash.from(sl.parameters.validatorNodeId as Uint8Array));
     const newNodesIds = [];
     for (const nodeId of nodesIds) {
-        const isAlreadyDeclared = await storageStore.isNodeDeclared(
-            walletId.value,
-            orgId.value,
-            nodeId.encode(),
-        );
+        const isAlreadyDeclared = await storageStore.isNodeDeclared(walletId.value, orgId.value, nodeId.encode());
         if (isAlreadyDeclared) {
         } else {
             newNodesIds.push(nodeId.encode());
@@ -283,13 +249,9 @@ async function importNewNodes() {
 
     // load new nodes
     const newNodes: Omit<NodeEntity, 'id'>[] = [];
-    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(
-        wallet.value.nodeEndpoint,
-    );
+    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
     for (const newNodeId of nodesToImport.value) {
-        const vb = await provider.loadValidatorNodeVirtualBlockchain(
-            Hash.from(newNodeId),
-        );
+        const vb = await provider.loadValidatorNodeVirtualBlockchain(Hash.from(newNodeId));
         const rpcEndpoint = await vb.getRpcEndpointDeclaration();
         const nodeStatus = await provider.getNodeStatus(rpcEndpoint);
         const moniker = nodeStatus.result.node_info.moniker;
@@ -301,11 +263,7 @@ async function importNewNodes() {
     }
 
     // import nodes
-    await storageStore.importExistingNodes(
-        walletId.value,
-        orgId.value,
-        newNodes,
-    );
+    await storageStore.importExistingNodes(walletId.value, orgId.value, newNodes);
     showImportDialog.value = false;
     toast.add({
         severity: 'success',
@@ -403,22 +361,14 @@ async function confirmPublishOrganization() {
 }
 
 // query used to identify if the organization is found online
-const {
-    data: isOrganizationFoundOnChain,
-    isLoading: isFetchingOrganizationFromChain,
-} = useQuery({
+const { data: isOrganizationFoundOnChain, isLoading: isFetchingOrganizationFromChain } = useQuery({
     queryKey: ['organization-on-chain', orgId],
     queryFn: async () => {
         if (!organization.value || !organization.value.vbId) return undefined;
         if (!wallet.value) return undefined;
-        const provider =
-            ProviderFactory.createInMemoryProviderWithExternalProvider(
-                wallet.value.nodeEndpoint,
-            );
+        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
         try {
-            await provider.loadOrganizationVirtualBlockchain(
-                Hash.from(organization.value.vbId),
-            );
+            await provider.loadOrganizationVirtualBlockchain(Hash.from(organization.value.vbId));
             return true;
         } catch (e) {
             console.error(`Organization not found online: ${e}`);
@@ -464,13 +414,9 @@ async function submitAppDialog() {
             });
             return;
         }
-        await storageStore.addApplicationToOrganization(
-            walletId.value,
-            orgId.value,
-            {
-                name: appName.value,
-            },
-        );
+        await storageStore.addApplicationToOrganization(walletId.value, orgId.value, {
+            name: appName.value,
+        });
         toast.add({
             severity: 'success',
             summary: 'Application created',
@@ -496,14 +442,10 @@ async function submitAppDialog() {
             });
             return;
         }
-        await storageStore.addApplicationToOrganization(
-            walletId.value,
-            orgId.value,
-            {
-                name: appName.value,
-                vbId: appVbId.value,
-            },
-        );
+        await storageStore.addApplicationToOrganization(walletId.value, orgId.value, {
+            name: appName.value,
+            vbId: appVbId.value,
+        });
         toast.add({
             severity: 'success',
             summary: 'Application imported',
@@ -515,11 +457,7 @@ async function submitAppDialog() {
 }
 
 async function deleteApplication(appId: number) {
-    await storageStore.deleteApplicationById(
-        walletId.value,
-        orgId.value,
-        appId,
-    );
+    await storageStore.deleteApplicationById(walletId.value, orgId.value, appId);
     toast.add({
         severity: 'success',
         summary: 'Application deleted',
@@ -529,9 +467,7 @@ async function deleteApplication(appId: number) {
 }
 
 function visitApplication(appId: number) {
-    router.push(
-        `/wallet/${walletId.value}/organization/${orgId.value}/application/${appId}`,
-    );
+    router.push(`/wallet/${walletId.value}/organization/${orgId.value}/application/${appId}`);
 }
 
 const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
@@ -566,14 +502,8 @@ const items = [
                     </template>
                     <template #content>
                         <div v-if="organization.vbId">
-                            <label
-                                class="block text-sm font-medium text-gray-700 mb-2"
-                            >
-                                Virtual Blockchain ID
-                            </label>
-                            <code
-                                class="bg-gray-100 px-3 py-2 rounded text-sm block"
-                            >
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Virtual Blockchain ID</label>
+                            <code class="bg-gray-100 px-3 py-2 rounded text-sm block">
                                 {{ organization.vbId }}
                             </code>
 
@@ -581,23 +511,16 @@ const items = [
                                 v-if="isOrganizationFoundOnChain === true"
                                 class="mt-4 flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg"
                             >
-                                <i
-                                    class="pi pi-check-circle text-green-600"
-                                ></i>
-                                <span class="text-sm text-green-800">
-                                    Organization confirmed on-chain
-                                </span>
+                                <i class="pi pi-check-circle text-green-600"></i>
+                                <span class="text-sm text-green-800">Organization confirmed on-chain</span>
                             </div>
                             <div
                                 v-else-if="isOrganizationFoundOnChain === false"
                                 class="mt-4 flex items-start gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg"
                             >
-                                <i
-                                    class="pi pi-exclamation-triangle text-amber-600 mt-0.5"
-                                ></i>
+                                <i class="pi pi-exclamation-triangle text-amber-600 mt-0.5"></i>
                                 <span class="text-sm text-amber-800">
-                                    Organization not found on-chain. This may be
-                                    due to network transaction processing
+                                    Organization not found on-chain. This may be due to network transaction processing
                                     delays.
                                 </span>
                             </div>
@@ -605,21 +528,14 @@ const items = [
                                 v-else-if="isFetchingOrganizationFromChain"
                                 class="mt-4 flex items-center gap-2 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg"
                             >
-                                <i
-                                    class="pi pi-spin pi-spinner text-blue-600"
-                                ></i>
-                                <span class="text-sm text-blue-800">
-                                    Checking on-chain status...
-                                </span>
+                                <i class="pi pi-spin pi-spinner text-blue-600"></i>
+                                <span class="text-sm text-blue-800">Checking on-chain status...</span>
                             </div>
                         </div>
                         <div v-else class="text-center py-4">
-                            <i
-                                class="pi pi-exclamation-circle text-3xl text-amber-500 mb-2"
-                            ></i>
+                            <i class="pi pi-exclamation-circle text-3xl text-amber-500 mb-2"></i>
                             <p class="text-gray-600 text-sm">
-                                Publish first your organization on-chain to show
-                                information.
+                                Publish first your organization on-chain to show information.
                             </p>
                         </div>
                     </template>
@@ -634,15 +550,9 @@ const items = [
                         </div>
                     </template>
                     <template #content>
-                        <form
-                            @submit.prevent="updateOrganizationDetails"
-                            class="space-y-4"
-                        >
+                        <form @submit.prevent="updateOrganizationDetails" class="space-y-4">
                             <div>
-                                <label
-                                    for="org-name"
-                                    class="block text-sm font-medium text-gray-700 mb-2"
-                                >
+                                <label for="org-name" class="block text-sm font-medium text-gray-700 mb-2">
                                     Name
                                     <span class="text-red-500">*</span>
                                 </label>
@@ -655,10 +565,7 @@ const items = [
                                 />
                             </div>
                             <div>
-                                <label
-                                    for="org-country-code"
-                                    class="block text-sm font-medium text-gray-700 mb-2"
-                                >
+                                <label for="org-country-code" class="block text-sm font-medium text-gray-700 mb-2">
                                     Country Code
                                 </label>
                                 <InputText
@@ -669,24 +576,11 @@ const items = [
                                 />
                             </div>
                             <div>
-                                <label
-                                    for="org-city"
-                                    class="block text-sm font-medium text-gray-700 mb-2"
-                                >
-                                    City
-                                </label>
-                                <InputText
-                                    id="org-city"
-                                    v-model="orgCity"
-                                    placeholder="City name"
-                                    class="w-full"
-                                />
+                                <label for="org-city" class="block text-sm font-medium text-gray-700 mb-2">City</label>
+                                <InputText id="org-city" v-model="orgCity" placeholder="City name" class="w-full" />
                             </div>
                             <div>
-                                <label
-                                    for="org-website"
-                                    class="block text-sm font-medium text-gray-700 mb-2"
-                                >
+                                <label for="org-website" class="block text-sm font-medium text-gray-700 mb-2">
                                     Website
                                 </label>
                                 <InputText
@@ -703,18 +597,11 @@ const items = [
                                     icon="pi pi-cloud-upload"
                                     @click="showPublishConfirmDialog = true"
                                     :loading="isPublishingOrganization"
-                                    :disabled="
-                                        isPublishingOrganization ||
-                                        !hasAccountOnChain
-                                    "
+                                    :disabled="isPublishingOrganization || !hasAccountOnChain"
                                     severity="secondary"
                                     :hidden="!hasAccountOnChain"
                                 />
-                                <Button
-                                    type="submit"
-                                    label="Update Details"
-                                    icon="pi pi-check"
-                                />
+                                <Button type="submit" label="Update Details" icon="pi pi-check" />
                             </div>
                         </form>
                     </template>
@@ -733,15 +620,9 @@ const items = [
                             <TabPanel value="0">
                                 <div class="space-y-4">
                                     <!-- Nodes Header Actions -->
-                                    <div
-                                        class="flex justify-between items-center"
-                                    >
-                                        <h3
-                                            class="text-lg font-semibold text-gray-900"
-                                        >
-                                            Nodes ({{
-                                                organizationNodes.length
-                                            }})
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="text-lg font-semibold text-gray-900">
+                                            Nodes ({{ organizationNodes.length }})
                                         </h3>
                                         <div class="flex gap-2">
                                             <Button
@@ -752,9 +633,7 @@ const items = [
                                                 outlined
                                             />
                                             <Button
-                                                @click="
-                                                    showManualImportForm = true
-                                                "
+                                                @click="showManualImportForm = true"
                                                 label="Add Node"
                                                 icon="pi pi-plus"
                                                 size="small"
@@ -763,20 +642,13 @@ const items = [
                                     </div>
 
                                     <!-- Nodes Content -->
-                                    <div
-                                        v-if="organizationNodes.length === 0"
-                                        class="text-center py-8"
-                                    >
+                                    <div v-if="organizationNodes.length === 0" class="text-center py-8">
                                         <div
                                             class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
                                         >
-                                            <i
-                                                class="pi pi-sitemap text-2xl text-gray-400"
-                                            ></i>
+                                            <i class="pi pi-sitemap text-2xl text-gray-400"></i>
                                         </div>
-                                        <p class="text-gray-500 text-sm">
-                                            No nodes configured yet
-                                        </p>
+                                        <p class="text-gray-500 text-sm">No nodes configured yet</p>
                                     </div>
                                     <div v-else class="space-y-3">
                                         <div
@@ -785,49 +657,28 @@ const items = [
                                             class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
                                             @click="visitNode(node.id)"
                                         >
-                                            <div
-                                                class="flex items-start justify-between"
-                                            >
+                                            <div class="flex items-start justify-between">
                                                 <div class="space-y-2 flex-1">
-                                                    <div
-                                                        class="font-medium text-gray-900"
-                                                    >
+                                                    <div class="font-medium text-gray-900">
                                                         {{ node.name }}
                                                     </div>
-                                                    <div
-                                                        class="text-xs text-gray-500 space-y-1"
-                                                    >
-                                                        <div
-                                                            v-if="node.vbId"
-                                                            class="flex items-center gap-2"
-                                                        >
-                                                            <i
-                                                                class="pi pi-tag"
-                                                            ></i>
-                                                            <code
-                                                                class="bg-gray-100 px-2 py-0.5 rounded"
-                                                            >
+                                                    <div class="text-xs text-gray-500 space-y-1">
+                                                        <div v-if="node.vbId" class="flex items-center gap-2">
+                                                            <i class="pi pi-tag"></i>
+                                                            <code class="bg-gray-100 px-2 py-0.5 rounded">
                                                                 {{ node.vbId }}
                                                             </code>
                                                         </div>
-                                                        <div
-                                                            class="flex items-center gap-2"
-                                                        >
-                                                            <i
-                                                                class="pi pi-globe"
-                                                            ></i>
+                                                        <div class="flex items-center gap-2">
+                                                            <i class="pi pi-globe"></i>
                                                             <span>
-                                                                {{
-                                                                    node.rpcEndpoint
-                                                                }}
+                                                                {{ node.rpcEndpoint }}
                                                             </span>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <Button
-                                                    @click.stop="
-                                                        deleteNode(node.id)
-                                                    "
+                                                    @click.stop="deleteNode(node.id)"
                                                     icon="pi pi-trash"
                                                     severity="danger"
                                                     text
@@ -843,16 +694,9 @@ const items = [
                             <TabPanel value="1">
                                 <div class="space-y-4">
                                     <!-- Applications Header -->
-                                    <div
-                                        class="flex justify-between items-center"
-                                    >
-                                        <h3
-                                            class="text-lg font-semibold text-gray-900"
-                                        >
-                                            Applications ({{
-                                                organization.applications
-                                                    .length
-                                            }})
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="text-lg font-semibold text-gray-900">
+                                            Applications ({{ organization.applications.length }})
                                         </h3>
                                         <div class="flex gap-2">
                                             <Button
@@ -872,23 +716,13 @@ const items = [
                                     </div>
 
                                     <!-- Applications Content -->
-                                    <div
-                                        v-if="
-                                            organization.applications.length ===
-                                            0
-                                        "
-                                        class="text-center py-8"
-                                    >
+                                    <div v-if="organization.applications.length === 0" class="text-center py-8">
                                         <div
                                             class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
                                         >
-                                            <i
-                                                class="pi pi-box text-2xl text-gray-400"
-                                            ></i>
+                                            <i class="pi pi-box text-2xl text-gray-400"></i>
                                         </div>
-                                        <p class="text-gray-500 text-sm mb-4">
-                                            No applications configured yet
-                                        </p>
+                                        <p class="text-gray-500 text-sm mb-4">No applications configured yet</p>
                                         <div class="flex gap-2 justify-center">
                                             <Button
                                                 @click="openCreateAppDialog"
@@ -912,35 +746,23 @@ const items = [
                                             class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
                                             @click="visitApplication(app.id)"
                                         >
-                                            <div
-                                                class="flex items-start justify-between"
-                                            >
+                                            <div class="flex items-start justify-between">
                                                 <div class="space-y-2 flex-1">
-                                                    <div
-                                                        class="font-medium text-gray-900"
-                                                    >
+                                                    <div class="font-medium text-gray-900">
                                                         {{ app.name }}
                                                     </div>
                                                     <div
                                                         v-if="app.vbId"
                                                         class="text-xs text-gray-500 flex items-center gap-2"
                                                     >
-                                                        <i
-                                                            class="pi pi-tag"
-                                                        ></i>
-                                                        <code
-                                                            class="bg-gray-100 px-2 py-0.5 rounded"
-                                                        >
+                                                        <i class="pi pi-tag"></i>
+                                                        <code class="bg-gray-100 px-2 py-0.5 rounded">
                                                             {{ app.vbId }}
                                                         </code>
                                                     </div>
                                                 </div>
                                                 <Button
-                                                    @click.stop="
-                                                        deleteApplication(
-                                                            app.id,
-                                                        )
-                                                    "
+                                                    @click.stop="deleteApplication(app.id)"
                                                     icon="pi pi-trash"
                                                     severity="danger"
                                                     text
@@ -958,18 +780,10 @@ const items = [
             </Card>
 
             <!-- Add Node Dialog -->
-            <Dialog
-                v-model:visible="showManualImportForm"
-                header="Add Node"
-                modal
-                class="w-full max-w-2xl"
-            >
+            <Dialog v-model:visible="showManualImportForm" header="Add Node" modal class="w-full max-w-2xl">
                 <div class="space-y-4">
                     <div>
-                        <label
-                            for="manual-node-name"
-                            class="block text-sm font-medium text-gray-700 mb-2"
-                        >
+                        <label for="manual-node-name" class="block text-sm font-medium text-gray-700 mb-2">
                             Name
                             <span class="text-red-500">*</span>
                         </label>
@@ -981,25 +795,14 @@ const items = [
                         />
                     </div>
                     <div>
-                        <label
-                            for="manual-node-vbid"
-                            class="block text-sm font-medium text-gray-700 mb-2"
-                        >
+                        <label for="manual-node-vbid" class="block text-sm font-medium text-gray-700 mb-2">
                             Virtual Blockchain ID
                             <span class="text-gray-400">(optional)</span>
                         </label>
-                        <InputText
-                            id="manual-node-vbid"
-                            v-model="manualNodeVbId"
-                            placeholder="VB ID"
-                            class="w-full"
-                        />
+                        <InputText id="manual-node-vbid" v-model="manualNodeVbId" placeholder="VB ID" class="w-full" />
                     </div>
                     <div>
-                        <label
-                            for="manual-node-rpc"
-                            class="block text-sm font-medium text-gray-700 mb-2"
-                        >
+                        <label for="manual-node-rpc" class="block text-sm font-medium text-gray-700 mb-2">
                             RPC Endpoint
                             <span class="text-red-500">*</span>
                         </label>
@@ -1013,12 +816,7 @@ const items = [
                 </div>
                 <template #footer>
                     <div class="flex justify-end gap-2">
-                        <Button
-                            label="Cancel"
-                            @click="showManualImportForm = false"
-                            severity="secondary"
-                            outlined
-                        />
+                        <Button label="Cancel" @click="showManualImportForm = false" severity="secondary" outlined />
                         <Button
                             label="Add Node"
                             @click="submitManualNodeImport"
@@ -1030,37 +828,17 @@ const items = [
             </Dialog>
 
             <!-- Import Nodes Dialog -->
-            <Dialog
-                v-model:visible="showImportDialog"
-                header="Import Nodes from Chain"
-                modal
-                class="w-full max-w-2xl"
-            >
-                <p class="text-gray-600 mb-4">
-                    The following nodes were detected and can be imported:
-                </p>
+            <Dialog v-model:visible="showImportDialog" header="Import Nodes from Chain" modal class="w-full max-w-2xl">
+                <p class="text-gray-600 mb-4">The following nodes were detected and can be imported:</p>
                 <div class="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
-                    <div
-                        v-for="node in nodesToImport"
-                        :key="node"
-                        class="py-2 border-b border-gray-200 last:border-0"
-                    >
+                    <div v-for="node in nodesToImport" :key="node" class="py-2 border-b border-gray-200 last:border-0">
                         <code class="text-sm">{{ node }}</code>
                     </div>
                 </div>
                 <template #footer>
                     <div class="flex justify-end gap-2">
-                        <Button
-                            label="Cancel"
-                            @click="showImportDialog = false"
-                            severity="secondary"
-                            outlined
-                        />
-                        <Button
-                            label="Import All"
-                            @click="importNewNodes"
-                            icon="pi pi-check"
-                        />
+                        <Button label="Cancel" @click="showImportDialog = false" severity="secondary" outlined />
+                        <Button label="Import All" @click="importNewNodes" icon="pi pi-check" />
                     </div>
                 </template>
             </Dialog>
@@ -1073,20 +851,12 @@ const items = [
                 class="w-full max-w-md"
             >
                 <div class="space-y-4">
-                    <p class="text-gray-600">
-                        Are you sure you want to publish this organization
-                        on-chain?
-                    </p>
-                    <div
-                        class="bg-amber-50 border border-amber-200 rounded-lg p-3"
-                    >
+                    <p class="text-gray-600">Are you sure you want to publish this organization on-chain?</p>
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
                         <div class="flex gap-2">
-                            <i
-                                class="pi pi-info-circle text-amber-600 mt-0.5"
-                            ></i>
+                            <i class="pi pi-info-circle text-amber-600 mt-0.5"></i>
                             <p class="text-sm text-amber-800">
-                                This action will create a virtual blockchain for
-                                your organization and cannot be undone.
+                                This action will create a virtual blockchain for your organization and cannot be undone.
                             </p>
                         </div>
                     </div>
@@ -1118,30 +888,20 @@ const items = [
             >
                 <div class="space-y-4">
                     <p class="text-gray-600">
-                        Are you sure you want to delete the organization "{{
-                            organization.name
-                        }}"?
+                        Are you sure you want to delete the organization "{{ organization.name }}"?
                     </p>
                     <div class="bg-red-50 border border-red-200 rounded-lg p-3">
                         <div class="flex gap-2">
-                            <i
-                                class="pi pi-exclamation-triangle text-red-600 mt-0.5"
-                            ></i>
+                            <i class="pi pi-exclamation-triangle text-red-600 mt-0.5"></i>
                             <p class="text-sm text-red-800">
-                                This action will delete the organization and all
-                                its nodes. This cannot be undone.
+                                This action will delete the organization and all its nodes. This cannot be undone.
                             </p>
                         </div>
                     </div>
                 </div>
                 <template #footer>
                     <div class="flex justify-end gap-2">
-                        <Button
-                            label="Cancel"
-                            @click="showDeleteConfirmDialog = false"
-                            severity="secondary"
-                            outlined
-                        />
+                        <Button label="Cancel" @click="showDeleteConfirmDialog = false" severity="secondary" outlined />
                         <Button
                             label="Delete"
                             @click="confirmDeleteOrganization"
@@ -1155,20 +915,13 @@ const items = [
             <!-- Application Dialog -->
             <Dialog
                 v-model:visible="showAppDialog"
-                :header="
-                    appDialogMode === 'create'
-                        ? 'Create Application'
-                        : 'Import Application'
-                "
+                :header="appDialogMode === 'create' ? 'Create Application' : 'Import Application'"
                 modal
                 class="w-full max-w-md"
             >
                 <div class="space-y-4">
                     <div>
-                        <label
-                            for="app-name"
-                            class="block text-sm font-medium text-gray-700 mb-2"
-                        >
+                        <label for="app-name" class="block text-sm font-medium text-gray-700 mb-2">
                             Application Name
                             <span class="text-red-500">*</span>
                         </label>
@@ -1180,33 +933,18 @@ const items = [
                         />
                     </div>
                     <div v-if="appDialogMode === 'import'">
-                        <label
-                            for="app-vbid"
-                            class="block text-sm font-medium text-gray-700 mb-2"
-                        >
+                        <label for="app-vbid" class="block text-sm font-medium text-gray-700 mb-2">
                             Virtual Blockchain ID
                             <span class="text-red-500">*</span>
                         </label>
-                        <InputText
-                            id="app-vbid"
-                            v-model="appVbId"
-                            placeholder="Enter VB ID"
-                            class="w-full"
-                        />
+                        <InputText id="app-vbid" v-model="appVbId" placeholder="Enter VB ID" class="w-full" />
                     </div>
                 </div>
                 <template #footer>
                     <div class="flex justify-end gap-2">
+                        <Button label="Cancel" @click="showAppDialog = false" severity="secondary" outlined />
                         <Button
-                            label="Cancel"
-                            @click="showAppDialog = false"
-                            severity="secondary"
-                            outlined
-                        />
-                        <Button
-                            :label="
-                                appDialogMode === 'create' ? 'Create' : 'Import'
-                            "
+                            :label="appDialogMode === 'create' ? 'Create' : 'Import'"
                             @click="submitAppDialog"
                             icon="pi pi-check"
                         />
@@ -1217,22 +955,12 @@ const items = [
 
         <!-- Not Found State -->
         <div v-else class="text-center py-12">
-            <div
-                class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4"
-            >
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
                 <i class="pi pi-exclamation-triangle text-3xl text-red-600"></i>
             </div>
-            <h1 class="text-2xl font-bold text-gray-900 mb-2">
-                Organization Not Found
-            </h1>
-            <p class="text-gray-500 mb-6">
-                The organization you're looking for doesn't exist.
-            </p>
-            <Button
-                @click="goBack"
-                label="Back to Wallet"
-                icon="pi pi-arrow-left"
-            />
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">Organization Not Found</h1>
+            <p class="text-gray-500 mb-6">The organization you're looking for doesn't exist.</p>
+            <Button @click="goBack" label="Back to Wallet" icon="pi pi-arrow-left" />
         </div>
     </div>
 </template>

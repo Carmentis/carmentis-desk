@@ -102,9 +102,7 @@ const goBack = () => {
         <!-- Header -->
         <div class="mb-8">
             <h1 class="text-3xl font-bold text-gray-900">Create a Wallet</h1>
-            <p class="mt-2 text-sm text-gray-600">
-                Set up a new wallet for your organization
-            </p>
+            <p class="mt-2 text-sm text-gray-600">Set up a new wallet for your organization</p>
         </div>
 
         <!-- Form Card -->
@@ -113,10 +111,7 @@ const goBack = () => {
                 <div class="space-y-6">
                     <!-- Wallet Name -->
                     <div>
-                        <label
-                            for="org-name"
-                            class="block text-sm font-medium text-gray-700 mb-2"
-                        >
+                        <label for="org-name" class="block text-sm font-medium text-gray-700 mb-2">
                             Wallet Name
                             <span class="text-red-500">*</span>
                         </label>
@@ -130,9 +125,7 @@ const goBack = () => {
 
                     <!-- Creation Method Selection -->
                     <div>
-                        <label
-                            class="block text-sm font-medium text-gray-700 mb-2"
-                        >
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
                             Creation Method
                             <span class="text-red-500">*</span>
                         </label>
@@ -147,10 +140,7 @@ const goBack = () => {
 
                     <!-- Seed Phrase Input (shown when method is 'seed') -->
                     <div v-if="creationMethod === 'seed'">
-                        <label
-                            for="seed"
-                            class="block text-sm font-medium text-gray-700 mb-2"
-                        >
+                        <label for="seed" class="block text-sm font-medium text-gray-700 mb-2">
                             Seed Phrase
                             <span class="text-red-500">*</span>
                         </label>
@@ -178,10 +168,7 @@ const goBack = () => {
 
                     <!-- Passphrase Input (shown when method is 'passphrase') -->
                     <div v-if="creationMethod === 'passphrase'">
-                        <label
-                            for="passphrase"
-                            class="block text-sm font-medium text-gray-700 mb-2"
-                        >
+                        <label for="passphrase" class="block text-sm font-medium text-gray-700 mb-2">
                             Passphrase
                             <span class="text-red-500">*</span>
                         </label>
@@ -204,17 +191,13 @@ const goBack = () => {
                         </div>
                         <small class="text-gray-500 mt-1 block">
                             <i class="pi pi-info-circle"></i>
-                            A seed will be derived from your passphrase. Use a
-                            strong, memorable passphrase.
+                            A seed will be derived from your passphrase. Use a strong, memorable passphrase.
                         </small>
                     </div>
 
                     <!-- Node Endpoint -->
                     <div>
-                        <label
-                            for="node-endpoint"
-                            class="block text-sm font-medium text-gray-700 mb-2"
-                        >
+                        <label for="node-endpoint" class="block text-sm font-medium text-gray-700 mb-2">
                             Node Endpoint
                         </label>
                         <InputText
@@ -223,22 +206,14 @@ const goBack = () => {
                             placeholder="https://ares.testnet.carmentis.io"
                             class="w-full"
                         />
-                        <small class="text-gray-500 mt-1 block">
-                            Default: ares.testnet.carmentis.io
-                        </small>
+                        <small class="text-gray-500 mt-1 block">Default: ares.testnet.carmentis.io</small>
                     </div>
                 </div>
             </template>
 
             <template #footer>
                 <div class="flex justify-end gap-3">
-                    <Button
-                        @click="goBack"
-                        label="Cancel"
-                        icon="pi pi-times"
-                        severity="secondary"
-                        outlined
-                    />
+                    <Button @click="goBack" label="Cancel" icon="pi pi-times" severity="secondary" outlined />
                     <Button
                         @click="createOrganization"
                         label="Create Wallet"
