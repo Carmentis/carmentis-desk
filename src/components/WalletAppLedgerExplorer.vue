@@ -382,8 +382,8 @@ function shortId(id: string) {
                                 </div>
                                 <VirtualBlockchainRecordNavigator
                                     v-else-if="selectedVb && accountCrypto"
-                                    :application-ledger="selectedVb"
-                                    :account-crypto="accountCrypto"
+                                    :application-ledger="(selectedVb as any)"
+                                    :account-crypto="(accountCrypto as any)"
                                 />
                             </div>
                         </div>
