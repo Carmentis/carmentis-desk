@@ -1,3 +1,22 @@
+# [1.11.0](https://github.com/Carmentis/carmentis-desk/compare/v1.10.0...v1.11.0) (2026-05-13)
+
+
+### Bug Fixes
+
+* update `WalletDetail` layout by replacing grid with flex for improved structure ([3f400ef](https://github.com/Carmentis/carmentis-desk/commit/3f400efb2981dad631a3ac763826b13eb32a6c4c))
+* update transaction mapping to handle fees account alias ([9713537](https://github.com/Carmentis/carmentis-desk/commit/9713537e7ae1fb99ba5e3e9f8f0b5813fc91163a))
+
+
+### Features
+
+* add `AppBreadcrumb` component and integrate with `AppNavbar` for improved navigation ([34ed966](https://github.com/Carmentis/carmentis-desk/commit/34ed966ac82212e6710991757bd00bad8103f742))
+* add `AppNavbar` component and integrate it across the app ([d2e73c7](https://github.com/Carmentis/carmentis-desk/commit/d2e73c765e07e894e5c35eb3cd3e3e6776d1f3e1))
+* add `Help` page and streamline help-related navigation ([19fcdd8](https://github.com/Carmentis/carmentis-desk/commit/19fcdd851e415fe4e0192130e25777b27a44fb13))
+* add `Settings` page with theme toggle, update functionality, and log viewer integrations ([7acdba9](https://github.com/Carmentis/carmentis-desk/commit/7acdba987276341e758e2c2f2d346f1cf92491f6))
+* add export proof functionality and integrate `ExportProofButton` in ledger explorer ([e9e4934](https://github.com/Carmentis/carmentis-desk/commit/e9e4934c5f2a4015bef80c9e7a3edb5fb65440de))
+* add JWK exporter utility and update SD-JWT components for key handling ([27d065a](https://github.com/Carmentis/carmentis-desk/commit/27d065a5499924c453a98398f1f3416c920164fd))
+* deep links and integrated documentation ([10a749c](https://github.com/Carmentis/carmentis-desk/commit/10a749cd5633107da505ed44cc4a01e6efd94cd8))
+
 # [1.10.0](https://github.com/Carmentis/carmentis-desk/compare/v1.9.0...v1.10.0) (2026-04-02)
 
 
