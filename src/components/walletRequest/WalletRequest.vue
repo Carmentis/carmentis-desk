@@ -13,7 +13,13 @@ import {
     WalletRequestDataApprovalSchema,
     WalletRequestType,
 } from '@cmts-dev/carmentis-sdk/client';
-import { JsonRpc, JsonRpcNotification, JsonRpcParams, JsonRpcRequest } from '@cmts-dev/carmentis-sdk-json-rpc';
+import {
+  JsonRpc, JsonRpcErrorResponse,
+  JsonRpcNotification,
+  JsonRpcParams,
+  JsonRpcRequest,
+  JsonRpcSuccessResponse
+} from '@cmts-dev/carmentis-sdk-json-rpc';
 
 import WalletRequestDeprecatedAuthByPublicKey from './WalletRequestDeprecatedAuthByPublicKey.vue';
 import WalletRequestV1AuthByPublicKey from './v1/auth/WalletRequestAuthByPublicKey.vue';
@@ -80,7 +86,7 @@ responder.onClose(() => {
 
 // ── Method handler registry ───────────────────────────────────────────────────
 
-type Handler = (id: RequestId, params: unknown) => ReturnType<typeof JsonRpc.success> | void;
+type Handler = (id: RequestId, params: unknown) => ReturnType<typeof JsonRpc.success> | JsonRpcErrorResponse | JsonRpcSuccessResponse | void | undefined;
 
 const methodHandlers: Record<string, Handler> = {
     ping: (id) => JsonRpc.success(id, { ts: Date.now() }),

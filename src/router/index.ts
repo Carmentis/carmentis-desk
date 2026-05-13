@@ -11,8 +11,7 @@ import WalletCredentials from '../components/WalletCredentials.vue';
 import OperatorDetail from '../components/operator/OperatorDetail.vue';
 import Connect from '../components/Connect.vue';
 import WalletRequest from '../components/walletRequest/WalletRequest.vue';
-import ProofChecker from '../components/checker/ProofChecker.vue';
-import WalletRequestDocumentationView from '../components/walletRequest/WalletRequestDocumentationView.vue';
+import Help from '../components/Help.vue';
 import Settings from '../components/Settings.vue';
 
 const router = createRouter({
@@ -27,16 +26,6 @@ const router = createRouter({
             path: '/connect/walletRequest',
             name: 'connect/walletRequest',
             component: WalletRequest,
-        },
-        {
-            path: '/proof-checker',
-            name: 'proof-checker',
-            component: ProofChecker,
-        },
-        {
-            path: '/wallet-request-docs',
-            name: 'wallet-request-docs',
-            component: WalletRequestDocumentationView,
         },
         {
             path: '/wallet/new',
@@ -83,6 +72,11 @@ const router = createRouter({
                     component: WalletCredentials,
                 },
             ],
+        },
+        {
+            path: '/help',
+            name: 'help',
+            component: Help,
         },
         {
             path: '/settings',

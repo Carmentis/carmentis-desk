@@ -22,7 +22,7 @@ const store = useStorageStore();
 const { wallets } = storeToRefs(store);
 const chosenWallet = ref(wallets.value[0]);
 
-type SupportedPkFormat = 'did' | 'jwk';
+type SupportedPkFormat = 'did' | 'jwk' | 'cmts';
 const props = defineProps<{
     origin: string;
     b64Challenge: string;

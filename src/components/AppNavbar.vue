@@ -10,7 +10,6 @@ import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { storeToRefs } from 'pinia';
 import { useStorageStore } from '../stores/storage.ts';
-import HelpDialog from './HelpDialog.vue';
 
 const router = useRouter();
 const confirm = useConfirm();
@@ -18,7 +17,6 @@ const toast = useToast();
 const store = useStorageStore();
 const { organizations, operators } = storeToRefs(store);
 
-const showHelpDialog = ref(false);
 const showOperatorDialog = ref(false);
 const newOperatorName = ref('');
 const newOperatorEndpoint = ref('');
@@ -81,7 +79,7 @@ const menuItems = computed<MenuItem[]>(() => [
             { separator: true, visible: organizations.value.length > 0 },
             ...organizations.value.map((wallet) => ({
                 label: wallet.name,
-                icon: 'pi pi-id-card',
+                icon: 'pi pi-wallet',
                 command: () => router.push(`/wallet/${wallet.id}`),
                 items: [
                     {
@@ -137,10 +135,9 @@ const menuItems = computed<MenuItem[]>(() => [
             },
         ],
     },
-    { label: 'Proof Checker', icon: 'pi pi-verified', command: () => router.push('/proof-checker') },
-    { label: 'API Docs', icon: 'pi pi-book', command: () => router.push('/wallet-request-docs') },
+    //{ label: 'Proof Checker', icon: 'pi pi-verified', command: () => open('https://proof-checker.testnet.carmentis.io') },
     { label: 'Settings', icon: 'pi pi-cog', command: () => router.push('/settings') },
-    { label: 'Help', icon: 'pi pi-question-circle', command: () => (showHelpDialog.value = true) },
+    { label: 'Help', icon: 'pi pi-question-circle', command: () => router.push('/help') },
 ]);
 </script>
 
@@ -155,8 +152,6 @@ const menuItems = computed<MenuItem[]>(() => [
         </template>
       </Menubar>
     </div>
-
-    <HelpDialog v-model:visible="showHelpDialog" />
 
     <Dialog v-model:visible="showOperatorDialog" modal header="Add Operator" :style="{ width: '450px' }">
         <div class="space-y-4 py-4">

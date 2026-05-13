@@ -78,9 +78,11 @@ const verifiablePresentation = computedAsync(async () => {
 
         // map the desired disclosures
         const disclosures = namedDisclosures.value;
-        const res = {};
+        const res : Record<string, boolean> = {};
         for (const d of disclosures) {
-            res[d.key] = true;
+			if (d.key && typeof d.key === 'string') {
+				res[d.key] = true;
+			}
         }
         console.log('Disclosures:', res);
 
