@@ -1,3 +1,12 @@
+# [1.12.0](https://github.com/Carmentis/carmentis-desk/compare/v1.11.0...v1.12.0) (2026-05-18)
+
+
+### Features
+
+* add delete functionality for app ledger records in `WalletAppLedgerExplorer` ([b709c73](https://github.com/Carmentis/carmentis-desk/commit/b709c7360721615e37dade6808aa865dcf7ada4e))
+* enhance `WalletAppLedgerExplorer` with tabs and VB metadata ([a1da99b](https://github.com/Carmentis/carmentis-desk/commit/a1da99b8255f46d4e85bdaa1a6cadbc746e12df1))
+* redesign VB overview layout and add actor/channel displays ([2e76fee](https://github.com/Carmentis/carmentis-desk/commit/2e76fee2ceb5aa7ab3ec180509170ea4c0a748bc))
+
 # [1.11.0](https://github.com/Carmentis/carmentis-desk/compare/v1.10.0...v1.11.0) (2026-05-13)
 
 
