@@ -125,8 +125,6 @@ function shortId(id: string) {
 
 <template>
     <div class="space-y-6">
-        <Breadcrumb :home="breadcrumbHome" :model="breadcrumbItems" />
-
         <!-- App header -->
         <Card>
             <template #content>
