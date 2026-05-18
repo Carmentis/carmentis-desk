@@ -442,6 +442,24 @@ export const useStorageStore = defineStore('storage', () => {
         organizations.value = updatedWallets;
     }
 
+    async function deleteAppLedger(walletId: number, appId: string, vbId: string) {
+        const currentWallets = await loadOrganizations();
+        const wallet = currentWallets.find((w) => w.id === walletId);
+        if (!wallet) return;
+
+        const updatedParticipations = (wallet.participations ?? [])
+            .map((p) =>
+                p.id === appId ? { ...p, appLedgers: p.appLedgers.filter((al) => al.id !== vbId) } : p,
+            )
+            .filter((p) => p.appLedgers.length > 0);
+
+        const updatedWallet = { ...wallet, participations: updatedParticipations };
+        const updatedWallets = currentWallets.map((w) => (w.id === walletId ? updatedWallet : w));
+        const storage = getStorage();
+        await storage.set('organizations', updatedWallets);
+        organizations.value = updatedWallets;
+    }
+
     async function loadOperators() {
         const storage = getStorage();
         return (await storage.get<OperatorEntity[]>('operators')) || [];
@@ -486,6 +504,7 @@ export const useStorageStore = defineStore('storage', () => {
         updateApplication,
         deleteApplicationById,
         addAppLedgerParticipation,
+        deleteAppLedger,
         addCredential,
         deleteCredentialById,
 

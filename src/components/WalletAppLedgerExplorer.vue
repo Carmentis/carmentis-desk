@@ -8,6 +8,15 @@ import Skeleton from 'primevue/skeleton';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import ConfirmDialog from 'primevue/confirmdialog';
+import { useConfirm } from 'primevue/useconfirm';
+import Tabs from 'primevue/tabs';
+import TabList from 'primevue/tablist';
+import Tab from 'primevue/tab';
+import TabPanels from 'primevue/tabpanels';
+import TabPanel from 'primevue/tabpanel';
 import {
     AccountCrypto,
     ApplicationLedgerVb,
@@ -25,6 +34,7 @@ const route = useRoute();
 const router = useRouter();
 const store = useStorageStore();
 const toast = useToast();
+const confirm = useConfirm();
 
 const walletId = computed(() => Number(route.params.walletId));
 const appParticipationId = computed(() => route.params.appId as string);
@@ -121,9 +131,47 @@ async function copyToClipboard(text: string) {
 function shortId(id: string) {
     return id.length > 16 ? `${id.slice(0, 8)}…${id.slice(-8)}` : id;
 }
+
+// Reversed ledger list (most recent first) with original index preserved
+const reversedLedgers = computed(() =>
+    [...(participation.value?.appLedgers ?? [])]
+        .map((ledger, originalIdx) => ({ ...ledger, originalIdx }))
+        .reverse(),
+);
+
+// Row selection for DataTable
+const selectedRow = computed(() =>
+    selectedIdx.value !== null
+        ? reversedLedgers.value.find((r) => r.originalIdx === selectedIdx.value) ?? null
+        : null,
+);
+
+function onRowSelect(event: { data: { originalIdx: number } }) {
+    selectLedger(event.data.originalIdx);
+}
+
+function confirmDeleteLedger(vbId: string) {
+    confirm.require({
+        message: 'Are you sure you want to remove this ledger record? This action cannot be undone.',
+        header: 'Delete Ledger Record',
+        icon: 'pi pi-exclamation-triangle',
+        rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+        acceptProps: { label: 'Delete', severity: 'danger', icon: 'pi pi-trash' },
+        accept: async () => {
+            await store.deleteAppLedger(walletId.value, appParticipationId.value, vbId);
+            selectedIdx.value = null;
+            selectedVb.value = null;
+            // navigate back if no ledgers remain
+            if (!participation.value || participation.value.appLedgers.length === 0) {
+                router.push(`/wallet/${walletId.value}`);
+            }
+        },
+    });
+}
 </script>
 
 <template>
+    <ConfirmDialog />
     <div class="space-y-6">
         <!-- App header -->
         <Card>
@@ -217,48 +265,51 @@ function shortId(id: string) {
         <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             <!-- Ledger list (left) -->
             <div class="flex flex-col gap-2">
-                <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide px-1 mb-1">App Ledgers</p>
-                <Card
-                    v-for="(ledger, idx) in participation.appLedgers"
-                    :key="ledger.id"
-                    class="rounded-lg cursor-pointer transition-all"
-                    :class="
-                        selectedIdx === idx
-                            ? 'border-primary bg-primary-50 shadow-sm'
-                            : 'border-surface-200 bg-white hover:border-surface-300 hover:bg-surface-50'
-                    "
-                    @click="selectLedger(idx)"
+                <div class="px-1 mb-1">
+                    <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide">App Ledgers</p>
+                    <p class="text-xs text-surface-400 mt-0.5">
+                        All ledger instances associated with this application where you have participated.
+                    </p>
+                </div>
+                <DataTable
+                    :value="reversedLedgers"
+                    selectionMode="single"
+                    :selection="selectedRow"
+                    dataKey="id"
+                    size="small"
+                    class="text-sm cursor-pointer"
+                    @row-select="onRowSelect"
+                    :pt="{ table: { class: 'w-full' } }"
                 >
-                    <template #content>
-                        <div class="flex items-center gap-2 mb-2">
-                            <div
-                                class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                                :class="'bg-surface-100 text-surface-500'"
-                            >
-                                {{ idx + 1 }}
-                            </div>
-                            <span class="text-xs font-mono text-surface-700 truncate">
-                                {{ shortId(ledger.id) }}
+                    <Column header="#" style="width: 2.5rem">
+                        <template #body="{ index }">
+                            <span class="text-surface-400 text-xs">{{ index + 1 }}</span>
+                        </template>
+                    </Column>
+                    <Column header="Ledger ID">
+                        <template #body="{ data }">
+                            <span class="font-mono text-xs text-surface-700">{{ shortId(data.id) }}</span>
+                        </template>
+                    </Column>
+                    <Column header="Operator">
+                        <template #body="{ data }">
+                            <span v-if="data.operatorEndpoint" class="text-xs text-surface-500 truncate block max-w-[12rem]">
+                                {{ data.operatorEndpoint }}
                             </span>
-                        </div>
-                        <div
-                            v-if="ledger.operatorEndpoint"
-                            class="flex items-center gap-1.5 text-xs text-surface-500 truncate"
-                        >
-                            <i class="pi pi-server text-surface-300 flex-shrink-0"></i>
-                            <span class="truncate">
-                                {{ ledger.operatorEndpoint }}
-                            </span>
-                        </div>
-                    </template>
-                </Card>
+                            <span v-else class="text-xs text-surface-300">—</span>
+                        </template>
+                    </Column>
+                </DataTable>
             </div>
 
             <!-- Detail panel (right, 2 cols) -->
             <div class="lg:col-span-2 flex flex-col gap-2">
-                <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide px-1 mb-1">
-                    App Ledger Details
-                </p>
+                <div class="px-1 mb-1">
+                    <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide">App Ledger Details</p>
+                    <p class="text-xs text-surface-400 mt-0.5">
+                        Inspect the full details and transaction history of the selected ledger.
+                    </p>
+                </div>
                 <!-- Nothing selected -->
                 <div
                     v-if="selectedIdx === null"
@@ -270,6 +321,47 @@ function shortId(id: string) {
 
                 <!-- Selected ledger detail -->
                 <Card v-else>
+                    <template #header>
+                        <div class="flex items-center justify-between gap-3 px-4 pt-4 pb-0">
+                            <!-- VB ID -->
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i class="pi pi-box text-primary-400 text-sm flex-shrink-0"></i>
+                                <span class="text-xs font-mono text-surface-700 truncate">
+                                    {{ participation.appLedgers[selectedIdx].id }}
+                                </span>
+                                <Button
+                                    icon="pi pi-copy"
+                                    size="small"
+                                    text
+                                    rounded
+                                    @click="copyToClipboard(participation.appLedgers[selectedIdx].id)"
+                                    v-tooltip="'Copy VB ID'"
+                                />
+                            </div>
+                            <!-- Action buttons -->
+                            <div class="flex items-center gap-1 flex-shrink-0">
+                                <Button
+                                    icon="pi pi-external-link"
+                                    label="Explorer"
+                                    size="small"
+                                    outlined
+                                    as="a"
+                                    :href="`https://explorer.testnet.carmentis.io/app-ledger/${participation.appLedgers[selectedIdx].id}`"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    v-tooltip="'Open in Carmentis Explorer'"
+                                />
+                                <Button
+                                    icon="pi pi-trash"
+                                    size="small"
+                                    severity="danger"
+                                    outlined
+                                    @click="confirmDeleteLedger(participation.appLedgers[selectedIdx].id)"
+                                    v-tooltip="'Remove this ledger record'"
+                                />
+                            </div>
+                        </div>
+                    </template>
                     <template #content>
                         <div class="flex flex-col gap-4">
                             <!-- Metadata -->
