@@ -28,15 +28,7 @@ async function loadRecord(h: number) {
     try {
         const genesisSeed = await props.applicationLedger.getGenesisSeed();
         const actorCrypto = props.accountCrypto.deriveActorFromVbSeed(genesisSeed.toBytes());
-        console.log(`Record navigator: Genesis seed: ${genesisSeed.toBytes()}`);
-
-        const pk = await actorCrypto.getPublicSignatureKey(SignatureSchemeId.SECP256K1);
-        const encodedGenesisSeed = genesisSeed.encode();
-        const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
-
-        //console.log(`Generated signature public key for genesisSeed ${encodedGenesisSeed}: ${await sigEncoder.encodePublicKey(pk)}`);
-        //console.log('Application ledger:', props.applicationLedger);
-        //console.log('Actor ID:', await props.applicationLedger.getActorIdByPublicSignatureKey(pk));
+        console.log(`Record navigator: Genesis seed: ${genesisSeed.toBytes()}`)
 
         record.value = await props.applicationLedger.getRecord(h, actorCrypto);
     } catch (e) {
