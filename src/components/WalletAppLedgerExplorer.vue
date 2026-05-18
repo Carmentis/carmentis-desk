@@ -9,7 +9,6 @@ import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
-import ConfirmDialog from 'primevue/confirmdialog';
 import {useConfirm} from 'primevue/useconfirm';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
@@ -170,7 +169,6 @@ function confirmDeleteLedger(vbId: string) {
 </script>
 
 <template>
-    <ConfirmDialog/>
     <div class="space-y-6">
         <!-- App header -->
         <Card>
