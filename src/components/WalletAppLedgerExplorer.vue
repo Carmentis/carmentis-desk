@@ -333,6 +333,14 @@ function confirmDeleteLedger(vbId: string) {
                             </div>
                             <!-- Action buttons -->
                             <div class="flex items-center gap-1 flex-shrink-0">
+                                <ExportProofButton
+                                    v-if="accountCrypto"
+                                    :vb="selectedVb"
+                                    :account-crypto="accountCrypto"
+                                    :ledger-id="participation.appLedgers[selectedIdx].id"
+                                    :author="wallet?.name ?? ''"
+                                    size="small"
+                                />
                                 <Button
                                     icon="pi pi-external-link"
                                     label="Explorer"
@@ -364,98 +372,149 @@ function confirmDeleteLedger(vbId: string) {
                             <TabPanels>
                                 <!-- VB Overview -->
                                 <TabPanel value="overview">
-                                    <div class="flex flex-col gap-3 pt-1">
-                                        <!-- First and last mb anchoring date -->
-                                        <div v-if="firstAndLastMicroblockAnchoringDate">
-                                            <ul>
-                                                <li> First microblock published at {{firstAndLastMicroblockAnchoringDate.firstAnchoringDate.toLocaleString()}}</li>
-                                                <li> Last microblock published at {{firstAndLastMicroblockAnchoringDate.lastAnchoringDate.toLocaleString()}}</li>
-                                            </ul>
+                                    <div class="flex flex-col gap-4">
+                                        <!-- Metadata grid -->
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <!-- VB ID -->
+                                            <div class="bg-surface-50 rounded-lg p-3 col-span-2">
+                                                <div class="flex items-center justify-between mb-1">
+                                                    <p class="text-xs text-surface-400">Virtual Blockchain ID</p>
+                                                    <Button
+                                                        icon="pi pi-copy"
+                                                        size="small"
+                                                        text
+                                                        rounded
+                                                        class="-mt-0.5 -mr-1.5"
+                                                        @click="copyToClipboard(participation.appLedgers[selectedIdx].id)"
+                                                        v-tooltip="'Copy VB ID'"
+                                                    />
+                                                </div>
+                                                <p class="text-xs font-mono text-surface-700 break-all leading-relaxed">
+                                                    {{ participation.appLedgers[selectedIdx].id }}
+                                                </p>
+                                            </div>
+
+                                            <!-- Operator URL -->
+                                            <div
+                                                v-if="participation.appLedgers[selectedIdx].operatorEndpoint"
+                                                class="bg-surface-50 rounded-lg p-3 col-span-2"
+                                            >
+                                                <p class="text-xs text-surface-400 mb-1">Operator URL</p>
+                                                <p class="text-xs text-surface-700 break-all">
+                                                    {{ participation.appLedgers[selectedIdx].operatorEndpoint }}
+                                                </p>
+                                            </div>
+
+                                            <!-- Anchoring dates -->
+                                            <template v-if="firstAndLastMicroblockAnchoringDate">
+                                                <div class="bg-surface-50 rounded-lg p-3">
+                                                    <p class="text-xs text-surface-400 mb-1">First anchoring</p>
+                                                    <p class="text-xs font-medium text-surface-700">
+                                                        {{ firstAndLastMicroblockAnchoringDate.firstAnchoringDate.toLocaleString() }}
+                                                    </p>
+                                                </div>
+                                                <div class="bg-surface-50 rounded-lg p-3">
+                                                    <p class="text-xs text-surface-400 mb-1">Last anchoring</p>
+                                                    <p class="text-xs font-medium text-surface-700">
+                                                        {{ firstAndLastMicroblockAnchoringDate.lastAnchoringDate.toLocaleString() }}
+                                                    </p>
+                                                </div>
+                                            </template>
+
+
                                         </div>
 
-                                        <!-- Virtual Blockchain ID -->
-                                        <div class="border border-surface-200 rounded-lg p-3">
-                                            <div class="flex items-center justify-between mb-1.5">
-                                                <div class="flex items-center gap-1.5">
-                                                    <i class="pi pi-box text-primary-400 text-xs"></i>
+                                        <!-- Actors -->
+                                        <div>
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <i class="pi pi-users text-surface-400 text-xs"></i>
+                                                <p class="text-xs font-semibold text-surface-600">
+                                                    Actors
                                                     <span
-                                                        class="text-xs font-semibold text-surface-500 uppercase tracking-wide">
-                                                        Virtual Blockchain ID
+                                                        v-if="selectedVb"
+                                                        class="ml-1.5 text-xs font-normal bg-surface-100 text-surface-500 px-1.5 py-0.5 rounded-full"
+                                                    >
+                                                        {{ selectedVb.getAllActors().length }}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                            <div v-if="isLoadingVb" class="flex flex-col gap-1.5">
+                                                <Skeleton height="2rem" />
+                                                <Skeleton height="2rem" />
+                                            </div>
+                                            <div v-else-if="!selectedVb" class="text-xs text-surface-400 italic pl-2">
+                                                Loading…
+                                            </div>
+                                            <div v-else-if="selectedVb.getAllActors().length === 0" class="text-xs text-surface-400 italic pl-2">
+                                                No actors defined
+                                            </div>
+                                            <div v-else class="flex flex-col gap-1.5">
+                                                <div
+                                                    v-for="(actor, idx) in selectedVb.getAllActors()"
+                                                    :key="idx"
+                                                    class="flex items-center justify-between px-3 py-2 bg-surface-50 rounded-lg border border-surface-100"
+                                                >
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="w-6 h-6 rounded-full bg-primary-100 text-primary text-xs flex items-center justify-center font-bold flex-shrink-0">
+                                                            {{ String(actor.name).charAt(0).toUpperCase() }}
+                                                        </div>
+                                                        <span class="text-sm font-medium text-surface-700">{{ actor.name }}</span>
+                                                    </div>
+                                                    <span
+                                                        class="text-xs px-2 py-0.5 rounded-full"
+                                                        :class="actor.subscribed ? 'bg-green-100 text-green-700' : 'bg-surface-100 text-surface-500'"
+                                                    >
+                                                        {{ actor.subscribed ? 'Subscribed' : 'Unsubscribed' }}
                                                     </span>
                                                 </div>
-                                                <Button
-                                                    icon="pi pi-copy"
-                                                    size="small"
-                                                    text
-                                                    rounded
-                                                    class="-mt-0.5 -mr-1"
-                                                    @click="copyToClipboard(participation.appLedgers[selectedIdx].id)"
-                                                    v-tooltip="'Copy VB ID'"
-                                                />
                                             </div>
-                                            <p class="text-sm font-mono text-surface-800 break-all leading-relaxed">
-                                                {{ participation.appLedgers[selectedIdx].id }}
-                                            </p>
                                         </div>
 
-
-
-                                        <!-- Operator URL -->
-                                        <div
-                                            v-if="participation.appLedgers[selectedIdx].operatorEndpoint"
-                                            class="border border-surface-200 rounded-lg p-3"
-                                        >
-                                            <div class="flex items-center gap-1.5 mb-1.5">
-                                                <i class="pi pi-server text-primary-400 text-xs"></i>
-                                                <span
-                                                    class="text-xs font-semibold text-surface-500 uppercase tracking-wide">
-                                                    Operator URL
-                                                </span>
-                                            </div>
-                                            <p class="text-sm text-surface-800 break-all">
-                                                {{ participation.appLedgers[selectedIdx].operatorEndpoint }}
-                                            </p>
-                                        </div>
-
-                                        <!-- Validated microblock -->
-                                        <div
-                                            v-if="participation.appLedgers[selectedIdx].b64EncodedMicroblock"
-                                            class="border border-surface-200 rounded-lg p-3"
-                                        >
-                                            <div class="flex items-center justify-between mb-1.5">
-                                                <div class="flex items-center gap-1.5">
-                                                    <i class="pi pi-check-circle text-green-400 text-xs"></i>
+                                        <!-- Channels -->
+                                        <div>
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <i class="pi pi-comments text-surface-400 text-xs"></i>
+                                                <p class="text-xs font-semibold text-surface-600">
+                                                    Channels
                                                     <span
-                                                        class="text-xs font-semibold text-surface-500 uppercase tracking-wide">
-                                                        Validated Microblock
+                                                        v-if="selectedVb"
+                                                        class="ml-1.5 text-xs font-normal bg-surface-100 text-surface-500 px-1.5 py-0.5 rounded-full"
+                                                    >
+                                                        {{ selectedVb.getAllChannels().length }}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                            <div v-if="isLoadingVb" class="flex flex-col gap-1.5">
+                                                <Skeleton height="2rem" />
+                                                <Skeleton height="2rem" />
+                                            </div>
+                                            <div v-else-if="!selectedVb" class="text-xs text-surface-400 italic pl-2">
+                                                Loading…
+                                            </div>
+                                            <div v-else-if="selectedVb.getAllChannels().length === 0" class="text-xs text-surface-400 italic pl-2">
+                                                No channels defined
+                                            </div>
+                                            <div v-else class="flex flex-col gap-1.5">
+                                                <div
+                                                    v-for="(channel, idx) in selectedVb.getAllChannels()"
+                                                    :key="idx"
+                                                    class="flex items-center justify-between px-3 py-2 bg-surface-50 rounded-lg border border-surface-100"
+                                                >
+                                                    <div class="flex items-center gap-2">
+                                                        <i
+                                                            class="pi text-sm"
+                                                            :class="channel.isPrivate ? 'pi-lock text-amber-500' : 'pi-lock-open text-green-500'"
+                                                        ></i>
+                                                        <span class="text-sm font-medium text-surface-700">{{ channel.name }}</span>
+                                                    </div>
+                                                    <span
+                                                        class="text-xs px-2 py-0.5 rounded-full"
+                                                        :class="channel.isPrivate ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'"
+                                                    >
+                                                        {{ channel.isPrivate ? 'Private' : 'Public' }}
                                                     </span>
                                                 </div>
-                                                <Button
-                                                    icon="pi pi-copy"
-                                                    size="small"
-                                                    text
-                                                    rounded
-                                                    class="-mt-0.5 -mr-1"
-                                                    @click="copyToClipboard(participation.appLedgers[selectedIdx].b64EncodedMicroblock)"
-                                                    v-tooltip="'Copy full microblock'"
-                                                />
                                             </div>
-                                            <p class="text-sm font-mono text-surface-800 truncate">
-                                                {{
-                                                    participation.appLedgers[selectedIdx].b64EncodedMicroblock.slice(0, 48)
-                                                }}…
-                                            </p>
-                                        </div>
-
-                                        <!-- Export proof -->
-                                        <div class="flex gap-2 pt-1">
-                                            <ExportProofButton
-                                                v-if="accountCrypto"
-                                                :vb="selectedVb"
-                                                :account-crypto="accountCrypto"
-                                                :ledger-id="participation.appLedgers[selectedIdx].id"
-                                                :author="wallet?.name ?? ''"
-                                            />
                                         </div>
                                     </div>
                                 </TabPanel>
