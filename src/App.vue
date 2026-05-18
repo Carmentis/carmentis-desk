@@ -93,7 +93,7 @@ onMounted(async () => {
         <AppBreadcrumb />
 
         <!-- Main Content -->
-        <main class="mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main class="mx-auto px-4 sm:px-6 lg:px-8 pb-8">
             <OpenIdDeepLinkHandler :uri="openidQuery" />
             <OpenIdCredentialOfferDeepLinkHandler :uri="openidCredentialOfferQuery" />
             <Suspense>
