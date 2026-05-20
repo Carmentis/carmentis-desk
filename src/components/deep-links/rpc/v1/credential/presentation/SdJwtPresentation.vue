@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import {WalletSdJwtSigner} from "../../../../../utils/WalletSdJwtSigner.ts";
+import {WalletSdJwtSigner} from "../../../../../../utils/WalletSdJwtSigner.ts";
 import {computed, ref, watch} from "vue";
 import {CredentialPresentation} from "./SdJwtPresentationRequestType.ts";
-import DropdownWalletSelection from "../../../../DropdownWalletSelection.vue";
-import {useStorageStore} from "../../../../../stores/storage.ts";
+import DropdownWalletSelection from "../../../../../DropdownWalletSelection.vue";
+import {useStorageStore} from "../../../../../../stores/storage.ts";
 import {storeToRefs} from "pinia";
 import {DcqlQuery, DcqlQueryResult} from 'dcql'
-import {SdJwtUtils} from "../../../../../utils/SdJwtUtils.ts";
+import {SdJwtUtils} from "../../../../../../utils/SdJwtUtils.ts";
 import {computedAsync} from "@vueuse/core";
-import {convertSdJwtToDcqlCredential} from "../../../../../utils/utils.ts";
-import {parseSdJwtEnvelope} from "../../../../../composables/credentials/useCredentialType.ts";
+import {convertSdJwtToDcqlCredential} from "../../../../../../utils/utils.ts";
+import {parseSdJwtEnvelope} from "../../../../../../composables/credentials/useCredentialType.ts";
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';

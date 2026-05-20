@@ -22,14 +22,14 @@ import {
 } from '@cmts-dev/carmentis-sdk-json-rpc';
 
 import WalletRequestDeprecatedAuthByPublicKey from './WalletRequestDeprecatedAuthByPublicKey.vue';
-import WalletRequestV1AuthByPublicKey from './v1/auth/WalletRequestAuthByPublicKey.vue';
+import WalletRequestV1AuthByPublicKey from '../deep-links/rpc/v1/auth/WalletRequestAuthByPublicKey.vue';
 import WalletRequestEventApproval from './WalletRequestEventApproval.vue';
 import * as timers from 'node:timers';
 import {
     CredentialPresentation,
     CredentialPresentationSchema
-} from "./v1/credential/presentation/SdJwtPresentationRequestType.ts";
-import SdJwtPresentation from "./v1/credential/presentation/SdJwtPresentation.vue";
+} from "../deep-links/rpc/v1/credential/presentation/SdJwtPresentationRequestType.ts";
+import SdJwtPresentation from "../deep-links/rpc/v1/credential/presentation/SdJwtPresentation.vue";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
