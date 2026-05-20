@@ -1,20 +1,21 @@
 <script setup lang="ts">
 import {WalletSdJwtSigner} from "../../../../../utils/WalletSdJwtSigner.ts";
-import {computed, ref} from "vue";
+import {computed, ref, watch} from "vue";
 import {CredentialPresentation} from "./SdJwtPresentationRequestType.ts";
 import DropdownWalletSelection from "../../../../DropdownWalletSelection.vue";
 import {useStorageStore} from "../../../../../stores/storage.ts";
 import {storeToRefs} from "pinia";
-import {type DcqlCredential, DcqlQuery, DcqlQueryResult} from 'dcql'
+import {DcqlQuery, DcqlQueryResult} from 'dcql'
 import {SdJwtUtils} from "../../../../../utils/SdJwtUtils.ts";
 import {computedAsync} from "@vueuse/core";
 import {convertSdJwtToDcqlCredential} from "../../../../../utils/utils.ts";
+import {parseSdJwtEnvelope} from "../../../../../composables/credentials/useCredentialType.ts";
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
+import Dropdown from 'primevue/dropdown';
 
-// define the expected parameters
 const props = defineProps<{
     credentialPresentationRequest: CredentialPresentation;
 }>();
@@ -33,7 +34,7 @@ const dcqlQuery = computed(() => {
 		}
 		return null;
 	} catch (e) {
-		console.error(`An error occurred during the parsing of the DCQL query: ${e.message ?? 'Unknown error'}` );
+		console.error(`An error occurred during the parsing of the DCQL query: ${e.message ?? 'Unknown error'}`);
 	}
 })
 
@@ -62,18 +63,12 @@ const credentialsInWallet = computed(() => {
 // filter credentials to recover only sd-jwt-based credentials
 const sdJwtCredentials = computedAsync(async () => {
 	try {
-		const rawCredentials = credentialsInWallet.value.map((credential) =>
-			credential.data
-		);
+		const rawCredentials = credentialsInWallet.value.map((credential) => credential.data);
 
 		const checks = await Promise.all(
-			rawCredentials.map((credential) =>
-				SdJwtUtils.isSdJwt(credential)
-			)
+			rawCredentials.map((credential) => SdJwtUtils.isSdJwt(credential))
 		);
-		const wellFormedCredentials = rawCredentials.filter(
-			(_, index) => checks[index]
-		);
+		const wellFormedCredentials = rawCredentials.filter((_, index) => checks[index]);
 
 		const encodedCredentials = [];
 		for (const credential of wellFormedCredentials) {
@@ -93,11 +88,9 @@ const querySatisfactionResult = computedAsync<DcqlQueryResult | null>(async () =
 	const query = dcqlQuery.value;
 	if (credentials === undefined || query === undefined) return null;
 
-	// Parse (structural) and validate (content) the query
 	const parsedQuery = DcqlQuery.parse(query)
 	DcqlQuery.validate(parsedQuery)
 
-	// Execute the query against credentials
 	const dcqlFriendlyCredentials = await Promise.all(
 		credentials.map((credential) => convertSdJwtToDcqlCredential(credential))
 	)
@@ -109,38 +102,72 @@ const canBeSatisfied = computed(() => {
 	return querySatisfactionResult.value?.can_be_satisfied ?? false
 })
 
-const satisfyingSdJwtCredential = computed(() => {
-	// we cannot do anything if the query or the query result not defined
+// All credentials that satisfy the query
+const satisfyingCredentials = computed((): string[] => {
 	const query = dcqlQuery.value;
 	const queryResult = querySatisfactionResult.value;
-	if (queryResult === undefined || queryResult === null || query == null) return null;
+	if (queryResult === undefined || queryResult === null || query == null) return [];
 
-	// also, we cannot satisfy the query if no sd-jwt credential found
 	const sdjwts = sdJwtCredentials.value;
-	if (sdjwts === undefined || sdjwts === null) return null;
+	if (!sdjwts) return [];
 
-	const entries = query.credentials.map(credentialRequest => credentialRequest.id);
+	const entries = query.credentials.map(cr => cr.id);
 	if (entries.length !== 1) {
-		console.warn("Only one request is currently supported")
-		return null;
-	};
-
+		console.warn("Only one DCQL credential request is currently supported");
+		return [];
+	}
 
 	const entry = entries[0];
-	console.log(`Seaching for credential ${entry}`)
-	console.log(JSON.stringify(queryResult))
-	const validCredentials = queryResult.credential_matches[entry].valid_credentials
-	if (validCredentials === undefined || validCredentials.length !== 1)
-		return null; // TODO: we only support one fullfilled credential for now
-	const validCredential = validCredentials[0]
-	const index = validCredential.input_credential_index;
-	return sdjwts[index]
+	const matches = queryResult.credential_matches[entry];
+	if (!matches?.valid_credentials) return [];
+
+	return matches.valid_credentials
+		.map(vc => sdjwts[vc.input_credential_index])
+		.filter(Boolean);
 })
+
+// User-selected credential index within satisfyingCredentials
+const selectedCredentialIndex = ref(0);
+
+watch(satisfyingCredentials, () => {
+	selectedCredentialIndex.value = 0;
+})
+
+const selectedCredential = computed(() =>
+	satisfyingCredentials.value[selectedCredentialIndex.value] ?? null
+)
+
+// Parse the selected credential to extract disclosure key-value pairs
+const selectedCredentialEnvelope = computedAsync(async () => {
+	const credential = selectedCredential.value;
+	if (!credential) return null;
+	return parseSdJwtEnvelope(credential);
+})
+
+// Claims that will be revealed, with their actual values
+const revealedClaims = computed(() => {
+	const envelope = selectedCredentialEnvelope.value;
+	if (!envelope) return [];
+	const desired = new Set(desiredClaims.value.map(String));
+	return envelope.disclosures
+		.filter(d => d.key !== undefined && (desired.size === 0 || desired.has(d.key!)))
+		.map(d => ({ key: d.key!, value: d.value }));
+})
+
+function formatValue(v: unknown): string {
+	if (v === null || v === undefined) return 'null';
+	if (typeof v === 'object') {
+		if (Array.isArray(v)) return `[${(v as unknown[]).length} items]`;
+		return `{${Object.keys(v as object).length} keys}`;
+	}
+	const str = String(v);
+	return str.length > 80 ? str.slice(0, 80) + '…' : str;
+}
 
 const isPresenting = ref(false);
 
 async function handlePresent() {
-    const credential = satisfyingSdJwtCredential.value;
+    const credential = selectedCredential.value;
     if (!credential) return;
 
     isPresenting.value = true;
@@ -235,40 +262,70 @@ async function handlePresent() {
                 </template>
             </Card>
 
-            <!-- Right card: Matching credential -->
+            <!-- Right card: Matching credential(s) -->
             <Card class="flex-1">
                 <template #header>
                     <div class="flex items-center gap-2 px-4 pt-4">
                         <i class="pi pi-id-card text-primary"></i>
                         <span class="font-bold text-lg">Credential</span>
+                        <Tag
+                            v-if="satisfyingCredentials.length > 1"
+                            :value="`${satisfyingCredentials.length} matches`"
+                            severity="secondary"
+                            class="ml-auto"
+                        />
                     </div>
                 </template>
                 <template #content>
-                    <div v-if="satisfyingSdJwtCredential" class="flex flex-col gap-4">
+                    <div v-if="satisfyingCredentials.length > 0" class="flex flex-col gap-4">
+                        <!-- Credential selector (only when multiple matches) -->
+                        <div v-if="satisfyingCredentials.length > 1">
+                            <p class="text-xs font-semibold uppercase text-gray-400">Select a credential</p>
+                            <Dropdown
+                                v-model="selectedCredentialIndex"
+                                :options="satisfyingCredentials.map((_, idx) => idx)"
+                                class="w-full mt-2"
+                            >
+                                <template #value="{ value }">
+                                    <span class="font-mono text-xs text-gray-600">
+                                        {{ satisfyingCredentials[value]?.slice(0, 60) }}…
+                                    </span>
+                                </template>
+                                <template #option="{ option }">
+                                    <span class="font-mono text-xs text-gray-600 break-all">
+                                        {{ satisfyingCredentials[option]?.slice(0, 60) }}…
+                                    </span>
+                                </template>
+                            </Dropdown>
+                        </div>
+
+                        <!-- Type -->
                         <div>
                             <p class="text-xs font-semibold uppercase text-gray-400">Type</p>
                             <div class="mt-2">
                                 <Tag value="SD-JWT VC" severity="info" icon="pi pi-verified" />
                             </div>
                         </div>
-                        <div>
-                            <p class="text-xs font-semibold uppercase text-gray-400">Token</p>
-                            <p class="font-mono text-xs mt-1 bg-gray-50 p-2 rounded text-gray-500 break-all">
-                                {{ satisfyingSdJwtCredential.slice(0, 80) }}…
-                            </p>
-                        </div>
+
+                        <!-- Disclosed claims with values -->
                         <div>
                             <p class="text-xs font-semibold uppercase text-gray-400">Disclosed Claims</p>
-                            <div v-if="desiredClaims.length > 0" class="flex flex-wrap gap-2 mt-2">
-                                <Tag
-                                    v-for="claim in desiredClaims"
-                                    :key="String(claim)"
-                                    :value="String(claim)"
-                                    severity="success"
-                                    icon="pi pi-eye"
-                                />
+                            <div v-if="revealedClaims.length > 0" class="flex flex-col gap-1 mt-2">
+                                <div
+                                    v-for="claim in revealedClaims"
+                                    :key="claim.key"
+                                    class="flex items-center gap-3 rounded border border-gray-100 bg-gray-50 px-3 py-2"
+                                >
+                                    <span class="font-mono text-xs font-semibold text-blue-600 shrink-0">{{ claim.key }}</span>
+                                    <span class="text-gray-300 text-xs">:</span>
+                                    <span class="font-mono text-sm text-gray-700 truncate">{{ formatValue(claim.value) }}</span>
+                                </div>
                             </div>
-                            <p v-else class="text-sm text-gray-400 mt-1">All claims will be disclosed</p>
+                            <p v-else-if="desiredClaims.length === 0" class="text-sm text-gray-400 mt-1">All claims will be disclosed</p>
+                            <p v-else class="text-sm text-gray-400 mt-1 flex items-center gap-1">
+                                <i class="pi pi-spin pi-spinner text-xs"></i>
+                                Loading claim values…
+                            </p>
                         </div>
                     </div>
                     <Message v-else severity="warn" :closable="false">
@@ -288,7 +345,7 @@ async function handlePresent() {
                             label="Present"
                             icon="pi pi-send"
                             :loading="isPresenting"
-                            :disabled="!canBeSatisfied || !satisfyingSdJwtCredential"
+                            :disabled="!canBeSatisfied || !selectedCredential"
                             @click="handlePresent"
                         />
                     </div>
