@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { computedAsync } from '@vueuse/core';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
@@ -16,7 +17,7 @@ const emit = defineEmits<{
     (e: 'delete'): void;
 }>();
 
-const sdJwt = computed(() => parseSdJwt(props.credential.data));
+const sdJwt = computedAsync(() => parseSdJwt(props.credential.data), null);
 const showPresentDialog = ref(false);
 
 // ---------------------------------------------------------------------------

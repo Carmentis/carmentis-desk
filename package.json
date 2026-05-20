@@ -40,6 +40,8 @@
     "@vueuse/core": "^14.2.1",
     "axios": "^1.13.6",
     "base64url": "^3.0.1",
+    "canonical-json": "^0.4.0",
+    "dcql": "^3.0.0",
     "eventemitter3": "^5.0.4",
     "jose": "^6.2.2",
     "lodash": "^4.18.1",

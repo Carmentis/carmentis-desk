@@ -16,7 +16,7 @@ import { useStorageStore } from '../../../../stores/storage.ts';
 import { storeToRefs } from 'pinia';
 import * as jose from 'jose';
 import { base64url } from 'jose';
-import { JwkSignatureKeyExporter } from '../../../jwk-signature-key-exporter.ts';
+import { JwkSignatureKeyExporter } from '../../../../utils/jwk-signature-key-exporter.ts';
 
 const store = useStorageStore();
 const { wallets } = storeToRefs(store);

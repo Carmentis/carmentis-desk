@@ -7,11 +7,6 @@ import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
-import Tabs from 'primevue/tabs';
-import TabList from 'primevue/tablist';
-import Tab from 'primevue/tab';
-import TabPanels from 'primevue/tabpanels';
-import TabPanel from 'primevue/tabpanel';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import type { MenuItem } from 'primevue/menuitem';
@@ -32,107 +27,18 @@ const credentials = computed(() => wallet.value?.credentials ?? []);
 // Add credential dialog
 // ---------------------------------------------------------------------------
 const showAddDialog = ref(false);
-const addTab = ref<'json' | 'sd-jwt'>('json');
 
-// JSON tab state
-const credentialName = ref('');
-const credentialData = ref('');
-const fileInputRef = ref<HTMLInputElement | null>(null);
-
-// SD-JWT tab state
 const sdJwtName = ref('');
 const sdJwtToken = ref('');
 const sdJwtParsing = ref(false);
 
 function openAddDialog() {
-    addTab.value = 'json';
-    credentialName.value = '';
-    credentialData.value = '';
     sdJwtName.value = '';
     sdJwtToken.value = '';
     showAddDialog.value = true;
 }
 
-// --- JSON tab helpers ---
-
-function triggerFileInput() {
-    fileInputRef.value?.click();
-}
-
-function handleFileUpload(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-
-    if (!credentialName.value) {
-        credentialName.value = file.name.replace(/\.[^.]+$/, '');
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const text = e.target?.result as string;
-        try {
-            JSON.parse(text);
-            credentialData.value = text;
-        } catch {
-            toast.add({
-                severity: 'error',
-                summary: 'Invalid file',
-                detail: 'The file does not contain valid JSON',
-                life: 3000,
-            });
-        }
-    };
-    reader.readAsText(file);
-
-    if (fileInputRef.value) fileInputRef.value.value = '';
-}
-
-async function submitJsonTab() {
-    if (!credentialName.value) {
-        toast.add({
-            severity: 'error',
-            summary: 'Validation error',
-            detail: 'Credential name is required',
-            life: 3000,
-        });
-        return;
-    }
-    if (!credentialData.value) {
-        toast.add({
-            severity: 'error',
-            summary: 'Validation error',
-            detail: 'Credential data is required',
-            life: 3000,
-        });
-        return;
-    }
-    try {
-        JSON.parse(credentialData.value);
-    } catch {
-        toast.add({
-            severity: 'error',
-            summary: 'Validation error',
-            detail: 'Credential data must be valid JSON',
-            life: 3000,
-        });
-        return;
-    }
-    await storageStore.addCredential(walletId.value, {
-        name: credentialName.value,
-        data: credentialData.value,
-    });
-    toast.add({
-        severity: 'success',
-        summary: 'Credential added',
-        detail: `"${credentialName.value}" added successfully`,
-        life: 3000,
-    });
-    showAddDialog.value = false;
-}
-
-// --- SD-JWT tab helpers ---
-
-async function submitSdJwtTab() {
+async function handleAddSubmit() {
     if (!sdJwtToken.value.trim()) {
         toast.add({
             severity: 'error',
@@ -145,12 +51,12 @@ async function submitSdJwtTab() {
 
     sdJwtParsing.value = true;
     try {
-        const parsed = await parseCompactSdJwt(sdJwtToken.value);
+        const token = sdJwtToken.value.trim();
+        const parsed = await parseCompactSdJwt(token);
 
         const name = sdJwtName.value.trim() || parsed.jwt.payload.vct;
-        const data = JSON.stringify(parsed);
 
-        await storageStore.addCredential(walletId.value, { name, data });
+        await storageStore.addCredential(walletId.value, { name, data: token });
         toast.add({
             severity: 'success',
             summary: 'Credential added',
@@ -170,11 +76,6 @@ async function submitSdJwtTab() {
     } finally {
         sdJwtParsing.value = false;
     }
-}
-
-function handleAddSubmit() {
-    if (addTab.value === 'json') submitJsonTab();
-    else submitSdJwtTab();
 }
 
 // ---------------------------------------------------------------------------
@@ -244,15 +145,6 @@ const menuItems = computed<MenuItem[]>(() => [
             <div class="space-y-4">
                 <MenuBar :model="menuItems" />
 
-                <!-- Hidden file input for JSON upload -->
-                <input
-                    ref="fileInputRef"
-                    type="file"
-                    accept=".json,application/json"
-                    class="hidden"
-                    @change="handleFileUpload"
-                />
-
                 <!-- Empty state -->
                 <div v-if="credentials.length === 0" class="text-center py-12">
                     <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
@@ -275,101 +167,40 @@ const menuItems = computed<MenuItem[]>(() => [
             </div>
 
             <!-- Add Credential Dialog -->
-            <Dialog v-model:visible="showAddDialog" header="Add Credential" modal class="w-full max-w-lg">
-                <Tabs v-model:value="addTab">
-                    <TabList>
-                        <Tab value="json">
-                            <i class="pi pi-file mr-2" />
-                            JSON
-                        </Tab>
-                        <Tab value="sd-jwt">
-                            <i class="pi pi-shield mr-2" />
-                            SD-JWT Token
-                        </Tab>
-                    </TabList>
-
-                    <TabPanels>
-                        <!-- JSON tab -->
-                        <TabPanel value="json">
-                            <div class="space-y-4 pt-4">
-                                <div>
-                                    <label for="credential-name" class="block text-sm font-medium text-gray-700 mb-2">
-                                        Name
-                                        <span class="text-red-500">*</span>
-                                    </label>
-                                    <InputText
-                                        id="credential-name"
-                                        v-model="credentialName"
-                                        placeholder="Enter credential name"
-                                        class="w-full"
-                                    />
-                                </div>
-                                <div>
-                                    <div class="flex items-center justify-between mb-2">
-                                        <label for="credential-data" class="block text-sm font-medium text-gray-700">
-                                            JSON Data
-                                            <span class="text-red-500">*</span>
-                                        </label>
-                                        <Button
-                                            label="Upload file"
-                                            icon="pi pi-upload"
-                                            size="small"
-                                            severity="secondary"
-                                            outlined
-                                            @click="triggerFileInput"
-                                        />
-                                    </div>
-                                    <Textarea
-                                        id="credential-data"
-                                        v-model="credentialData"
-                                        placeholder='{"key": "value"}'
-                                        class="w-full font-mono text-sm"
-                                        rows="10"
-                                    />
-                                </div>
-                            </div>
-                        </TabPanel>
-
-                        <!-- SD-JWT Token tab -->
-                        <TabPanel value="sd-jwt">
-                            <div class="space-y-4 pt-4">
-                                <div>
-                                    <label for="sd-jwt-name" class="block text-sm font-medium text-gray-700 mb-2">
-                                        Name
-                                        <span class="text-gray-400 font-normal">
-                                            (optional — defaults to credential type)
-                                        </span>
-                                    </label>
-                                    <InputText
-                                        id="sd-jwt-name"
-                                        v-model="sdJwtName"
-                                        placeholder="Leave blank to use credential type (vct)"
-                                        class="w-full"
-                                    />
-                                </div>
-                                <div>
-                                    <label for="sd-jwt-token" class="block text-sm font-medium text-gray-700 mb-2">
-                                        Compact SD-JWT-VC Token
-                                        <span class="text-red-500">*</span>
-                                    </label>
-                                    <Textarea
-                                        id="sd-jwt-token"
-                                        v-model="sdJwtToken"
-                                        placeholder="eyJ...eyJ...~WyJ...~WyJ...~"
-                                        class="w-full font-mono text-xs"
-                                        rows="8"
-                                    />
-                                    <p class="text-xs text-gray-400 mt-1">
-                                        Format:
-                                        <code class="bg-gray-100 px-1 rounded">
-                                            header.payload.signature~disclosure1~disclosure2~
-                                        </code>
-                                    </p>
-                                </div>
-                            </div>
-                        </TabPanel>
-                    </TabPanels>
-                </Tabs>
+            <Dialog v-model:visible="showAddDialog" header="Add SD-JWT Credential" modal class="w-full max-w-lg">
+                <div class="space-y-4 pt-2">
+                    <div>
+                        <label for="sd-jwt-name" class="block text-sm font-medium text-gray-700 mb-2">
+                            Name
+                            <span class="text-gray-400 font-normal">(optional — defaults to credential type)</span>
+                        </label>
+                        <InputText
+                            id="sd-jwt-name"
+                            v-model="sdJwtName"
+                            placeholder="Leave blank to use credential type (vct)"
+                            class="w-full"
+                        />
+                    </div>
+                    <div>
+                        <label for="sd-jwt-token" class="block text-sm font-medium text-gray-700 mb-2">
+                            Compact SD-JWT-VC Token
+                            <span class="text-red-500">*</span>
+                        </label>
+                        <Textarea
+                            id="sd-jwt-token"
+                            v-model="sdJwtToken"
+                            placeholder="eyJ...eyJ...~WyJ...~WyJ...~"
+                            class="w-full font-mono text-xs"
+                            rows="8"
+                        />
+                        <p class="text-xs text-gray-400 mt-1">
+                            Format:
+                            <code class="bg-gray-100 px-1 rounded">
+                                header.payload.signature~disclosure1~disclosure2~
+                            </code>
+                        </p>
+                    </div>
+                </div>
 
                 <template #footer>
                     <div class="flex justify-end gap-2">

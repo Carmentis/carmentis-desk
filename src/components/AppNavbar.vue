@@ -142,7 +142,7 @@ const menuItems = computed<MenuItem[]>(() => [
 </script>
 
 <template>
-    <div class="p-4 w-full">
+    <div class="p-4 pb-2 w-full">
       <Menubar :model="menuItems">
         <template #start>
           <div class="flex items-center gap-2 cursor-pointer" @click="router.push('/')">

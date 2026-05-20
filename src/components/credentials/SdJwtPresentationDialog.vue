@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, inject, ref, watch } from 'vue';
 import Dialog from 'primevue/dialog';
+import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import Tag from 'primevue/tag';
@@ -13,7 +14,7 @@ import { useOnChainStore } from '../../stores/onchain.ts';
 import { storeToRefs } from 'pinia';
 import { Ed25519PrivateSignatureKey, JwkSignatureEncoder, SeedEncoder } from '@cmts-dev/carmentis-sdk-core';
 import * as jose from 'jose';
-import { JwkSignatureKeyExporter } from '../jwk-signature-key-exporter.ts';
+import { JwkSignatureKeyExporter } from '../../utils/jwk-signature-key-exporter.ts';
 import { computedAsync } from '@vueuse/core';
 
 // we search the wallet index
@@ -30,7 +31,7 @@ const props = defineProps<{
 }>();
 const visible = defineModel<boolean>('visible', { default: false });
 
-const envelope = computed(() => (props.credential ? parseSdJwtEnvelope(props.credential.data) : null));
+const envelope = computedAsync(async () => (props.credential ? await parseSdJwtEnvelope(props.credential.data) : null), null);
 
 const compactToken = computed(() => {
     if (!envelope.value) return '';

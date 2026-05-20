@@ -8,6 +8,9 @@ const props = defineProps<{
     wallets: WalletEntity[];
     chosenWallet: WalletEntity;
 }>();
+const emit = defineEmits<{
+    selectedWalletIndex: [index: number];
+}>();
 const chosenWallet = props.chosenWallet;
 </script>
 
@@ -19,6 +22,7 @@ const chosenWallet = props.chosenWallet;
         optionLabel="name"
         placeholder="Choose a wallet for auth"
         class="w-full"
+        @change="emit('selectedWalletIndex', wallets.indexOf(chosenWallet))"
     >
         <template #value="slotProps">
             <div v-if="slotProps.value" class="flex items-center gap-2">

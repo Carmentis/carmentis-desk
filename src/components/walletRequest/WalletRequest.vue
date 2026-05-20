@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import {onMounted, onUnmounted, ref} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
@@ -25,6 +25,11 @@ import WalletRequestDeprecatedAuthByPublicKey from './WalletRequestDeprecatedAut
 import WalletRequestV1AuthByPublicKey from './v1/auth/WalletRequestAuthByPublicKey.vue';
 import WalletRequestEventApproval from './WalletRequestEventApproval.vue';
 import * as timers from 'node:timers';
+import {
+    CredentialPresentation,
+    CredentialPresentationSchema
+} from "./v1/credential/presentation/SdJwtPresentationRequestType.ts";
+import SdJwtPresentation from "./v1/credential/presentation/SdJwtPresentation.vue";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -49,7 +54,12 @@ type ActiveRequest =
           kind: 'wr-data-approval';
           id: RequestId;
           params: WalletRequestDataApproval;
-      };
+      }
+    | {
+            kind: '/v1/credential/presentation';
+            id: RequestId;
+            params: CredentialPresentation;
+    };
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
@@ -96,6 +106,16 @@ const methodHandlers: Record<string, Handler> = {
         if (!result.success) return JsonRpc.invalidParams(id, 'Invalid parameters for /v1/auth/pk');
         activeRequest.value = {
             kind: '/v1/auth/pk',
+            id,
+            params: result.output,
+        };
+    },
+
+    "/v1/credential/presentation": (id, params) => {
+        const result = v.safeParse(CredentialPresentationSchema, params);
+        if (!result.success) return JsonRpc.invalidParams(id, 'Invalid parameters for /v1/credential/presentation');
+        activeRequest.value = {
+            kind: '/v1/credential/presentation',
             id,
             params: result.output,
         };
@@ -185,6 +205,18 @@ async function onApproveDataApproval(b64VbHash: string, b64MbHash: string, heigh
     closeConnect();
 }
 
+async function onApproveCredentialPresentation(vpToken: string) {
+    if (activeRequest.value?.kind !== '/v1/credential/presentation') return;
+    await responder.send(JsonRpc.success(activeRequest.value.id, { vp_token: vpToken }));
+    toast.add({
+        severity: 'success',
+        summary: 'Presentation successful',
+        detail: 'The credential has been presented',
+        life: 3000,
+    });
+    closeConnect();
+}
+
 onMounted(async () => {
     wantsToClose.value = false;
     await responder.join();
@@ -213,6 +245,12 @@ onMounted(async () => {
             v-else-if="activeRequest.kind === 'wr-data-approval'"
             :wallet-request="activeRequest.params"
             @approve="onApproveDataApproval"
+            @reject="closeConnect"
+        />
+        <SdJwtPresentation
+            v-else-if="activeRequest.kind === '/v1/credential/presentation'"
+            :credential-presentation-request="activeRequest.params"
+            @present="onApproveCredentialPresentation"
             @reject="closeConnect"
         />
     </div>

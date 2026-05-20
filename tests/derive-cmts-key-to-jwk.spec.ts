@@ -1,7 +1,7 @@
 import {describe, it} from 'vitest';
 import {Ed25519PrivateSignatureKey} from "@cmts-dev/carmentis-sdk-core";
 import * as jose from "jose";
-import {JwkSignatureKeyExporter} from "../src/components/jwk-signature-key-exporter";
+import {JwkSignatureKeyExporter} from "../src/utils/jwk-signature-key-exporter";
 
 
 describe('derive-cmts-key-to-jwk', () => {

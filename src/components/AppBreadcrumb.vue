@@ -84,7 +84,7 @@ const breakdownQuery = useAccountBreakdownQuery(computed(() => walletId.value ??
 </script>
 
 <template>
-    <div v-if="show" class="bg-surface-0 px-6 flex items-center justify-between">
+    <div v-if="show" class="bg-surface-0 px-4 flex items-center justify-between">
         <Breadcrumb :home="breadcrumbHome" :model="items" class="border-none p-0 bg-transparent text-sm" />
         <div v-if="walletId && breakdownQuery.data.value" class="flex items-center gap-1 text-sm text-gray-600">
             <i class="pi pi-wallet text-sm"></i>
