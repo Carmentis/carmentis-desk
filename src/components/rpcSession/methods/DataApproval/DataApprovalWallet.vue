@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import Card from 'primevue/card';
-import { useStorageStore } from '../../stores/storage.ts';
+import { useStorageStore } from '../../../../stores/storage.ts';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
-import DropdownWalletSelection from '../DropdownWalletSelection.vue';
+import DropdownWalletSelection from '../../../DropdownWalletSelection.vue';
 
 const store = useStorageStore();
 const { wallets } = storeToRefs(store);

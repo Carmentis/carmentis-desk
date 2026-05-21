@@ -24,7 +24,7 @@ import {
     WalletCrypto,
 } from '@cmts-dev/carmentis-sdk-core';
 import {useStorageStore, AppLedgerParticipation} from '../stores/storage.ts';
-import VirtualBlockchainRecordNavigator from './walletRequest/VirtualBlockchainRecordNavigator.vue';
+import VirtualBlockchainRecordNavigator from './rpcSession/VirtualBlockchainRecordNavigator.vue';
 import ExportProofButton from './ExportProofButton.vue';
 import {useToast} from 'primevue/usetoast';
 import {computedAsync} from "@vueuse/core";

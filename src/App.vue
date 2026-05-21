@@ -47,7 +47,7 @@ async function handleDeepLink(urls: string[]) {
 
             // On extrait le chemin après le protocole
             const path = url.replace('cmts://connect/carmentis-relay', '');
-            await router.push(`/connect/walletRequest${path}`);
+            await router.push(`/connect/rpc${path}`);
         }
 
         // handling openid-specific URL

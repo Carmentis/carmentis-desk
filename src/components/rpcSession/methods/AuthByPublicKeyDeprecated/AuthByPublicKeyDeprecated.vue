@@ -4,35 +4,27 @@ import { ref } from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
-import { useStorageStore } from '../../stores/storage.ts';
+import { useToast } from 'primevue/usetoast';
+import { useStorageStore } from '../../../../stores/storage.ts';
 import { storeToRefs } from 'pinia';
+import type { AuthByPublicKeyDeprecatedParams } from './AuthByPublicKeyDeprecatedRequestType.ts';
 
-// load all wallets
-const store = useStorageStore();
-const { wallets } = storeToRefs(store);
-const chosenWallet = ref(wallets.value[0]);
+const props = defineProps<{ params: AuthByPublicKeyDeprecatedParams }>();
 
-interface AuthByPublicKeyRequest {
-    base64EncodedChallenge: string;
-}
-
-// define the prop for the vue
-const props = defineProps<{
-    walletRequest: AuthByPublicKeyRequest;
-}>();
-
-// we use two emits here: approve and reject.
 const emit = defineEmits<{
-    approve: [publicKey: string, signature: string, challenge: string];
+    done: [result: Record<string, unknown>];
     reject: [];
 }>();
 
+const toast = useToast();
+const store = useStorageStore();
+const { wallets } = storeToRefs(store);
+const chosenWallet = ref(wallets.value[0]);
 const isProcessing = ref(false);
 
 async function approve() {
     isProcessing.value = true;
     try {
-        // generate the private signature key for the chosen wallet
         const selectedWallet = chosenWallet.value;
         const seed = selectedWallet.seed;
         const seedEncoder = new SeedEncoder();
@@ -42,21 +34,22 @@ async function approve() {
         const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
         const testEncoder = new TextEncoder();
         const signature = await privateSignatureKey.sign(
-            testEncoder.encode(props.walletRequest.base64EncodedChallenge),
+            testEncoder.encode(props.params.base64EncodedChallenge),
         );
-        emit(
-            'approve',
-            await sigEncoder.encodePublicKey(publicKey),
-            sigEncoder.encodeSignature(signature),
-            props.walletRequest.base64EncodedChallenge,
-        );
+
+        toast.add({
+            severity: 'success',
+            summary: 'Authentication successful',
+            detail: 'You are authenticated',
+            life: 3000,
+        });
+        emit('done', {
+            publicKey: await sigEncoder.encodePublicKey(publicKey),
+            signature: sigEncoder.encodeSignature(signature),
+        });
     } finally {
         isProcessing.value = false;
     }
-}
-
-function reject() {
-    emit('reject');
 }
 </script>
 
@@ -113,7 +106,7 @@ function reject() {
 
                     <div>
                         <p class="text-xs text-gray-500 mb-1">Message to sign</p>
-                        <p>{{ props.walletRequest.base64EncodedChallenge }}</p>
+                        <p>{{ params.base64EncodedChallenge }}</p>
                     </div>
 
                     <div class="flex gap-3 mt-6">
@@ -121,7 +114,7 @@ function reject() {
                             label="Decline"
                             severity="secondary"
                             outlined
-                            @click="reject"
+                            @click="emit('reject')"
                             :disabled="isProcessing"
                             class="flex-1"
                         />

@@ -1,167 +1,153 @@
 <script setup lang="ts">
-import {WalletSdJwtSigner} from "../../../../../../utils/WalletSdJwtSigner.ts";
-import {computed, ref, watch} from "vue";
-import {CredentialPresentation} from "./SdJwtPresentationRequestType.ts";
-import DropdownWalletSelection from "../../../../../DropdownWalletSelection.vue";
-import {useStorageStore} from "../../../../../../stores/storage.ts";
-import {storeToRefs} from "pinia";
-import {DcqlQuery, DcqlQueryResult} from 'dcql'
-import {SdJwtUtils} from "../../../../../../utils/SdJwtUtils.ts";
-import {computedAsync} from "@vueuse/core";
-import {convertSdJwtToDcqlCredential} from "../../../../../../utils/utils.ts";
-import {parseSdJwtEnvelope} from "../../../../../../composables/credentials/useCredentialType.ts";
+import { WalletSdJwtSigner } from '../../../../utils/WalletSdJwtSigner.ts';
+import { computed, ref, watch } from 'vue';
+import type { CredentialPresentation } from './CredentialPresentationRequestType.ts';
+import DropdownWalletSelection from '../../../DropdownWalletSelection.vue';
+import { useStorageStore } from '../../../../stores/storage.ts';
+import { storeToRefs } from 'pinia';
+import { DcqlQuery, DcqlQueryResult } from 'dcql';
+import { SdJwtUtils } from '../../../../utils/SdJwtUtils.ts';
+import { computedAsync } from '@vueuse/core';
+import { convertSdJwtToDcqlCredential } from '../../../../utils/utils.ts';
+import { parseSdJwtEnvelope } from '../../../../composables/credentials/useCredentialType.ts';
+import { useToast } from 'primevue/usetoast';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
 import Dropdown from 'primevue/dropdown';
 
-const props = defineProps<{
-    credentialPresentationRequest: CredentialPresentation;
-}>();
+const props = defineProps<{ params: CredentialPresentation }>();
 
 const emit = defineEmits<{
-    present: [token: string];
+    done: [result: Record<string, unknown>];
     reject: [];
 }>();
 
-// extract and parse the DCQL query from the params
+const toast = useToast();
+
 const dcqlQuery = computed(() => {
-	try {
-		const query = props.credentialPresentationRequest.query;
-		if (DcqlQuery.parse(query)) {
-			return query;
-		}
-		return null;
-	} catch (e) {
-		console.error(`An error occurred during the parsing of the DCQL query: ${e.message ?? 'Unknown error'}`);
-	}
-})
+    try {
+        const query = props.params.query;
+        if (DcqlQuery.parse(query)) {
+            return query;
+        }
+        return null;
+    } catch (e) {
+        console.error(`An error occurred during the parsing of the DCQL query: ${e.message ?? 'Unknown error'}`);
+    }
+});
 
-// extract the desired claims to reveal
 const desiredClaims = computed(() => {
-	const query = dcqlQuery.value;
-	if (query === null || query === undefined) return [];
-	const credentials = query.credentials;
-	if (credentials.length !== 1) return [];
-	const credential = credentials[0];
-	const claims = credential.claims;
-	if (!claims) return [];
-	return claims.map(claim => claim["path"]).flat();
-})
+    const query = dcqlQuery.value;
+    if (query === null || query === undefined) return [];
+    const credentials = query.credentials;
+    if (credentials.length !== 1) return [];
+    const credential = credentials[0];
+    const claims = credential.claims;
+    if (!claims) return [];
+    return claims.map((claim) => claim['path']).flat();
+});
 
-// load all wallets
 const store = useStorageStore();
 const { wallets } = storeToRefs(store);
 const chosenWallet = ref(wallets.value[0]);
 
-// load credentials from the selected wallet
 const credentialsInWallet = computed(() => {
     return chosenWallet.value.credentials ?? [];
-})
+});
 
-// filter credentials to recover only sd-jwt-based credentials
 const sdJwtCredentials = computedAsync(async () => {
-	try {
-		const rawCredentials = credentialsInWallet.value.map((credential) => credential.data);
+    try {
+        const rawCredentials = credentialsInWallet.value.map((credential) => credential.data);
 
-		const checks = await Promise.all(
-			rawCredentials.map((credential) => SdJwtUtils.isSdJwt(credential))
-		);
-		const wellFormedCredentials = rawCredentials.filter((_, index) => checks[index]);
+        const checks = await Promise.all(rawCredentials.map((credential) => SdJwtUtils.isSdJwt(credential)));
+        const wellFormedCredentials = rawCredentials.filter((_, index) => checks[index]);
 
-		const encodedCredentials = [];
-		for (const credential of wellFormedCredentials) {
-			const parsedSdjwt = await SdJwtUtils.parseSdJWt(credential)
-			const encodedSdjwt = await SdJwtUtils.encodeSdJwt(parsedSdjwt)
-			encodedCredentials.push(encodedSdjwt)
-		}
-		return encodedCredentials
-	} catch (e) {
-		console.error(e)
-		return []
-	}
+        const encodedCredentials = [];
+        for (const credential of wellFormedCredentials) {
+            const parsedSdjwt = await SdJwtUtils.parseSdJWt(credential);
+            const encodedSdjwt = await SdJwtUtils.encodeSdJwt(parsedSdjwt);
+            encodedCredentials.push(encodedSdjwt);
+        }
+        return encodedCredentials;
+    } catch (e) {
+        console.error(e);
+        return [];
+    }
 });
 
 const querySatisfactionResult = computedAsync<DcqlQueryResult | null>(async () => {
-	const credentials = sdJwtCredentials.value;
-	const query = dcqlQuery.value;
-	if (credentials === undefined || query === undefined) return null;
+    const credentials = sdJwtCredentials.value;
+    const query = dcqlQuery.value;
+    if (credentials === undefined || query === undefined) return null;
 
-	const parsedQuery = DcqlQuery.parse(query)
-	DcqlQuery.validate(parsedQuery)
+    const parsedQuery = DcqlQuery.parse(query);
+    DcqlQuery.validate(parsedQuery);
 
-	const dcqlFriendlyCredentials = await Promise.all(
-		credentials.map((credential) => convertSdJwtToDcqlCredential(credential))
-	)
-	const queryResult = DcqlQuery.query(parsedQuery, dcqlFriendlyCredentials)
-	return queryResult;
-})
+    const dcqlFriendlyCredentials = await Promise.all(
+        credentials.map((credential) => convertSdJwtToDcqlCredential(credential)),
+    );
+    const queryResult = DcqlQuery.query(parsedQuery, dcqlFriendlyCredentials);
+    return queryResult;
+});
 
 const canBeSatisfied = computed(() => {
-	return querySatisfactionResult.value?.can_be_satisfied ?? false
-})
+    return querySatisfactionResult.value?.can_be_satisfied ?? false;
+});
 
-// All credentials that satisfy the query
 const satisfyingCredentials = computed((): string[] => {
-	const query = dcqlQuery.value;
-	const queryResult = querySatisfactionResult.value;
-	if (queryResult === undefined || queryResult === null || query == null) return [];
+    const query = dcqlQuery.value;
+    const queryResult = querySatisfactionResult.value;
+    if (queryResult === undefined || queryResult === null || query == null) return [];
 
-	const sdjwts = sdJwtCredentials.value;
-	if (!sdjwts) return [];
+    const sdjwts = sdJwtCredentials.value;
+    if (!sdjwts) return [];
 
-	const entries = query.credentials.map(cr => cr.id);
-	if (entries.length !== 1) {
-		console.warn("Only one DCQL credential request is currently supported");
-		return [];
-	}
+    const entries = query.credentials.map((cr) => cr.id);
+    if (entries.length !== 1) {
+        console.warn('Only one DCQL credential request is currently supported');
+        return [];
+    }
 
-	const entry = entries[0];
-	const matches = queryResult.credential_matches[entry];
-	if (!matches?.valid_credentials) return [];
+    const entry = entries[0];
+    const matches = queryResult.credential_matches[entry];
+    if (!matches?.valid_credentials) return [];
 
-	return matches.valid_credentials
-		.map(vc => sdjwts[vc.input_credential_index])
-		.filter(Boolean);
-})
+    return matches.valid_credentials.map((vc) => sdjwts[vc.input_credential_index]).filter(Boolean);
+});
 
-// User-selected credential index within satisfyingCredentials
 const selectedCredentialIndex = ref(0);
 
 watch(satisfyingCredentials, () => {
-	selectedCredentialIndex.value = 0;
-})
+    selectedCredentialIndex.value = 0;
+});
 
-const selectedCredential = computed(() =>
-	satisfyingCredentials.value[selectedCredentialIndex.value] ?? null
-)
+const selectedCredential = computed(() => satisfyingCredentials.value[selectedCredentialIndex.value] ?? null);
 
-// Parse the selected credential to extract disclosure key-value pairs
 const selectedCredentialEnvelope = computedAsync(async () => {
-	const credential = selectedCredential.value;
-	if (!credential) return null;
-	return parseSdJwtEnvelope(credential);
-})
+    const credential = selectedCredential.value;
+    if (!credential) return null;
+    return parseSdJwtEnvelope(credential);
+});
 
-// Claims that will be revealed, with their actual values
 const revealedClaims = computed(() => {
-	const envelope = selectedCredentialEnvelope.value;
-	if (!envelope) return [];
-	const desired = new Set(desiredClaims.value.map(String));
-	return envelope.disclosures
-		.filter(d => d.key !== undefined && (desired.size === 0 || desired.has(d.key!)))
-		.map(d => ({ key: d.key!, value: d.value }));
-})
+    const envelope = selectedCredentialEnvelope.value;
+    if (!envelope) return [];
+    const desired = new Set(desiredClaims.value.map(String));
+    return envelope.disclosures
+        .filter((d) => d.key !== undefined && (desired.size === 0 || desired.has(d.key!)))
+        .map((d) => ({ key: d.key!, value: d.value }));
+});
 
 function formatValue(v: unknown): string {
-	if (v === null || v === undefined) return 'null';
-	if (typeof v === 'object') {
-		if (Array.isArray(v)) return `[${(v as unknown[]).length} items]`;
-		return `{${Object.keys(v as object).length} keys}`;
-	}
-	const str = String(v);
-	return str.length > 80 ? str.slice(0, 80) + '…' : str;
+    if (v === null || v === undefined) return 'null';
+    if (typeof v === 'object') {
+        if (Array.isArray(v)) return `[${(v as unknown[]).length} items]`;
+        return `{${Object.keys(v as object).length} keys}`;
+    }
+    const str = String(v);
+    return str.length > 80 ? str.slice(0, 80) + '…' : str;
 }
 
 const isPresenting = ref(false);
@@ -183,14 +169,20 @@ async function handlePresent() {
         const vp = await sdjwt.present(credential, claims, {
             kb: {
                 payload: {
-                    nonce: props.credentialPresentationRequest.nonce,
+                    nonce: props.params.nonce,
                     iat: Math.floor(Date.now() / 1000),
-                    aud: props.credentialPresentationRequest.audience,
+                    aud: props.params.audience,
                 },
             },
         });
 
-        emit('present', vp);
+        toast.add({
+            severity: 'success',
+            summary: 'Presentation successful',
+            detail: 'The credential has been presented',
+            life: 3000,
+        });
+        emit('done', { vp_token: vp });
     } catch (e) {
         console.error('Error presenting credential:', e);
     } finally {
@@ -225,11 +217,11 @@ async function handlePresent() {
                     <div class="flex flex-col gap-4">
                         <div>
                             <p class="text-xs font-semibold uppercase text-gray-400">Audience</p>
-                            <p class="font-mono text-sm mt-1">{{ credentialPresentationRequest.audience }}</p>
+                            <p class="font-mono text-sm mt-1">{{ params.audience }}</p>
                         </div>
                         <div>
                             <p class="text-xs font-semibold uppercase text-gray-400">Nonce</p>
-                            <p class="font-mono text-sm mt-1">{{ credentialPresentationRequest.nonce }}</p>
+                            <p class="font-mono text-sm mt-1">{{ params.nonce }}</p>
                         </div>
                         <div>
                             <p class="text-xs font-semibold uppercase text-gray-400">Requested Claims</p>

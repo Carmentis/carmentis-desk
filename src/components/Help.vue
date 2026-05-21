@@ -6,7 +6,7 @@ import Card from 'primevue/card';
 const apiDocsHtml = ref('');
 
 onMounted(async () => {
-    const raw = await import('./walletRequest/walletRequestDocumentation.md?raw');
+    const raw = await import('./rpcSession/walletRequestDocumentation.md?raw');
     apiDocsHtml.value = await marked(raw.default);
 });
 </script>

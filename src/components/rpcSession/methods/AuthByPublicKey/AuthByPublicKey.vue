@@ -3,39 +3,33 @@ import { ref } from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
+import { useToast } from 'primevue/usetoast';
 import {
-    CryptoEncoderFactory,
-    Secp256k1PrivateSignatureKey,
-    SeedEncoder,
-    WalletCrypto,
-    JwkSignatureEncoder,
     Ed25519PrivateSignatureKey,
     Ed25519PublicSignatureKey,
+    SeedEncoder,
 } from '@cmts-dev/carmentis-sdk-core';
-import { useStorageStore } from '../../../../../stores/storage.ts';
+import { useStorageStore } from '../../../../stores/storage.ts';
 import { storeToRefs } from 'pinia';
 import * as jose from 'jose';
 import { base64url } from 'jose';
-import { JwkSignatureKeyExporter } from '../../../../../utils/jwk-signature-key-exporter.ts';
+import { JwkSignatureKeyExporter } from '../../../../utils/jwk-signature-key-exporter.ts';
+import type { AuthByPublicKeyParams } from './AuthByPublicKeyRequestType.ts';
 
-const store = useStorageStore();
-const { wallets } = storeToRefs(store);
-const chosenWallet = ref(wallets.value[0]);
-
-type SupportedPkFormat = 'did' | 'jwk' | 'cmts';
-const props = defineProps<{
-    origin: string;
-    b64Challenge: string;
-    pkFormat?: SupportedPkFormat;
-    sigFormat?: 'jws';
-}>();
+const props = defineProps<{ params: AuthByPublicKeyParams }>();
 
 const emit = defineEmits<{
-    approve: [pk: string | object, signature: string];
+    done: [result: Record<string, unknown>];
     reject: [];
 }>();
 
+const toast = useToast();
+const store = useStorageStore();
+const { wallets } = storeToRefs(store);
+const chosenWallet = ref(wallets.value[0]);
 const isProcessing = ref(false);
+
+type SupportedPkFormat = 'did' | 'jwk' | 'cmts';
 
 async function exportPublicKeyIntoFormat(publicSignatureKey: Ed25519PublicSignatureKey, format: SupportedPkFormat) {
     const jwk = await JwkSignatureKeyExporter.exportPublicKey(publicSignatureKey);
@@ -59,30 +53,31 @@ async function approve() {
         const sk = Ed25519PrivateSignatureKey.genFromSeed(new SeedEncoder().decode(seed).slice(0, 32));
         const pk = (await sk.getPublicKey()) as Ed25519PublicSignatureKey;
         const skJwk = await JwkSignatureKeyExporter.exportPrivateKey(sk);
-        const pkJwk = await JwkSignatureKeyExporter.exportPublicKey(pk);
-        const pkFormat = props.pkFormat ?? 'did';
-        let encoderPk: string | object = await exportPublicKeyIntoFormat(pk, pkFormat);
+        const pkFormat = props.params.pkFormat ?? 'did';
+        const encoderPk: string | object = await exportPublicKeyIntoFormat(pk, pkFormat as SupportedPkFormat);
         const signature = await new jose.SignJWT({
-            sub: props.b64Challenge,
+            sub: props.params.b64Challenge,
             iss: pkFormat,
-            aud: props.origin,
+            aud: props.params.origin,
             iat: Math.floor(Date.now() / 1000),
             exp: Math.floor(Date.now() / 1000) + 60,
         })
             .setProtectedHeader({ alg: 'EdDSA' })
             .sign(skJwk);
 
-        emit('approve', encoderPk, signature);
+        toast.add({
+            severity: 'success',
+            summary: 'Authentication successful',
+            detail: 'You are authenticated',
+            life: 3000,
+        });
+        emit('done', { pk: encoderPk, signature });
     } catch (e) {
         console.error('Error approving authentication request:', e);
         throw e;
     } finally {
         isProcessing.value = false;
     }
-}
-
-function reject() {
-    emit('reject');
 }
 </script>
 
@@ -101,7 +96,7 @@ function reject() {
                     <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
                         <p class="text-xs text-blue-500 font-semibold uppercase tracking-wide mb-1">Requesting party</p>
                         <p class="text-sm font-semibold text-blue-800">
-                            {{ origin }}
+                            {{ params.origin }}
                         </p>
                     </div>
 
@@ -143,7 +138,7 @@ function reject() {
                     <div>
                         <p class="text-xs text-gray-500 mb-1">Challenge to sign</p>
                         <p class="text-xs font-mono text-surface-600 break-all bg-surface-50 rounded p-2">
-                            {{ b64Challenge }}
+                            {{ params.b64Challenge }}
                         </p>
                     </div>
 
@@ -152,7 +147,7 @@ function reject() {
                             label="Decline"
                             severity="secondary"
                             outlined
-                            @click="reject"
+                            @click="emit('reject')"
                             :disabled="isProcessing"
                             class="flex-1"
                         />

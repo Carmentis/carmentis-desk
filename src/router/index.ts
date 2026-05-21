@@ -10,7 +10,7 @@ import WalletAppLedgerExplorer from '../components/WalletAppLedgerExplorer.vue';
 import WalletCredentials from '../components/WalletCredentials.vue';
 import OperatorDetail from '../components/operator/OperatorDetail.vue';
 import Connect from '../components/Connect.vue';
-import WalletRequest from '../components/walletRequest/WalletRequest.vue';
+import RpcSession from '../components/rpcSession/RpcSession.vue';
 import Help from '../components/Help.vue';
 import Settings from '../components/Settings.vue';
 
@@ -23,9 +23,9 @@ const router = createRouter({
             component: Home,
         },
         {
-            path: '/connect/walletRequest',
-            name: 'connect/walletRequest',
-            component: WalletRequest,
+            path: '/connect/rpc',
+            name: 'rpc-session',
+            component: RpcSession,
         },
         {
             path: '/wallet/new',
