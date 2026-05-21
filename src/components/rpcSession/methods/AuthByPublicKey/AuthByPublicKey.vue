@@ -1,20 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import {ref} from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
-import { useToast } from 'primevue/usetoast';
-import {
-    Ed25519PrivateSignatureKey,
-    Ed25519PublicSignatureKey,
-    SeedEncoder,
-} from '@cmts-dev/carmentis-sdk-core';
-import { useStorageStore } from '../../../../stores/storage.ts';
-import { storeToRefs } from 'pinia';
+import {useToast} from 'primevue/usetoast';
+import {Ed25519PrivateSignatureKey, Ed25519PublicSignatureKey, SeedEncoder,SignatureSchemeId, WalletCrypto} from '@cmts-dev/carmentis-sdk-core';
+import {useStorageStore} from '../../../../stores/storage.ts';
+import {storeToRefs} from 'pinia';
 import * as jose from 'jose';
-import { base64url } from 'jose';
-import { JwkSignatureKeyExporter } from '../../../../utils/jwk-signature-key-exporter.ts';
-import type { AuthByPublicKeyParams } from './AuthByPublicKeyRequestType.ts';
+import {base64url} from 'jose';
+import {JwkSignatureKeyExporter} from '../../../../utils/jwk-signature-key-exporter.ts';
+import type {AuthByPublicKeyParams} from './AuthByPublicKeyRequestType.ts';
 
 const props = defineProps<{ params: AuthByPublicKeyParams }>();
 
@@ -48,9 +44,8 @@ async function approve() {
     isProcessing.value = true;
     try {
         const seed = chosenWallet.value.seed;
-
-        // TODO: use the wallet crypto instead of generating the signature key directly
-        const sk = Ed25519PrivateSignatureKey.genFromSeed(new SeedEncoder().decode(seed).slice(0, 32));
+        const wc = WalletCrypto.fromSeed(new SeedEncoder().decode(seed));
+        const sk = await wc.getDefaultAccountCrypto().getPrivateSignatureKey(SignatureSchemeId.ED25519);
         const pk = (await sk.getPublicKey()) as Ed25519PublicSignatureKey;
         const skJwk = await JwkSignatureKeyExporter.exportPrivateKey(sk);
         const pkFormat = props.params.pkFormat ?? 'did';

@@ -13,6 +13,12 @@ import { rpcMethodRegistry } from './rpcMethodRegistry.ts';
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type RequestId = number | string | null;
+
+/**
+ * Represents an in-flight JSON-RPC request waiting for user approval.
+ * Once set, the matching handler component is rendered in the template.
+ * Reset to null after the user approves or rejects.
+ */
 type ActiveRequest = { id: RequestId; component: Component; params: unknown };
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
@@ -21,6 +27,8 @@ const toast = useToast();
 const route = useRoute();
 const router = useRouter();
 
+// Session parameters come from the deep-link query string:
+// cmts://connect/carmentis-relay?relay=...&sessionId=...&symKey=...
 const symKey = route.query.symKey as string;
 const relay = route.query.relay as string;
 const sessionId = route.query.sessionId as string;
@@ -29,6 +37,10 @@ const responder = Responder.create(relay, sessionId, symKey);
 const wantsToClose = ref(false);
 const activeRequest = ref<ActiveRequest | null>(null);
 
+/**
+ * Gracefully closes the relay connection and navigates back to home.
+ * The 300 ms delay lets the toast appear before the view unmounts.
+ */
 function closeConnect() {
     setTimeout(() => {
         wantsToClose.value = true;
@@ -50,6 +62,17 @@ responder.onClose(() => {
 
 // ── Message handling ───────────────────────────────────────────────────────────
 
+/**
+ * Dispatch loop — every message received from the relay goes through here.
+ *
+ * Flow:
+ *  1. Parse & validate the JSON-RPC 2.0 envelope
+ *  2. Inline methods (ping) are handled immediately and close the session
+ *  3. All other methods are looked up in rpcMethodRegistry:
+ *       - Unknown method  → -32601 methodNotFound
+ *       - Invalid params  → -32602 invalidParams (Valibot schema failure)
+ *       - Valid request   → set activeRequest, render the handler component
+ */
 responder.onMessage((message) => {
     const parsed = JsonRpc.parseRequest(message);
     if (!parsed.ok) {
@@ -60,6 +83,7 @@ responder.onMessage((message) => {
     const id: RequestId = 'id' in parsed.value ? parsed.value.id : null;
     const { method, params } = parsed.value;
 
+    // Inline method: no user interaction required
     if (method === 'ping') {
         responder.send(JsonRpc.success(id, { ts: Date.now() })).then(closeConnect);
         return;
@@ -77,11 +101,16 @@ responder.onMessage((message) => {
         return;
     }
 
+    // Mount the handler component — the user will approve or reject from there
     activeRequest.value = { id, component: methodDef.component, params: result.output };
 });
 
 // ── Response handler ───────────────────────────────────────────────────────────
 
+/**
+ * Called by the active handler component when the user approves the request.
+ * Sends a JSON-RPC success response with the method's result, then closes.
+ */
 async function onMethodDone(result: Record<string, unknown>) {
     if (!activeRequest.value) return;
     await responder.send(JsonRpc.success(activeRequest.value.id, result));

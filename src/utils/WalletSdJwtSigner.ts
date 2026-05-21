@@ -1,4 +1,4 @@
-import {SeedEncoder} from "@cmts-dev/carmentis-sdk/client";
+import {SeedEncoder, WalletCrypto, SignatureSchemeId} from "@cmts-dev/carmentis-sdk-core";
 import {Ed25519PrivateSignatureKey} from "@cmts-dev/carmentis-sdk-core";
 import {JwkSignatureKeyExporter} from "./jwk-signature-key-exporter.ts";
 import * as jose from "jose";
@@ -35,9 +35,8 @@ export class WalletSdJwtSigner {
     }
     static async createFromSeed(seed: string) {
         // we derive a private key from the seed
-        const encoder = new SeedEncoder();
-        const rawBytes = encoder.decode(seed);
-        const privateKey = Ed25519PrivateSignatureKey.genFromSeed(rawBytes.slice(0, 32))
+        const wc = WalletCrypto.fromSeed(new SeedEncoder().decode(seed));
+        const privateKey = await wc.getDefaultAccountCrypto().getPrivateSignatureKey(SignatureSchemeId.ED25519);
         const publicKey = await privateKey.getPublicKey();
 
         // we then construct a jwk from them
