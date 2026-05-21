@@ -3,9 +3,12 @@ import {
     Ed25519PublicSignatureKey,
     PrivateSignatureKey,
     PublicSignatureKey,
+    SeedEncoder,
+    SignatureSchemeId,
+    WalletCrypto,
 } from '@cmts-dev/carmentis-sdk-core';
 import * as jose from 'jose';
-import { JWK } from 'jose';
+import { base64url, JWK } from 'jose';
 
 export class JwkSignatureKeyExporter {
     static async exportPrivateKey(key: PrivateSignatureKey): Promise<JWK> {
@@ -35,5 +38,17 @@ export class JwkSignatureKeyExporter {
             };
         }
         throw new Error('Private key not exportable as JWK');
+    }
+
+    static async exportPublicKeyAsDidJwk(key: PublicSignatureKey): Promise<string> {
+        const jwk = await JwkSignatureKeyExporter.exportPublicKey(key);
+        return `did:jwk:${base64url.encode(JSON.stringify(jwk))}`;
+    }
+
+    static async computeDidJwkFromSeed(encodedSeed: string): Promise<string> {
+        const wc = WalletCrypto.fromSeed(new SeedEncoder().decode(encodedSeed));
+        const sk = await wc.getDefaultAccountCrypto().getPrivateSignatureKey(SignatureSchemeId.ED25519);
+        const pk = await sk.getPublicKey();
+        return JwkSignatureKeyExporter.exportPublicKeyAsDidJwk(pk);
     }
 }

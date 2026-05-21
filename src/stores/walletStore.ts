@@ -11,6 +11,7 @@ import {
     WalletCrypto,
 } from '@cmts-dev/carmentis-sdk/client';
 import { ref } from 'vue';
+import { JwkSignatureKeyExporter } from '../utils/jwk-signature-key-exporter.ts';
 
 interface WalletState {
     isLoadingAccount: boolean;
@@ -61,6 +62,15 @@ export const useWalletStore = defineStore('wallet', () => {
         return { sk, pk };
     }
 
+    async function getDidJwk(walletId: number): Promise<string> {
+        const storageStore = useStorageStore();
+        const wallet = await storageStore.getWalletById(walletId);
+        if (!wallet) {
+            throw new Error(`Wallet with id ${walletId} not found`);
+        }
+        return JwkSignatureKeyExporter.computeDidJwkFromSeed(wallet.seed);
+    }
+
     async function getAccountId(walletId: number) {
         const provider = await getProvider(walletId);
         const { pk } = await getKeyPair(walletId);
@@ -104,6 +114,7 @@ export const useWalletStore = defineStore('wallet', () => {
         getAccountId,
         getAccountIdFromPublicKey,
         getKeyPair,
+        getDidJwk,
         fetchAccountTransactionsHistory,
         isAccountFoundByPublicKey,
     };

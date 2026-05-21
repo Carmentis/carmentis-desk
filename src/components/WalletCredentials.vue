@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useStorageStore, type CredentialEntity } from '../stores/storage';
+import { useWalletStore } from '../stores/walletStore';
 import MenuBar from 'primevue/menubar';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
@@ -16,6 +17,7 @@ import { parseCompactSdJwt, SdJwtParseError } from '../composables/credentials/p
 const route = useRoute();
 const router = useRouter();
 const storageStore = useStorageStore();
+const walletStore = useWalletStore();
 const toast = useToast();
 const confirm = useConfirm();
 
@@ -54,6 +56,16 @@ async function handleAddSubmit() {
         const token = sdJwtToken.value.trim();
         const parsed = await parseCompactSdJwt(token);
 
+        const sub = parsed.jwt.payload.sub as string | undefined;
+        if (sub !== undefined) {
+            const walletDid = await walletStore.getDidJwk(walletId.value);
+            if (sub !== walletDid) {
+                throw new SdJwtParseError(
+                    `Credential subject does not match this wallet's identity.\n\nExpected: ${walletDid}\nFound: ${sub}`,
+                );
+            }
+        }
+
         const name = sdJwtName.value.trim() || parsed.jwt.payload.vct;
 
         await storageStore.addCredential(walletId.value, { name, data: token });
@@ -65,6 +77,7 @@ async function handleAddSubmit() {
         });
         showAddDialog.value = false;
     } catch (err) {
+		console.error(err);
         const detail =
             err instanceof SdJwtParseError ? err.message : 'An unexpected error occurred while parsing the token.';
         toast.add({

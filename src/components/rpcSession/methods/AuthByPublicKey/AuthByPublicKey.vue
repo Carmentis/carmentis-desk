@@ -8,7 +8,6 @@ import {Ed25519PrivateSignatureKey, Ed25519PublicSignatureKey, SeedEncoder,Signa
 import {useStorageStore} from '../../../../stores/storage.ts';
 import {storeToRefs} from 'pinia';
 import * as jose from 'jose';
-import {base64url} from 'jose';
 import {JwkSignatureKeyExporter} from '../../../../utils/jwk-signature-key-exporter.ts';
 import type {AuthByPublicKeyParams} from './AuthByPublicKeyRequestType.ts';
 
@@ -34,7 +33,7 @@ async function exportPublicKeyIntoFormat(publicSignatureKey: Ed25519PublicSignat
     }
 
     if (format === 'did') {
-        return `did:jwk:${base64url.encode(JSON.stringify(jwk))}`;
+        return JwkSignatureKeyExporter.exportPublicKeyAsDidJwk(publicSignatureKey);
     }
 
     throw new Error(`Unsupported format: ${format}`);
