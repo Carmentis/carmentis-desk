@@ -1,3 +1,11 @@
+# [1.13.0](https://github.com/Carmentis/carmentis-desk/compare/v1.12.0...v1.13.0) (2026-05-21)
+
+
+### Features
+
+* add support for SD-JWT credential presentation and DCQL query handling ([64fdcc2](https://github.com/Carmentis/carmentis-desk/commit/64fdcc2f4be758338cc923d225b91475717ff053))
+* improve SD-JWT credential selection and claim presentation UI ([de858bf](https://github.com/Carmentis/carmentis-desk/commit/de858bf6955e92b91a621c1203f79c15a3541515))
+
 # [1.12.0](https://github.com/Carmentis/carmentis-desk/compare/v1.11.0...v1.12.0) (2026-05-18)
 
 
