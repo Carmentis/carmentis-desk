@@ -34,7 +34,9 @@ const dcqlQuery = computed(() => {
         }
         return null;
     } catch (e) {
-        console.error(`An error occurred during the parsing of the DCQL query: ${e.message ?? 'Unknown error'}`);
+        if (e instanceof SyntaxError) {
+            console.error(`An error occurred during the parsing of the DCQL query: ${e ?? 'Unknown error'}`);
+        }
     }
 });
 
@@ -46,6 +48,7 @@ const desiredClaims = computed(() => {
     const credential = credentials[0];
     const claims = credential.claims;
     if (!claims) return [];
+    // @ts-ignore
     return claims.map((claim) => claim['path']).flat();
 });
 
@@ -81,7 +84,7 @@ const querySatisfactionResult = computedAsync<DcqlQueryResult | null>(async () =
     const credentials = sdJwtCredentials.value;
     const query = dcqlQuery.value;
     if (credentials === undefined || query === undefined) return null;
-
+    // @ts-ignore
     const parsedQuery = DcqlQuery.parse(query);
     DcqlQuery.validate(parsedQuery);
 

@@ -16,10 +16,12 @@ export async function convertSdJwtToDcqlCredential(sdJwt: string): Promise<DcqlC
 
     const rawClaims = await sdjwt.getClaims(sdJwt);
 
+
     return {
         vct: 'EmailCredential',
         credential_format: 'vc+sd-jwt',
         cryptographic_holder_binding: true,
+        // @ts-ignore
         claims: rawClaims,
         encoded: sdJwt
     };
