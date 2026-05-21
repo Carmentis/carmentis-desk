@@ -1,3 +1,10 @@
+## [1.13.1](https://github.com/Carmentis/carmentis-desk/compare/v1.13.0...v1.13.1) (2026-05-21)
+
+
+### Bug Fixes
+
+* credentials whose subject is not the expected wallet is rejected. ([35efac4](https://github.com/Carmentis/carmentis-desk/commit/35efac43fcd33e92db0645b456c488d69d15a25e))
+
 # [1.13.0](https://github.com/Carmentis/carmentis-desk/compare/v1.12.0...v1.13.0) (2026-05-21)
 
 
