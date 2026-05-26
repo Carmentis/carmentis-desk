@@ -8,7 +8,7 @@ import { computed, ref } from 'vue';
 import { useSetupOperatorMutation } from '../../composables/operator.ts';
 import { useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
-import { CryptoEncoderFactory, SeedEncoder, SignatureSchemeId, WalletCrypto } from '@cmts-dev/carmentis-sdk/client';
+import { CryptoEncoderFactory, SeedEncoder, SignatureSchemeId, WalletCrypto } from '@cmts-dev/carmentis-sdk-core';
 
 const { wallets } = useStorageStore();
 const selectedWallet = ref<WalletEntity | null>(null);

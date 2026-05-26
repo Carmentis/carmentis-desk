@@ -76,7 +76,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { ProofDocument, Hash, ProviderFactory, type ImportedProof } from '@cmts-dev/carmentis-sdk/client';
+import { ProofDocument, Hash, ProviderFactory, type ImportedProof } from '@cmts-dev/carmentis-sdk-core';
 import ProgressSpinner from 'primevue/progressspinner';
 import ProofRecordViewer from './ProofRecordViewer.vue';
 

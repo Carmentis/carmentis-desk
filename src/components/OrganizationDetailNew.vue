@@ -24,7 +24,7 @@ import {
     SignatureSchemeId,
     Utils,
     WalletCrypto,
-} from '@cmts-dev/carmentis-sdk/client';
+} from '@cmts-dev/carmentis-sdk-core';
 import { useToast } from 'primevue/usetoast';
 import { useOnChainStore } from '../stores/onchain.ts';
 import { storeToRefs } from 'pinia';
@@ -111,7 +111,7 @@ const walletAccountState = computedAsync(async () => {
     const accountId = await walletAccountId.value;
     const accountState = await provider.getAccountState(accountId);
     return accountState;
-});
+}, undefined, { shallow: true });
 
 // Nodes management
 const organizationNodes = computed(() => organization.value?.nodes || []);

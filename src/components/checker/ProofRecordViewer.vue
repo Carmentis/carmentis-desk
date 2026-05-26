@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { type ImportedProof } from '@cmts-dev/carmentis-sdk/client';
+import { type ImportedProof } from '@cmts-dev/carmentis-sdk-core';
 import BlockViewer from './BlockViewer.vue';
 
 defineProps<{

@@ -13,7 +13,7 @@ import {
     SeedEncoder,
     SignatureSchemeId,
     WalletCrypto,
-} from '@cmts-dev/carmentis-sdk/client';
+} from '@cmts-dev/carmentis-sdk-core';
 import { useOperatorAuthStore } from './operatorAuthStore.ts';
 
 const { wallets } = useStorageStore();

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CryptoEncoderFactory, SeedEncoder, WalletCrypto } from '@cmts-dev/carmentis-sdk/client';
+import { CryptoEncoderFactory, SeedEncoder, WalletCrypto } from '@cmts-dev/carmentis-sdk-core';
 import { ref } from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';

@@ -9,7 +9,7 @@ import {
     SignatureSchemeId,
     Utils,
     WalletCrypto,
-} from '@cmts-dev/carmentis-sdk/client';
+} from '@cmts-dev/carmentis-sdk-core';
 import { ref } from 'vue';
 import { JwkSignatureKeyExporter } from '../utils/jwk-signature-key-exporter.ts';
 

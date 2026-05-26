@@ -19,7 +19,7 @@ import {
     ApplicationDescriptionSection,
     CryptoEncoderFactory,
     AccountVb,
-} from '@cmts-dev/carmentis-sdk/client';
+} from '@cmts-dev/carmentis-sdk-core';
 import { useStorageStore } from './storage';
 import { ref } from 'vue';
 import { useToast } from 'primevue/usetoast';
@@ -518,7 +518,7 @@ export const useOnChainStore = defineStore('onchain', () => {
     }
 
     async function updateGasInMicroblock(provider: IProvider, mb: Microblock, usedSigSchemeId: SignatureSchemeId) {
-        const fees = await provider.computeMicroblockFees(mb, {
+        const gas = await provider.computeMicroblockGas(mb, {
             signatureSchemeId: usedSigSchemeId,
         });
         /*
@@ -528,7 +528,8 @@ export const useOnChainStore = defineStore('onchain', () => {
 		mb.setGas(await feesCalculationFormula.computeFees(usedSigSchemeId, mb))
 
 		 */
-        mb.setMaxFees(fees);
+        mb.setGasPrice(CMTSToken.createMilliToken(1));
+        mb.setGas(gas);
     }
 
     async function fetchAccountStateByPublicKey(nodeEndpoint: string, publicKey: PublicSignatureKey) {
@@ -773,10 +774,11 @@ export const useOnChainStore = defineStore('onchain', () => {
 		);
 
 		 */
-        const fees = await provider.computeMicroblockFees(accountCreationMb, {
+        const gas = await provider.computeMicroblockGas(accountCreationMb, {
             signatureSchemeId: issuerPrivateSignatureKey.getSignatureSchemeId(),
         });
-        accountCreationMb.setMaxFees(fees);
+        accountCreationMb.setGasPrice(CMTSToken.createMilliToken(1));
+        accountCreationMb.setGas(gas);
         await accountCreationMb.seal(issuerPrivateSignatureKey, {
             feesPayerAccount: issuerAccountHash.toBytes(),
         });
@@ -821,10 +823,11 @@ export const useOnChainStore = defineStore('onchain', () => {
             privateReference: '',
             account: receiverAccountHash.toBytes(),
         });
-        const fees = await provider.computeMicroblockFees(tokenTransferMb, {
+        const gas = await provider.computeMicroblockGas(tokenTransferMb, {
             signatureSchemeId: issuerPrivateSignatureKey.getSignatureSchemeId(),
         });
-        tokenTransferMb.setMaxFees(fees);
+        tokenTransferMb.setGasPrice(CMTSToken.createMilliToken(1));
+        tokenTransferMb.setGas(gas);
 
         const issuerAccountHash = senderAccountHash;
         await tokenTransferMb.seal(issuerPrivateSignatureKey, {

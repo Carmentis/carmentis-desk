@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/vue-query';
 import { useWalletStore } from '../stores/walletStore.ts';
-import { BalanceAvailability, Utils } from '@cmts-dev/carmentis-sdk/client';
+import { BalanceAvailability, Utils } from '@cmts-dev/carmentis-sdk-core';
 import { type MaybeRefOrGetter, computed, ref, toValue } from 'vue';
 
 export function useAccountIdQuery(walletId: MaybeRefOrGetter<number>) {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { ApplicationLedgerVb, AccountCrypto, Utils, EncoderFactory } from '@cmts-dev/carmentis-sdk/client';
-import { CryptoEncoderFactory, SignatureSchemeId } from '@cmts-dev/carmentis-sdk/client';
+import { ApplicationLedgerVb, AccountCrypto, Utils, EncoderFactory } from '@cmts-dev/carmentis-sdk-core';
+import { CryptoEncoderFactory, SignatureSchemeId } from '@cmts-dev/carmentis-sdk-core';
 import JsonViewer from './JsonViewer.vue';
 import Button from 'primevue/button';
 import Skeleton from 'primevue/skeleton';

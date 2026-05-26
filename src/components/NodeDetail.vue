@@ -9,7 +9,7 @@ import InputNumber from 'primevue/inputnumber';
 import { useStorageStore } from '../stores/storage';
 import { useOnChainStore } from '../stores/onchain';
 import { computedAsync } from '@vueuse/core';
-import { CMTSToken, EncoderFactory, Hash, LockType, ProviderFactory, Utils } from '@cmts-dev/carmentis-sdk/client';
+import { CMTSToken, EncoderFactory, Hash, LockType, ProviderFactory, Utils, AccountStateAbciResponse } from '@cmts-dev/carmentis-sdk-core';
 import { Tendermint37Client } from '@cosmjs/tendermint-rpc';
 import { useHasAccountOnChainQuery } from '../composables/useAccountBreakdown.ts';
 

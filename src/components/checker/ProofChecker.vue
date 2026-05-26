@@ -54,7 +54,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { ProofDocument } from '@cmts-dev/carmentis-sdk/client';
+import { ProofDocument } from '@cmts-dev/carmentis-sdk-core';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';

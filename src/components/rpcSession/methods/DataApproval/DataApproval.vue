@@ -16,7 +16,7 @@ import {
     WalletInteractiveAnchoringResponseApprovalData,
     WalletInteractiveAnchoringResponseType,
     WalletInteractiveAnchoringValidation,
-} from '@cmts-dev/carmentis-sdk/client';
+} from '@cmts-dev/carmentis-sdk-core';
 import axios from 'axios';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
@@ -60,7 +60,7 @@ const isLoading = ref(true);
 const loadError = ref<string | null>(null);
 const isProcessing = ref(false);
 const approvalData = ref<WalletInteractiveAnchoringResponseApprovalData | null>(null);
-const microblockToApprove = ref<Microblock | null>(null);
+const microblockToApprove = shallowRef<Microblock | null>(null);
 const virtualBlockchainContainingMicroblock = shallowRef<ApplicationLedgerVb | null>(null);
 const applicationDescription = ref<ApplicationDescription | null>(null);
 
@@ -82,7 +82,7 @@ async function approve() {
         });
 
         if (approvalSignatureResponse.type === WalletInteractiveAnchoringResponseType.ERROR) {
-            throw new Error(approvalSignatureResponse.errorMessage);
+            throw new Error("Unknown error (unable to parse the error");
         } else if (approvalSignatureResponse.type !== WalletInteractiveAnchoringResponseType.APPROVAL_SIGNATURE) {
             throw new Error(`Unexpected response type: ${approvalSignatureResponse.type}`);
         }

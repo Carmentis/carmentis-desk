@@ -6,7 +6,7 @@ import Button from 'primevue/button';
 import Card from 'primevue/card';
 import SelectButton from 'primevue/selectbutton';
 import { useStorageStore } from '../stores/storage';
-import { SeedEncoder, WalletCrypto } from '@cmts-dev/carmentis-sdk/client';
+import { SeedEncoder, WalletCrypto } from '@cmts-dev/carmentis-sdk-core';
 import { mnemonicToSeedSync, generateMnemonic } from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english.js';
 

@@ -16,7 +16,7 @@ import {
     SignatureSchemeId,
     WalletCrypto,
     CMTSToken,
-} from '@cmts-dev/carmentis-sdk/client';
+} from '@cmts-dev/carmentis-sdk-core';
 import Password from 'primevue/password';
 import { useToast } from 'primevue/usetoast';
 import {

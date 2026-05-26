@@ -1,4 +1,4 @@
-import { Secp256k1PrivateSignatureKey, Secp256k1PublicSignatureKey } from '@cmts-dev/carmentis-sdk/client';
+import { Secp256k1PrivateSignatureKey, Secp256k1PublicSignatureKey } from '@cmts-dev/carmentis-sdk-core';
 import { importJWK, JWK } from 'jose';
 
 // secp256k1 field prime

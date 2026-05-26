@@ -10,7 +10,7 @@ import Textarea from 'primevue/textarea';
 import { useStorageStore } from '../stores/storage';
 import { useOnChainStore } from '../stores/onchain';
 import { storeToRefs } from 'pinia';
-import { Hash, ProviderFactory } from '@cmts-dev/carmentis-sdk/client';
+import { Hash, ProviderFactory } from '@cmts-dev/carmentis-sdk-core';
 import { useToast } from 'primevue/usetoast';
 import { useQuery } from '@tanstack/vue-query';
 import { useHasAccountOnChainQuery } from '../composables/useAccountBreakdown.ts';
