@@ -579,12 +579,12 @@ const items = [
 
             <!-- Organization Cards Side-by-Side -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
-                <!-- Organization Info Card -->
+                <!-- Organization State Card -->
                 <Card>
                     <template #title>
                         <div class="flex items-center gap-2">
                             <i class="pi pi-info-circle text-xl"></i>
-                            <span>Organization Info</span>
+                            <span>Organization State</span>
                         </div>
                     </template>
                     <template #content>
@@ -624,6 +624,175 @@ const items = [
                             <p class="text-gray-600 text-sm">
                                 Publish first your organization on-chain to show information.
                             </p>
+                        </div>
+
+                        <!-- Nodes & Applications Tabs -->
+                        <div class="mt-6">
+                            <Tabs value="0">
+                                <TabList>
+                                    <Tab value="0">Nodes</Tab>
+                                    <Tab value="1">Applications</Tab>
+                                </TabList>
+                                <TabPanels>
+                                    <TabPanel value="0">
+                                        <div class="space-y-4">
+                                            <!-- Nodes Header Actions -->
+                                            <div class="flex justify-between items-center">
+                                                <h3 class="text-lg font-semibold text-gray-900">
+                                                    Nodes ({{ organizationNodes.length }})
+                                                </h3>
+                                                <div class="flex gap-2">
+                                                    <Button
+                                                        @click="fetchNodesOnChain"
+                                                        label="Fetch On-Chain"
+                                                        icon="pi pi-cloud-download"
+                                                        size="small"
+                                                        outlined
+                                                    />
+                                                    <Button
+                                                        @click="showManualImportForm = true"
+                                                        label="Add Node"
+                                                        icon="pi pi-plus"
+                                                        size="small"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <!-- Nodes Content -->
+                                            <div v-if="organizationNodes.length === 0" class="text-center py-8">
+                                                <div
+                                                    class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
+                                                >
+                                                    <i class="pi pi-sitemap text-2xl text-gray-400"></i>
+                                                </div>
+                                                <p class="text-gray-500 text-sm">No nodes configured yet</p>
+                                            </div>
+                                            <div v-else class="space-y-3">
+                                                <div
+                                                    v-for="node of organizationNodes"
+                                                    :key="node.id"
+                                                    class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                                                    @click="visitNode(node.id)"
+                                                >
+                                                    <div class="flex items-start justify-between">
+                                                        <div class="space-y-2 flex-1">
+                                                            <div class="font-medium text-gray-900">
+                                                                {{ node.name }}
+                                                            </div>
+                                                            <div class="text-xs text-gray-500 space-y-1">
+                                                                <div v-if="node.vbId" class="flex items-center gap-2">
+                                                                    <i class="pi pi-tag"></i>
+                                                                    <code class="bg-gray-100 px-2 py-0.5 rounded">
+                                                                        {{ node.vbId }}
+                                                                    </code>
+                                                                </div>
+                                                                <div class="flex items-center gap-2">
+                                                                    <i class="pi pi-globe"></i>
+                                                                    <span>
+                                                                        {{ node.rpcEndpoint }}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <Button
+                                                            @click.stop="deleteNode(node.id)"
+                                                            icon="pi pi-trash"
+                                                            severity="danger"
+                                                            text
+                                                            rounded
+                                                            size="small"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </TabPanel>
+
+                                    <TabPanel value="1">
+                                        <div class="space-y-4">
+                                            <!-- Applications Header -->
+                                            <div class="flex justify-between items-center">
+                                                <h3 class="text-lg font-semibold text-gray-900">
+                                                    Applications ({{ organization.applications.length }})
+                                                </h3>
+                                                <div class="flex gap-2">
+                                                    <Button
+                                                        @click="openCreateAppDialog"
+                                                        label="Create App"
+                                                        icon="pi pi-plus"
+                                                        size="small"
+                                                    />
+                                                    <Button
+                                                        @click="openImportAppDialog"
+                                                        label="Import App"
+                                                        icon="pi pi-download"
+                                                        size="small"
+                                                        outlined
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <!-- Applications Content -->
+                                            <div v-if="organization.applications.length === 0" class="text-center py-8">
+                                                <div
+                                                    class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
+                                                >
+                                                    <i class="pi pi-box text-2xl text-gray-400"></i>
+                                                </div>
+                                                <p class="text-gray-500 text-sm mb-4">No applications configured yet</p>
+                                                <div class="flex gap-2 justify-center">
+                                                    <Button
+                                                        @click="openCreateAppDialog"
+                                                        label="Create Application"
+                                                        icon="pi pi-plus"
+                                                        size="small"
+                                                    />
+                                                    <Button
+                                                        @click="openImportAppDialog"
+                                                        label="Import Application"
+                                                        icon="pi pi-download"
+                                                        size="small"
+                                                        outlined
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div v-else class="space-y-3">
+                                                <div
+                                                    v-for="app in organization.applications"
+                                                    :key="app.id"
+                                                    class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                                                    @click="visitApplication(app.id)"
+                                                >
+                                                    <div class="flex items-start justify-between">
+                                                        <div class="space-y-2 flex-1">
+                                                            <div class="font-medium text-gray-900">
+                                                                {{ app.name }}
+                                                            </div>
+                                                            <div
+                                                                v-if="app.vbId"
+                                                                class="text-xs text-gray-500 flex items-center gap-2"
+                                                            >
+                                                                <i class="pi pi-tag"></i>
+                                                                <code class="bg-gray-100 px-2 py-0.5 rounded">
+                                                                    {{ app.vbId }}
+                                                                </code>
+                                                            </div>
+                                                        </div>
+                                                        <Button
+                                                            @click.stop="deleteApplication(app.id)"
+                                                            icon="pi pi-trash"
+                                                            severity="danger"
+                                                            text
+                                                            rounded
+                                                            size="small"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </TabPanel>
+                                </TabPanels>
+                            </Tabs>
                         </div>
                     </template>
                 </Card>
@@ -801,177 +970,6 @@ const items = [
                     </Card>
                 </div>
             </template>
-
-            <!-- Nodes & Applications Tabs -->
-            <Card>
-                <template #content>
-                    <Tabs value="0">
-                        <TabList>
-                            <Tab value="0">Nodes</Tab>
-                            <Tab value="1">Applications</Tab>
-                        </TabList>
-                        <TabPanels>
-                            <TabPanel value="0">
-                                <div class="space-y-4">
-                                    <!-- Nodes Header Actions -->
-                                    <div class="flex justify-between items-center">
-                                        <h3 class="text-lg font-semibold text-gray-900">
-                                            Nodes ({{ organizationNodes.length }})
-                                        </h3>
-                                        <div class="flex gap-2">
-                                            <Button
-                                                @click="fetchNodesOnChain"
-                                                label="Fetch On-Chain"
-                                                icon="pi pi-cloud-download"
-                                                size="small"
-                                                outlined
-                                            />
-                                            <Button
-                                                @click="showManualImportForm = true"
-                                                label="Add Node"
-                                                icon="pi pi-plus"
-                                                size="small"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <!-- Nodes Content -->
-                                    <div v-if="organizationNodes.length === 0" class="text-center py-8">
-                                        <div
-                                            class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
-                                        >
-                                            <i class="pi pi-sitemap text-2xl text-gray-400"></i>
-                                        </div>
-                                        <p class="text-gray-500 text-sm">No nodes configured yet</p>
-                                    </div>
-                                    <div v-else class="space-y-3">
-                                        <div
-                                            v-for="node of organizationNodes"
-                                            :key="node.id"
-                                            class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                                            @click="visitNode(node.id)"
-                                        >
-                                            <div class="flex items-start justify-between">
-                                                <div class="space-y-2 flex-1">
-                                                    <div class="font-medium text-gray-900">
-                                                        {{ node.name }}
-                                                    </div>
-                                                    <div class="text-xs text-gray-500 space-y-1">
-                                                        <div v-if="node.vbId" class="flex items-center gap-2">
-                                                            <i class="pi pi-tag"></i>
-                                                            <code class="bg-gray-100 px-2 py-0.5 rounded">
-                                                                {{ node.vbId }}
-                                                            </code>
-                                                        </div>
-                                                        <div class="flex items-center gap-2">
-                                                            <i class="pi pi-globe"></i>
-                                                            <span>
-                                                                {{ node.rpcEndpoint }}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    @click.stop="deleteNode(node.id)"
-                                                    icon="pi pi-trash"
-                                                    severity="danger"
-                                                    text
-                                                    rounded
-                                                    size="small"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </TabPanel>
-
-                            <TabPanel value="1">
-                                <div class="space-y-4">
-                                    <!-- Applications Header -->
-                                    <div class="flex justify-between items-center">
-                                        <h3 class="text-lg font-semibold text-gray-900">
-                                            Applications ({{ organization.applications.length }})
-                                        </h3>
-                                        <div class="flex gap-2">
-                                            <Button
-                                                @click="openCreateAppDialog"
-                                                label="Create App"
-                                                icon="pi pi-plus"
-                                                size="small"
-                                            />
-                                            <Button
-                                                @click="openImportAppDialog"
-                                                label="Import App"
-                                                icon="pi pi-download"
-                                                size="small"
-                                                outlined
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <!-- Applications Content -->
-                                    <div v-if="organization.applications.length === 0" class="text-center py-8">
-                                        <div
-                                            class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
-                                        >
-                                            <i class="pi pi-box text-2xl text-gray-400"></i>
-                                        </div>
-                                        <p class="text-gray-500 text-sm mb-4">No applications configured yet</p>
-                                        <div class="flex gap-2 justify-center">
-                                            <Button
-                                                @click="openCreateAppDialog"
-                                                label="Create Application"
-                                                icon="pi pi-plus"
-                                                size="small"
-                                            />
-                                            <Button
-                                                @click="openImportAppDialog"
-                                                label="Import Application"
-                                                icon="pi pi-download"
-                                                size="small"
-                                                outlined
-                                            />
-                                        </div>
-                                    </div>
-                                    <div v-else class="space-y-3">
-                                        <div
-                                            v-for="app in organization.applications"
-                                            :key="app.id"
-                                            class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                                            @click="visitApplication(app.id)"
-                                        >
-                                            <div class="flex items-start justify-between">
-                                                <div class="space-y-2 flex-1">
-                                                    <div class="font-medium text-gray-900">
-                                                        {{ app.name }}
-                                                    </div>
-                                                    <div
-                                                        v-if="app.vbId"
-                                                        class="text-xs text-gray-500 flex items-center gap-2"
-                                                    >
-                                                        <i class="pi pi-tag"></i>
-                                                        <code class="bg-gray-100 px-2 py-0.5 rounded">
-                                                            {{ app.vbId }}
-                                                        </code>
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    @click.stop="deleteApplication(app.id)"
-                                                    icon="pi pi-trash"
-                                                    severity="danger"
-                                                    text
-                                                    rounded
-                                                    size="small"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </TabPanel>
-                        </TabPanels>
-                    </Tabs>
-                </template>
-            </Card>
 
             <!-- Add Node Dialog -->
             <Dialog v-model:visible="showManualImportForm" header="Add Node" modal class="w-full max-w-2xl">
