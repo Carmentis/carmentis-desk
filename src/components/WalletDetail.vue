@@ -283,6 +283,11 @@ const accountStateQuery = useAccountStateQuery(walletId.value);
 const breakdownQuery = useAccountBreakdownQuery(walletId.value);
 const { accountHistoryQuery } = useAccountTransactionsHistory(walletId.value);
 
+watch(walletId, () => {
+    accountStateQuery.refetch()
+    breakdownQuery.refetch()
+})
+
 async function refetchWallet() {
     await accountStateQuery.refetch();
     await breakdownQuery.refetch();
@@ -290,7 +295,7 @@ async function refetchWallet() {
 }
 
 function refetchBreakdown() {
-    breakdownQuery.refetch();
+    refetchWallet();
 }
 
 const menuItems = computed<MenuItem[]>(() => [
@@ -468,6 +473,12 @@ const menuItems = computed<MenuItem[]>(() => [
                                         @click="openTransferDialog"
                                         label="Transfer"
                                         icon="pi pi-send"
+                                        size="small"
+                                    />
+                                    <Button
+                                        @click="refetchBreakdown"
+                                        label="Refresh"
+                                        icon="pi pi-cycle"
                                         size="small"
                                     />
                                 </div>

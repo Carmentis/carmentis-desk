@@ -6,6 +6,9 @@ import { type MaybeRefOrGetter, computed, ref, toValue } from 'vue';
 export function useAccountIdQuery(walletId: MaybeRefOrGetter<number>) {
     const store = useWalletStore();
     return useQuery({
+        refetchOnWindowFocus: true,
+        refetchOnMount: true,
+        refetchOnReconnect: true,
         queryKey: computed(() => ['account-id', toValue(walletId)]),
         queryFn: async () => {
             const id = toValue(walletId);
@@ -31,7 +34,6 @@ export function useAccountStateQuery(walletId: MaybeRefOrGetter<number>) {
                 throw new Error('Account ID is undefined');
             }
         },
-        staleTime: 60000,
         refetchOnReconnect: true,
         refetchOnMount: true,
         refetchOnWindowFocus: true,
@@ -55,6 +57,9 @@ export function useAccountTransactionsHistory(walletId: MaybeRefOrGetter<number>
     const enabled = computed(() => !!accountIdQuery.data.value && lastAccountHistoryHash.value !== undefined);
     const accountHistoryQuery = useQuery({
         enabled,
+        refetchOnWindowFocus: true,
+        refetchOnMount: true,
+        refetchOnReconnect: true,
         queryKey: computed(() => ['account-transactions-history', toValue(walletId), accountIdQuery.data.value]),
         queryFn: async () => {
             const accountId = accountIdQuery.data.value;
@@ -96,6 +101,9 @@ export function useAccountBreakdownQuery(walletId: MaybeRefOrGetter<number>) {
     const enabled = computed(() => !!accountStateQuery.data.value);
     return useQuery({
         enabled,
+        refetchOnWindowFocus: true,
+        refetchOnMount: true,
+        refetchOnReconnect: true,
         queryKey: computed(() => ['account-breakdown', toValue(walletId), accountStateQuery.data.value]),
         queryFn: async () => {
             const accountState = accountStateQuery.data.value;
