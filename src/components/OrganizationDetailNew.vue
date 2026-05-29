@@ -561,12 +561,7 @@ function openCustomSectionDialog(row: CustomSectionRow) {
     showCustomSectionDialog.value = true;
 }
 
-const items = computed(() => [
-    {
-        label: 'Publish Custom Data',
-        icon: 'pi pi-file-edit',
-        command: () => (showPublishCustomJsonDialog.value = true),
-    },
+const items = [
     {
         label: 'Delete',
         icon: 'pi pi-trash',
@@ -574,7 +569,7 @@ const items = computed(() => [
         command: () => (showDeleteConfirmDialog.value = true),
         outlined: true,
     },
-]);
+];
 </script>
 
 <template>
@@ -847,6 +842,12 @@ const items = computed(() => [
                                                 <h3 class="text-lg font-semibold text-gray-900">
                                                     Custom Sections On-Chain
                                                 </h3>
+                                                <Button
+                                                    label="Publish Custom Data"
+                                                    icon="pi pi-file-edit"
+                                                    size="small"
+                                                    @click="showPublishCustomJsonDialog = true"
+                                                />
                                             </div>
                                             <DataTable
                                                 :value="customSections ?? []"
