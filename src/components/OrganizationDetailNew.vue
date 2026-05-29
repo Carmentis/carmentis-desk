@@ -6,6 +6,9 @@ import Tag from 'primevue/tag';
 import Card from 'primevue/card';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
 import MenuBar from 'primevue/menubar';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
@@ -21,6 +24,7 @@ import {
     Hash,
     LockType,
     ProviderFactory,
+    SectionType,
     SeedEncoder,
     SignatureSchemeId,
     Utils,
@@ -38,7 +42,7 @@ const route = useRoute();
 const router = useRouter();
 const storageStore = useStorageStore();
 const onChainStore = useOnChainStore();
-const { isPublishingOrganization } = storeToRefs(onChainStore);
+const { isPublishingOrganization, isPublishingCustomJson } = storeToRefs(onChainStore);
 const registerNavbarActions = inject<(actions: any[]) => void>('registerNavbarActions');
 
 const walletId = computed(() => Number(route.params.walletId));
@@ -492,6 +496,69 @@ function visitApplication(appId: number) {
 
 const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
 
+// Custom JSON publishing
+const customJsonInput = ref('{\n  \n}');
+
+const customJsonError = computed(() => {
+    try {
+        JSON.parse(customJsonInput.value);
+        return '';
+    } catch (e: unknown) {
+        return e instanceof SyntaxError ? e.message : 'Invalid JSON';
+    }
+});
+
+async function publishCustomJson() {
+    if (customJsonError.value) return;
+    await onChainStore.publishCustomJson({
+        walletId: walletId.value,
+        orgId: orgId.value,
+        json: JSON.parse(customJsonInput.value),
+    });
+    await refetchCustomSections();
+}
+
+// Custom sections list
+interface CustomSectionRow {
+    height: number;
+    hash: string;
+    data: Record<string, unknown>;
+}
+
+const selectedCustomSection = ref<CustomSectionRow | null>(null);
+const showCustomSectionDialog = ref(false);
+
+const {
+    data: customSections,
+    isLoading: isLoadingCustomSections,
+    refetch: refetchCustomSections,
+} = useQuery({
+    queryKey: ['organization-custom-sections', orgId],
+    enabled: computed(() => isOrganizationFoundOnChain.value === true),
+    queryFn: async (): Promise<CustomSectionRow[]> => {
+        if (!organization.value?.vbId || !wallet.value) return [];
+        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
+        const orgVB = await provider.loadOrganizationVirtualBlockchain(Hash.from(organization.value.vbId));
+        const hashes = orgVB.getAllMicroblockHashes();
+        const rows: CustomSectionRow[] = [];
+        for (let i = 0; i < hashes.length; i++) {
+            const height = i + 1;
+            const mb = await orgVB.getMicroblock(height);
+            const customSecs = mb.getSectionsByType(SectionType.CUSTOM);
+            if (customSecs.length > 0) {
+                const { type: _type, ...data } = customSecs[0] as Record<string, unknown>;
+                rows.push({ height, hash: hashes[i].encode(), data });
+            }
+        }
+        return rows;
+    },
+});
+
+function openCustomSectionDialog(row: CustomSectionRow) {
+    selectedCustomSection.value = row;
+    showCustomSectionDialog.value = true;
+}
+
 const items = [
     {
         label: 'Delete',
@@ -635,6 +702,105 @@ const items = [
                     </template>
                 </Card>
             </div>
+
+            <!-- On-chain Cards (visible only when org is found online) -->
+            <template v-if="isOrganizationFoundOnChain === true">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
+                    <!-- Publish Custom JSON Card -->
+                    <Card>
+                        <template #title>
+                            <div class="flex items-center gap-2">
+                                <i class="pi pi-file-edit text-xl"></i>
+                                <span>Publish Custom Data</span>
+                            </div>
+                        </template>
+                        <template #content>
+                            <p class="text-sm text-gray-500 mb-4">
+                                Publish a custom JSON payload on-chain as a new microblock section for this
+                                organization's virtual blockchain.
+                            </p>
+                            <div class="space-y-3">
+                                <Textarea
+                                    v-model="customJsonInput"
+                                    rows="8"
+                                    class="w-full font-mono text-sm"
+                                    :class="{ 'border-red-400': customJsonError }"
+                                    placeholder='{ "key": "value" }'
+                                />
+                                <div
+                                    v-if="customJsonError"
+                                    class="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-700"
+                                >
+                                    <i class="pi pi-exclamation-circle"></i>
+                                    {{ customJsonError }}
+                                </div>
+                                <div class="flex justify-end">
+                                    <Button
+                                        label="Publish On-Chain"
+                                        icon="pi pi-cloud-upload"
+                                        :loading="isPublishingCustomJson"
+                                        :disabled="isPublishingCustomJson || !!customJsonError"
+                                        @click="publishCustomJson"
+                                    />
+                                </div>
+                            </div>
+                        </template>
+                    </Card>
+
+                    <!-- Custom Sections List Card -->
+                    <Card>
+                        <template #title>
+                            <div class="flex items-center gap-2">
+                                <i class="pi pi-list text-xl"></i>
+                                <span>Custom Sections On-Chain</span>
+                            </div>
+                        </template>
+                        <template #content>
+                            <p class="text-sm text-gray-500 mb-4">
+                                Microblocks containing a custom section published on this organization's virtual
+                                blockchain.
+                            </p>
+                            <DataTable
+                                :value="customSections ?? []"
+                                :loading="isLoadingCustomSections"
+                                size="small"
+                                striped-rows
+                                :rows="5"
+                                paginator
+                                :rows-per-page-options="[5, 10]"
+                                @row-click="(e) => openCustomSectionDialog(e.data)"
+                                row-hover
+                                class="cursor-pointer"
+                            >
+                                <template #empty>
+                                    <div class="text-center py-4 text-gray-500 text-sm">
+                                        No custom sections found on-chain.
+                                    </div>
+                                </template>
+                                <Column field="height" header="Height" style="width: 5rem" />
+                                <Column field="hash" header="Microblock Hash">
+                                    <template #body="{ data: row }">
+                                        <code class="text-xs bg-gray-100 px-1 py-0.5 rounded truncate block max-w-xs">
+                                            {{ row.hash }}
+                                        </code>
+                                    </template>
+                                </Column>
+                                <Column header="Action" style="width: 6rem">
+                                    <template #body="{ data: row }">
+                                        <Button
+                                            icon="pi pi-eye"
+                                            label="View"
+                                            size="small"
+                                            text
+                                            @click.stop="openCustomSectionDialog(row)"
+                                        />
+                                    </template>
+                                </Column>
+                            </DataTable>
+                        </template>
+                    </Card>
+                </div>
+            </template>
 
             <!-- Nodes & Applications Tabs -->
             <Card>
@@ -903,6 +1069,38 @@ const items = [
                             icon="pi pi-cloud-upload"
                             :loading="isPublishingOrganization"
                         />
+                    </div>
+                </template>
+            </Dialog>
+
+            <!-- Custom Section Detail Dialog -->
+            <Dialog
+                v-model:visible="showCustomSectionDialog"
+                header="Custom Section"
+                modal
+                class="w-full max-w-2xl"
+            >
+                <div v-if="selectedCustomSection" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="font-medium text-gray-600">Height</span>
+                            <p class="mt-1 text-gray-900">{{ selectedCustomSection.height }}</p>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-600">Microblock Hash</span>
+                            <code class="mt-1 block text-xs bg-gray-100 px-2 py-1 rounded break-all">
+                                {{ selectedCustomSection.hash }}
+                            </code>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="font-medium text-gray-600 text-sm">Custom Data</span>
+                        <pre class="mt-1 bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm overflow-auto max-h-96">{{ JSON.stringify(selectedCustomSection.data, null, 2) }}</pre>
+                    </div>
+                </div>
+                <template #footer>
+                    <div class="flex justify-end">
+                        <Button label="Close" @click="showCustomSectionDialog = false" severity="secondary" />
                     </div>
                 </template>
             </Dialog>

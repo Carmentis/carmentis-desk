@@ -70,6 +70,12 @@ export interface TransferTokensParams {
     amount: CMTSToken;
 }
 
+export interface PublishCustomJsonParams {
+    walletId: number;
+    orgId: number;
+    json: Record<string, unknown>;
+}
+
 export const useOnChainStore = defineStore('onchain', () => {
     const storageStore = useStorageStore();
     const toast = useToast();
@@ -80,6 +86,7 @@ export const useOnChainStore = defineStore('onchain', () => {
     const isUnstakingFromNode = ref(false);
     const isPublishingApplication = ref(false);
     const isTransferringTokens = ref(false);
+    const isPublishingCustomJson = ref(false);
 
     /**
      * Publishes an organization on-chain
@@ -846,6 +853,57 @@ export const useOnChainStore = defineStore('onchain', () => {
         return hash;
     }
 
+    /**
+     * Publishes a custom JSON section on the organization's virtual blockchain.
+     */
+    async function publishCustomJson(params: PublishCustomJsonParams) {
+        isPublishingCustomJson.value = true;
+        try {
+            const { walletId, orgId, json } = params;
+
+            const wallet = await storageStore.getWalletById(walletId);
+            if (!wallet) throw new Error(`Wallet with id ${walletId} not found`);
+
+            const organization = wallet.organizations.find((org) => org.id === orgId);
+            if (!organization || !organization.vbId) {
+                throw new Error('Organization is not published on-chain');
+            }
+
+            const seedEncoder = new SeedEncoder();
+            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
+            const accountCrypto = walletSeed.getDefaultAccountCrypto();
+            const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
+            const pk = await sk.getPublicKey();
+
+            const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
+            const accountId = await provider.getAccountIdByPublicKey(pk);
+
+            const orgVB = await provider.loadOrganizationVirtualBlockchain(Hash.from(organization.vbId));
+            const mb = await orgVB.createMicroblock();
+            mb.addSection({ type: SectionType.CUSTOM, ...json });
+            await updateGasInMicroblock(provider, mb, sk.getSignatureSchemeId());
+            await mb.seal(sk, { feesPayerAccount: accountId });
+            await provider.publishMicroblock(mb);
+
+            toast.add({
+                severity: 'success',
+                summary: 'Custom data published',
+                detail: 'Custom JSON section published on-chain successfully',
+                life: 3000,
+            });
+        } catch (e) {
+            console.error(e);
+            toast.add({
+                severity: 'error',
+                summary: 'Error publishing custom data',
+                detail: String(e),
+                life: 5000,
+            });
+        } finally {
+            isPublishingCustomJson.value = false;
+        }
+    }
+
     return {
         isPublishingOrganization,
         isClaimingNode,
@@ -853,6 +911,7 @@ export const useOnChainStore = defineStore('onchain', () => {
         isUnstakingFromNode,
         isPublishingApplication,
         isTransferringTokens,
+        isPublishingCustomJson,
         publishOrganization,
         claimNode,
         stakeOnNode,
@@ -860,5 +919,6 @@ export const useOnChainStore = defineStore('onchain', () => {
         fetchAccountStateByPublicKey,
         publishApplication,
         transferTokens,
+        publishCustomJson,
     };
 });
