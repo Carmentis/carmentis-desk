@@ -21,6 +21,57 @@ const showOperatorDialog = ref(false);
 const newOperatorName = ref('');
 const newOperatorEndpoint = ref('');
 
+// Import
+const fileInputRef = ref<HTMLInputElement | null>(null);
+
+function triggerImport() {
+    fileInputRef.value?.click();
+}
+
+async function handleImportFile(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!fileInputRef.value) return;
+    fileInputRef.value.value = '';
+    if (!file) return;
+
+    let parsed: { organizations: unknown; operators: unknown };
+    try {
+        parsed = JSON.parse(await file.text());
+    } catch {
+        toast.add({ severity: 'error', summary: 'Invalid file', detail: 'The file is not valid JSON.', life: 4000 });
+        return;
+    }
+
+    if (!Array.isArray(parsed.organizations) || !Array.isArray(parsed.operators)) {
+        toast.add({
+            severity: 'error',
+            summary: 'Invalid format',
+            detail: 'The file must contain "organizations" and "operators" arrays.',
+            life: 4000,
+        });
+        return;
+    }
+
+    confirm.require({
+        message:
+            'This will permanently replace all current wallets and operators with the imported data. This action cannot be undone.',
+        header: 'Import Data',
+        icon: 'pi pi-exclamation-triangle',
+        rejectClass: 'p-button-secondary p-button-outlined',
+        rejectLabel: 'Cancel',
+        acceptLabel: 'Replace & Import',
+        acceptClass: 'p-button-danger',
+        accept: async () => {
+            try {
+                await store.importAllData(parsed as { organizations: any[]; operators: any[] });
+                toast.add({ severity: 'success', summary: 'Import successful', detail: 'Data imported successfully.', life: 3000 });
+            } catch {
+                toast.add({ severity: 'error', summary: 'Import failed', detail: 'An error occurred during import.', life: 4000 });
+            }
+        },
+    });
+}
+
 function confirmClearAllOrganizations() {
     confirm.require({
         message: 'Are you sure you want to clear all wallets? This action cannot be undone.',
@@ -55,6 +106,20 @@ async function createOperator() {
     } catch {
         toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to create operator', life: 3000 });
     }
+}
+
+function exportData() {
+    const payload = {
+        organizations: organizations.value,
+        operators: operators.value,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `carmentis-desk-export-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
 }
 
 function confirmClearAllOperators() {
@@ -136,7 +201,16 @@ const menuItems = computed<MenuItem[]>(() => [
         ],
     },
     //{ label: 'Proof Checker', icon: 'pi pi-verified', command: () => open('https://proof-checker.testnet.carmentis.io') },
-    { label: 'Settings', icon: 'pi pi-cog', command: () => router.push('/settings') },
+    {
+        label: 'Settings',
+        icon: 'pi pi-cog',
+        items: [
+            { label: 'Settings', icon: 'pi pi-cog', command: () => router.push('/settings') },
+            { separator: true },
+            { label: 'Export Data', icon: 'pi pi-download', command: () => exportData() },
+            { label: 'Import Data', icon: 'pi pi-upload', command: () => triggerImport() },
+        ],
+    },
     { label: 'Help', icon: 'pi pi-question-circle', command: () => router.push('/help') },
 ]);
 </script>
@@ -152,6 +226,8 @@ const menuItems = computed<MenuItem[]>(() => [
         </template>
       </Menubar>
     </div>
+
+    <input ref="fileInputRef" type="file" accept=".json,application/json" class="hidden" @change="handleImportFile" />
 
     <Dialog v-model:visible="showOperatorDialog" modal header="Add Operator" :style="{ width: '450px' }">
         <div class="space-y-4 py-4">

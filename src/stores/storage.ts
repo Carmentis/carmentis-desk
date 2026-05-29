@@ -117,6 +117,14 @@ export const useStorageStore = defineStore('storage', () => {
         await store.set('operators', []);
     }
 
+    async function importAllData(data: { organizations: WalletEntity[]; operators: OperatorEntity[] }) {
+        const store = getStorage();
+        organizations.value = data.organizations;
+        operators.value = data.operators;
+        await store.set('organizations', data.organizations);
+        await store.set('operators', data.operators);
+    }
+
     async function addOrganizationToWallet(walletId: number, organization: Omit<OrganizationEntity, 'id'>) {
         const currentWallets = await loadOrganizations();
         const wallet = currentWallets.find((w) => w.id === walletId);
@@ -514,5 +522,6 @@ export const useStorageStore = defineStore('storage', () => {
         clearOperators,
         addOperator,
         deleteOperatorById,
+        importAllData,
     };
 });
