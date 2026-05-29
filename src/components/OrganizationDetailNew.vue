@@ -562,15 +562,11 @@ function openCustomSectionDialog(row: CustomSectionRow) {
 }
 
 const items = computed(() => [
-    ...(isOrganizationFoundOnChain.value === true
-        ? [
-              {
-                  label: 'Publish Custom Data',
-                  icon: 'pi pi-file-edit',
-                  command: () => (showPublishCustomJsonDialog.value = true),
-              },
-          ]
-        : []),
+    {
+        label: 'Publish Custom Data',
+        icon: 'pi pi-file-edit',
+        command: () => (showPublishCustomJsonDialog.value = true),
+    },
     {
         label: 'Delete',
         icon: 'pi pi-trash',
@@ -646,11 +642,24 @@ const items = computed(() => [
                                 <TabList>
                                     <Tab value="0">Nodes</Tab>
                                     <Tab value="1">Applications</Tab>
-                                    <Tab value="2" v-if="isOrganizationFoundOnChain === true">Custom Data</Tab>
+                                    <Tab value="2">Custom Data</Tab>
                                 </TabList>
                                 <TabPanels>
                                     <TabPanel value="0">
-                                        <div class="space-y-4">
+                                        <div
+                                            v-if="isOrganizationFoundOnChain !== true"
+                                            class="flex items-start gap-3 px-4 py-4 bg-gray-50 border border-gray-200 rounded-lg"
+                                        >
+                                            <i class="pi pi-lock text-gray-500 mt-0.5 text-lg"></i>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-700">Feature locked</p>
+                                                <p class="text-sm text-gray-500 mt-1">
+                                                    Node management is only available once the organization has been
+                                                    published on the Carmentis network.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div v-else class="space-y-4">
                                             <!-- Nodes Header Actions -->
                                             <div class="flex justify-between items-center">
                                                 <h3 class="text-lg font-semibold text-gray-900">
@@ -724,7 +733,20 @@ const items = computed(() => [
                                     </TabPanel>
 
                                     <TabPanel value="1">
-                                        <div class="space-y-4">
+                                        <div
+                                            v-if="isOrganizationFoundOnChain !== true"
+                                            class="flex items-start gap-3 px-4 py-4 bg-gray-50 border border-gray-200 rounded-lg"
+                                        >
+                                            <i class="pi pi-lock text-gray-500 mt-0.5 text-lg"></i>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-700">Feature locked</p>
+                                                <p class="text-sm text-gray-500 mt-1">
+                                                    Application management is only available once the organization has
+                                                    been published on the Carmentis network.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div v-else class="space-y-4">
                                             <!-- Applications Header -->
                                             <div class="flex justify-between items-center">
                                                 <h3 class="text-lg font-semibold text-gray-900">
@@ -806,8 +828,21 @@ const items = computed(() => [
                                             </div>
                                         </div>
                                     </TabPanel>
-                                    <TabPanel value="2" v-if="isOrganizationFoundOnChain === true">
-                                        <div class="space-y-4">
+                                    <TabPanel value="2">
+                                        <div
+                                            v-if="isOrganizationFoundOnChain !== true"
+                                            class="flex items-start gap-3 px-4 py-4 bg-gray-50 border border-gray-200 rounded-lg"
+                                        >
+                                            <i class="pi pi-lock text-gray-500 mt-0.5 text-lg"></i>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-700">Feature locked</p>
+                                                <p class="text-sm text-gray-500 mt-1">
+                                                    Custom on-chain data is only available once the organization has
+                                                    been published on the Carmentis network.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div v-else class="space-y-4">
                                             <div class="flex justify-between items-center">
                                                 <h3 class="text-lg font-semibold text-gray-900">
                                                     Custom Sections On-Chain
@@ -1040,26 +1075,41 @@ const items = computed(() => [
                 modal
                 class="w-full max-w-2xl"
             >
-                <p class="text-sm text-gray-500 mb-4">
-                    Publish a custom JSON payload on-chain as a new microblock section for this organization's virtual
-                    blockchain.
-                </p>
-                <div class="space-y-3">
-                    <Textarea
-                        v-model="customJsonInput"
-                        rows="10"
-                        class="w-full font-mono text-sm"
-                        :class="{ 'border-red-400': customJsonError }"
-                        placeholder='{ "key": "value" }'
-                    />
-                    <div
-                        v-if="customJsonError"
-                        class="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-700"
-                    >
-                        <i class="pi pi-exclamation-circle"></i>
-                        {{ customJsonError }}
+                <div
+                    v-if="isOrganizationFoundOnChain !== true"
+                    class="flex items-start gap-3 px-4 py-4 bg-gray-50 border border-gray-200 rounded-lg"
+                >
+                    <i class="pi pi-lock text-gray-500 mt-0.5 text-lg"></i>
+                    <div>
+                        <p class="text-sm font-medium text-gray-700">Feature locked</p>
+                        <p class="text-sm text-gray-500 mt-1">
+                            Publishing custom data is only available once the organization has been published on the
+                            Carmentis network.
+                        </p>
                     </div>
                 </div>
+                <template v-else>
+                    <p class="text-sm text-gray-500 mb-4">
+                        Publish a custom JSON payload on-chain as a new microblock section for this organization's
+                        virtual blockchain.
+                    </p>
+                    <div class="space-y-3">
+                        <Textarea
+                            v-model="customJsonInput"
+                            rows="10"
+                            class="w-full font-mono text-sm"
+                            :class="{ 'border-red-400': customJsonError }"
+                            placeholder='{ "key": "value" }'
+                        />
+                        <div
+                            v-if="customJsonError"
+                            class="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-700"
+                        >
+                            <i class="pi pi-exclamation-circle"></i>
+                            {{ customJsonError }}
+                        </div>
+                    </div>
+                </template>
                 <template #footer>
                     <div class="flex justify-end gap-2">
                         <Button
@@ -1069,6 +1119,7 @@ const items = computed(() => [
                             outlined
                         />
                         <Button
+                            v-if="isOrganizationFoundOnChain === true"
                             label="Publish On-Chain"
                             icon="pi pi-cloud-upload"
                             :loading="isPublishingCustomJson"
