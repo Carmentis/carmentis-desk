@@ -20,11 +20,7 @@ fn save_file(app: tauri::AppHandle, filename: String, content: String) -> Result
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let mut builder = tauri::Builder::default().plugin(
-        tauri_plugin_log::Builder::new()
-            .level(tauri_plugin_log::log::LevelFilter::Info)
-            .build(),
-    );
+    let mut builder = tauri::Builder::default();
 
     #[cfg(desktop)]
     {
