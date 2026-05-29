@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, watch, inject, onMounted } from 'vue';
+import { computed, reactive, ref, watch, inject, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Button from 'primevue/button';
+import Tag from 'primevue/tag';
 import Card from 'primevue/card';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
@@ -279,6 +280,16 @@ const orgCountryCode = ref('');
 const orgCity = ref('');
 const orgWebsite = ref('');
 
+const savedForm = reactive({ name: '', countryCode: '', city: '', website: '' });
+
+const isFormDirty = computed(
+    () =>
+        orgName.value.trim() !== savedForm.name ||
+        orgCountryCode.value.trim() !== savedForm.countryCode ||
+        orgCity.value.trim() !== savedForm.city ||
+        orgWebsite.value.trim() !== savedForm.website,
+);
+
 // Publish confirmation dialog
 const showPublishConfirmDialog = ref(false);
 
@@ -304,6 +315,10 @@ function initializeForm() {
         orgCountryCode.value = organization.value.countryCode || '';
         orgCity.value = organization.value.city || '';
         orgWebsite.value = organization.value.website || '';
+        savedForm.name = orgName.value;
+        savedForm.countryCode = orgCountryCode.value;
+        savedForm.city = orgCity.value;
+        savedForm.website = orgWebsite.value;
     }
 }
 
@@ -335,6 +350,11 @@ async function updateOrganizationDetails() {
         city: orgCity.value.trim() || undefined,
         website: orgWebsite.value.trim() || undefined,
     });
+
+    savedForm.name = orgName.value.trim();
+    savedForm.countryCode = orgCountryCode.value.trim();
+    savedForm.city = orgCity.value.trim();
+    savedForm.website = orgWebsite.value.trim();
 
     toast.add({
         severity: 'success',
@@ -544,12 +564,20 @@ const items = [
                 <!-- Organization Details Form Card -->
                 <Card>
                     <template #title>
-                        <div class="flex items-center gap-2">
-                            <i class="pi pi-pencil text-xl"></i>
-                            <span>Organization Details</span>
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <i class="pi pi-pencil text-xl"></i>
+                                <span>Organization Details</span>
+                            </div>
+                            <Tag v-if="isFormDirty" icon="pi pi-exclamation-circle" value="Unsaved changes" severity="warn" />
                         </div>
                     </template>
                     <template #content>
+                        <p class="text-sm text-gray-500 mb-4">
+                            These details describe your organization publicly on the Carmentis network. Keeping them
+                            accurate helps partners and users identify and trust your organization when verifying
+                            credentials or interacting with your applications.
+                        </p>
                         <form @submit.prevent="updateOrganizationDetails" class="space-y-4">
                             <div>
                                 <label for="org-name" class="block text-sm font-medium text-gray-700 mb-2">
@@ -601,7 +629,7 @@ const items = [
                                     severity="secondary"
                                     :hidden="!hasAccountOnChain"
                                 />
-                                <Button type="submit" label="Update Details" icon="pi pi-check" />
+                                <Button type="submit" label="Update Details" icon="pi pi-check" :disabled="!isFormDirty" />
                             </div>
                         </form>
                     </template>
