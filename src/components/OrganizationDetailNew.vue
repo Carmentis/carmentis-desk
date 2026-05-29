@@ -496,7 +496,8 @@ function visitApplication(appId: number) {
 
 const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
 
-// Custom JSON publishing
+// Custom JSON publishing dialog
+const showPublishCustomJsonDialog = ref(false);
 const customJsonInput = ref('{\n  \n}');
 
 const customJsonError = computed(() => {
@@ -515,6 +516,7 @@ async function publishCustomJson() {
         orgId: orgId.value,
         json: JSON.parse(customJsonInput.value),
     });
+    showPublishCustomJsonDialog.value = false;
     await refetchCustomSections();
 }
 
@@ -559,7 +561,16 @@ function openCustomSectionDialog(row: CustomSectionRow) {
     showCustomSectionDialog.value = true;
 }
 
-const items = [
+const items = computed(() => [
+    ...(isOrganizationFoundOnChain.value === true
+        ? [
+              {
+                  label: 'Publish Custom Data',
+                  icon: 'pi pi-file-edit',
+                  command: () => (showPublishCustomJsonDialog.value = true),
+              },
+          ]
+        : []),
     {
         label: 'Delete',
         icon: 'pi pi-trash',
@@ -567,7 +578,7 @@ const items = [
         command: () => (showDeleteConfirmDialog.value = true),
         outlined: true,
     },
-];
+]);
 </script>
 
 <template>
@@ -586,6 +597,9 @@ const items = [
                             <i class="pi pi-info-circle text-xl"></i>
                             <span>Organization State</span>
                         </div>
+                    </template>
+                    <template #subtitle>
+                        On-chain status of this organization and its associated nodes and applications.
                     </template>
                     <template #content>
                         <div v-if="organization.vbId">
@@ -626,12 +640,13 @@ const items = [
                             </p>
                         </div>
 
-                        <!-- Nodes & Applications Tabs -->
+                        <!-- Nodes, Applications & Custom Data Tabs -->
                         <div class="mt-6">
                             <Tabs value="0">
                                 <TabList>
                                     <Tab value="0">Nodes</Tab>
                                     <Tab value="1">Applications</Tab>
+                                    <Tab value="2" v-if="isOrganizationFoundOnChain === true">Custom Data</Tab>
                                 </TabList>
                                 <TabPanels>
                                     <TabPanel value="0">
@@ -791,6 +806,52 @@ const items = [
                                             </div>
                                         </div>
                                     </TabPanel>
+                                    <TabPanel value="2" v-if="isOrganizationFoundOnChain === true">
+                                        <div class="space-y-4">
+                                            <div class="flex justify-between items-center">
+                                                <h3 class="text-lg font-semibold text-gray-900">
+                                                    Custom Sections On-Chain
+                                                </h3>
+                                            </div>
+                                            <DataTable
+                                                :value="customSections ?? []"
+                                                :loading="isLoadingCustomSections"
+                                                size="small"
+                                                striped-rows
+                                                :rows="5"
+                                                paginator
+                                                :rows-per-page-options="[5, 10]"
+                                                @row-click="(e) => openCustomSectionDialog(e.data)"
+                                                row-hover
+                                                class="cursor-pointer"
+                                            >
+                                                <template #empty>
+                                                    <div class="text-center py-4 text-gray-500 text-sm">
+                                                        No custom sections found on-chain.
+                                                    </div>
+                                                </template>
+                                                <Column field="height" header="Height" style="width: 5rem" />
+                                                <Column field="hash" header="Microblock Hash">
+                                                    <template #body="{ data: row }">
+                                                        <code class="text-xs bg-gray-100 px-1 py-0.5 rounded truncate block max-w-xs">
+                                                            {{ row.hash }}
+                                                        </code>
+                                                    </template>
+                                                </Column>
+                                                <Column header="Action" style="width: 6rem">
+                                                    <template #body="{ data: row }">
+                                                        <Button
+                                                            icon="pi pi-eye"
+                                                            label="View"
+                                                            size="small"
+                                                            text
+                                                            @click.stop="openCustomSectionDialog(row)"
+                                                        />
+                                                    </template>
+                                                </Column>
+                                            </DataTable>
+                                        </div>
+                                    </TabPanel>
                                 </TabPanels>
                             </Tabs>
                         </div>
@@ -871,105 +932,6 @@ const items = [
                     </template>
                 </Card>
             </div>
-
-            <!-- On-chain Cards (visible only when org is found online) -->
-            <template v-if="isOrganizationFoundOnChain === true">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
-                    <!-- Publish Custom JSON Card -->
-                    <Card>
-                        <template #title>
-                            <div class="flex items-center gap-2">
-                                <i class="pi pi-file-edit text-xl"></i>
-                                <span>Publish Custom Data</span>
-                            </div>
-                        </template>
-                        <template #content>
-                            <p class="text-sm text-gray-500 mb-4">
-                                Publish a custom JSON payload on-chain as a new microblock section for this
-                                organization's virtual blockchain.
-                            </p>
-                            <div class="space-y-3">
-                                <Textarea
-                                    v-model="customJsonInput"
-                                    rows="8"
-                                    class="w-full font-mono text-sm"
-                                    :class="{ 'border-red-400': customJsonError }"
-                                    placeholder='{ "key": "value" }'
-                                />
-                                <div
-                                    v-if="customJsonError"
-                                    class="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-700"
-                                >
-                                    <i class="pi pi-exclamation-circle"></i>
-                                    {{ customJsonError }}
-                                </div>
-                                <div class="flex justify-end">
-                                    <Button
-                                        label="Publish On-Chain"
-                                        icon="pi pi-cloud-upload"
-                                        :loading="isPublishingCustomJson"
-                                        :disabled="isPublishingCustomJson || !!customJsonError"
-                                        @click="publishCustomJson"
-                                    />
-                                </div>
-                            </div>
-                        </template>
-                    </Card>
-
-                    <!-- Custom Sections List Card -->
-                    <Card>
-                        <template #title>
-                            <div class="flex items-center gap-2">
-                                <i class="pi pi-list text-xl"></i>
-                                <span>Custom Sections On-Chain</span>
-                            </div>
-                        </template>
-                        <template #content>
-                            <p class="text-sm text-gray-500 mb-4">
-                                Microblocks containing a custom section published on this organization's virtual
-                                blockchain.
-                            </p>
-                            <DataTable
-                                :value="customSections ?? []"
-                                :loading="isLoadingCustomSections"
-                                size="small"
-                                striped-rows
-                                :rows="5"
-                                paginator
-                                :rows-per-page-options="[5, 10]"
-                                @row-click="(e) => openCustomSectionDialog(e.data)"
-                                row-hover
-                                class="cursor-pointer"
-                            >
-                                <template #empty>
-                                    <div class="text-center py-4 text-gray-500 text-sm">
-                                        No custom sections found on-chain.
-                                    </div>
-                                </template>
-                                <Column field="height" header="Height" style="width: 5rem" />
-                                <Column field="hash" header="Microblock Hash">
-                                    <template #body="{ data: row }">
-                                        <code class="text-xs bg-gray-100 px-1 py-0.5 rounded truncate block max-w-xs">
-                                            {{ row.hash }}
-                                        </code>
-                                    </template>
-                                </Column>
-                                <Column header="Action" style="width: 6rem">
-                                    <template #body="{ data: row }">
-                                        <Button
-                                            icon="pi pi-eye"
-                                            label="View"
-                                            size="small"
-                                            text
-                                            @click.stop="openCustomSectionDialog(row)"
-                                        />
-                                    </template>
-                                </Column>
-                            </DataTable>
-                        </template>
-                    </Card>
-                </div>
-            </template>
 
             <!-- Add Node Dialog -->
             <Dialog v-model:visible="showManualImportForm" header="Add Node" modal class="w-full max-w-2xl">
@@ -1066,6 +1028,52 @@ const items = [
                             @click="confirmPublishOrganization"
                             icon="pi pi-cloud-upload"
                             :loading="isPublishingOrganization"
+                        />
+                    </div>
+                </template>
+            </Dialog>
+
+            <!-- Publish Custom Data Dialog -->
+            <Dialog
+                v-model:visible="showPublishCustomJsonDialog"
+                header="Publish Custom Data"
+                modal
+                class="w-full max-w-2xl"
+            >
+                <p class="text-sm text-gray-500 mb-4">
+                    Publish a custom JSON payload on-chain as a new microblock section for this organization's virtual
+                    blockchain.
+                </p>
+                <div class="space-y-3">
+                    <Textarea
+                        v-model="customJsonInput"
+                        rows="10"
+                        class="w-full font-mono text-sm"
+                        :class="{ 'border-red-400': customJsonError }"
+                        placeholder='{ "key": "value" }'
+                    />
+                    <div
+                        v-if="customJsonError"
+                        class="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-700"
+                    >
+                        <i class="pi pi-exclamation-circle"></i>
+                        {{ customJsonError }}
+                    </div>
+                </div>
+                <template #footer>
+                    <div class="flex justify-end gap-2">
+                        <Button
+                            label="Cancel"
+                            @click="showPublishCustomJsonDialog = false"
+                            severity="secondary"
+                            outlined
+                        />
+                        <Button
+                            label="Publish On-Chain"
+                            icon="pi pi-cloud-upload"
+                            :loading="isPublishingCustomJson"
+                            :disabled="isPublishingCustomJson || !!customJsonError"
+                            @click="publishCustomJson"
                         />
                     </div>
                 </template>
