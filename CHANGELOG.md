@@ -1,3 +1,16 @@
+# [1.14.0](https://github.com/Carmentis/carmentis-desk/compare/v1.13.1...v1.14.0) (2026-06-01)
+
+
+### Features
+
+* add custom JSON publishing and section listing for organizations ([f8a3d0c](https://github.com/Carmentis/carmentis-desk/commit/f8a3d0c630aff47d32e9ea9daca664520ebb0027))
+* add data import/export functionality with UI integration ([3fd808f](https://github.com/Carmentis/carmentis-desk/commit/3fd808f60131385ec6ddedbb4a4570180c8b0521))
+* add unsaved changes indicator and form validation for Organization Details ([4f92691](https://github.com/Carmentis/carmentis-desk/commit/4f92691e727592ad75c0450cb7868c794e53c1eb))
+* enhance account query behavior and refetch logic ([3dbd8ff](https://github.com/Carmentis/carmentis-desk/commit/3dbd8ff58094a030b4fcc2ab9c46768891df9ae5))
+* lock features for unpublished organizations and simplify permissions logic ([432f05d](https://github.com/Carmentis/carmentis-desk/commit/432f05d24607d9986076a72a7c3478e4d8f9bcf7))
+* move custom JSON publishing to modal and enhance UI/UX ([2d9419b](https://github.com/Carmentis/carmentis-desk/commit/2d9419bd3db9fbeb2ae851baf935dbbd94f7e62c))
+* restructure organization detail cards and add tabs for nodes and applications ([3d21a1e](https://github.com/Carmentis/carmentis-desk/commit/3d21a1e2d9cd92024786fbc922ad978dd93d5dbd))
+
 ## [1.13.1](https://github.com/Carmentis/carmentis-desk/compare/v1.13.0...v1.13.1) (2026-05-21)
 
 
