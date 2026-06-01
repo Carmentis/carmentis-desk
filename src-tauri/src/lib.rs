@@ -56,18 +56,13 @@ pub fn run() {
             Ok(())
         })
         .plugin(tauri_plugin_stronghold::Builder::new(|password| {
-            use argon2::{Config, Variant, Version};
-            let config = Config {
-                variant: Variant::Argon2id,
-                version: Version::Version13,
-                mem_cost: 65536,
-                time_cost: 2,
-                lanes: 1,
-                hash_length: 32,
-                ..Config::default()
-            };
-            argon2::hash_raw(password, b"carmentis-desk-kdf-salt", &config)
-                .expect("argon2 key derivation failed")
+            use argon2::{Argon2, Algorithm, Version, Params};
+            let params = Params::new(65536, 2, 1, Some(32)).expect("argon2 params");
+            let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
+            let mut key = vec![0u8; 32];
+            argon2.hash_password_into(password.as_bytes(), b"carmentis-desk-kdf-salt", &mut key)
+                .expect("argon2 key derivation failed");
+            key
         }).build())
         .plugin(
             tauri_plugin_sql::Builder::default()
