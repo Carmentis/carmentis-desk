@@ -17,6 +17,7 @@ const organizationName = ref('');
 const seed = ref('');
 const passphrase = ref('');
 const nodeEndpoint = ref('https://ares.testnet.carmentis.io');
+const indexer = ref('');
 
 // Method selection: 'seed' or 'passphrase'
 const creationMethod = ref<'seed' | 'passphrase'>('seed');
@@ -86,6 +87,7 @@ const createOrganization = async () => {
         name: organizationName.value,
         seed: finalSeed,
         nodeEndpoint: nodeEndpoint.value,
+        indexer: indexer.value || undefined,
         organizations: [],
         participations: [],
     });
@@ -207,6 +209,19 @@ const goBack = () => {
                             class="w-full"
                         />
                         <small class="text-gray-500 mt-1 block">Default: ares.testnet.carmentis.io</small>
+                    </div>
+
+                    <!-- Indexer -->
+                    <div>
+                        <label for="indexer" class="block text-sm font-medium text-gray-700 mb-2">
+                            Indexer
+                        </label>
+                        <InputText
+                            id="indexer"
+                            v-model="indexer"
+                            placeholder="https://indexer.testnet.carmentis.io"
+                            class="w-full"
+                        />
                     </div>
                 </div>
             </template>
