@@ -3,7 +3,8 @@ import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Dropdown from 'primevue/dropdown';
 import InputText from 'primevue/inputtext';
-import { useStorageStore, WalletEntity } from '../../stores/storage.ts';
+import { useStorageStore, type WalletStub } from '../../stores/storage.ts';
+import { useSessionStore } from '../../stores/sessionStore.ts';
 import { computed, ref } from 'vue';
 import { useSetupOperatorMutation } from '../../composables/operator.ts';
 import { useRoute } from 'vue-router';
@@ -11,7 +12,8 @@ import { useToast } from 'primevue/usetoast';
 import { CryptoEncoderFactory, SeedEncoder, SignatureSchemeId, WalletCrypto } from '@cmts-dev/carmentis-sdk-core';
 
 const { wallets } = useStorageStore();
-const selectedWallet = ref<WalletEntity | null>(null);
+const sessionStore = useSessionStore();
+const selectedWallet = ref<WalletStub | null>(null);
 const pseudo = ref('');
 const canSubmit = computed(() => selectedWallet.value !== null && pseudo.value !== '');
 const toast = useToast();
@@ -28,7 +30,7 @@ async function setupOperator() {
         if (wallet) {
             // extract the public key from the wallet
             const endoder = new SeedEncoder();
-            const seed = endoder.decode(wallet.seed);
+            const seed = endoder.decode(await sessionStore.getWalletSeed(wallet.id));
             const walletCrypto = WalletCrypto.fromSeed(seed);
             const accountCrypto = walletCrypto.getDefaultAccountCrypto();
             const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();

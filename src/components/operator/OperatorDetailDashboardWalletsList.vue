@@ -2,7 +2,8 @@
 import { useRoute } from 'vue-router';
 import { computed, ref } from 'vue';
 import { useGetAllWallets, useCreateWalletMutation, useDeleteWalletMutation } from '../../composables/operator.ts';
-import { useStorageStore, WalletEntity } from '../../stores/storage.ts';
+import { useStorageStore, type WalletStub } from '../../stores/storage.ts';
+import { useSessionStore } from '../../stores/sessionStore.ts';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -25,6 +26,7 @@ const deleteWalletMutation = useDeleteWalletMutation(operatorId.value);
 const toast = useToast();
 const confirm = useConfirm();
 const storageStore = useStorageStore();
+const sessionStore = useSessionStore();
 const { organizations } = storeToRefs(storageStore);
 
 // Dialog state
@@ -33,7 +35,7 @@ const showUploadWalletDialog = ref(false);
 const newWalletRpcEndpoint = ref('');
 const newWalletName = ref('');
 const newWalletSeed = ref('');
-const selectedWalletToUpload = ref<WalletEntity | null>(null);
+const selectedWalletToUpload = ref<WalletStub | null>(null);
 
 function openCreateWalletDialog() {
     newWalletRpcEndpoint.value = '';
@@ -96,10 +98,11 @@ async function uploadWallet() {
     }
 
     try {
+        const seed = await sessionStore.getWalletSeed(selectedWalletToUpload.value.id);
         await createWalletMutation.mutateAsync({
             rpcEndpoint: selectedWalletToUpload.value.nodeEndpoint,
             name: selectedWalletToUpload.value.name,
-            seed: selectedWalletToUpload.value.seed,
+            seed,
         });
 
         toast.add({

@@ -6,6 +6,7 @@ import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
 import { useToast } from 'primevue/usetoast';
 import { useStorageStore } from '../../../../stores/storage.ts';
+import { useSessionStore } from '../../../../stores/sessionStore.ts';
 import { storeToRefs } from 'pinia';
 import type { AuthByPublicKeyDeprecatedParams } from './AuthByPublicKeyDeprecatedRequestType.ts';
 
@@ -18,6 +19,7 @@ const emit = defineEmits<{
 
 const toast = useToast();
 const store = useStorageStore();
+const sessionStore = useSessionStore();
 const { wallets } = storeToRefs(store);
 const chosenWallet = ref(wallets.value[0]);
 const isProcessing = ref(false);
@@ -26,7 +28,7 @@ async function approve() {
     isProcessing.value = true;
     try {
         const selectedWallet = chosenWallet.value;
-        const seed = selectedWallet.seed;
+        const seed = await sessionStore.getWalletSeed(selectedWallet.id);
         const seedEncoder = new SeedEncoder();
         const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(seed));
         const privateSignatureKey = walletSeed.getPrivateSignatureKey();

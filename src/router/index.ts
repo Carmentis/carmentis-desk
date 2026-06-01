@@ -12,10 +12,23 @@ import OperatorDetail from '../components/operator/OperatorDetail.vue';
 import RpcSession from '../components/rpcSession/RpcSession.vue';
 import Help from '../components/help/Help.vue';
 import Settings from '../components/settings/Settings.vue';
+import OnboardingView from '../views/OnboardingView.vue';
+import LoginView from '../views/LoginView.vue';
+import { useSessionStore } from '../stores/sessionStore';
 
 const router = createRouter({
     history: createWebHistory(),
     routes: [
+        {
+            path: '/onboarding',
+            name: 'onboarding',
+            component: OnboardingView,
+        },
+        {
+            path: '/login',
+            name: 'login',
+            component: LoginView,
+        },
         {
             path: '/',
             name: 'home',
@@ -87,6 +100,14 @@ const router = createRouter({
             redirect: '/',
         },
     ],
+});
+
+router.beforeEach(async (to) => {
+    if (to.name === 'onboarding' || to.name === 'login') return true;
+    const session = useSessionStore();
+    if (!session.isOnboarded) return { name: 'onboarding' };
+    if (!session.isUnlocked) return { name: 'login', query: { redirect: to.fullPath } };
+    return true;
 });
 
 export default router;

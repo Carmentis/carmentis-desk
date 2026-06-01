@@ -6,6 +6,7 @@ import Dropdown from 'primevue/dropdown';
 import {useToast} from 'primevue/usetoast';
 import {Ed25519PrivateSignatureKey, Ed25519PublicSignatureKey, SeedEncoder,SignatureSchemeId, WalletCrypto} from '@cmts-dev/carmentis-sdk-core';
 import {useStorageStore} from '../../../../stores/storage.ts';
+import { useSessionStore } from '../../../../stores/sessionStore.ts';
 import {storeToRefs} from 'pinia';
 import * as jose from 'jose';
 import {JwkSignatureKeyExporter} from '../../../../utils/jwk-signature-key-exporter.ts';
@@ -20,6 +21,7 @@ const emit = defineEmits<{
 
 const toast = useToast();
 const store = useStorageStore();
+const sessionStore = useSessionStore();
 const { wallets } = storeToRefs(store);
 const chosenWallet = ref(wallets.value[0]);
 const isProcessing = ref(false);
@@ -42,7 +44,7 @@ async function exportPublicKeyIntoFormat(publicSignatureKey: Ed25519PublicSignat
 async function approve() {
     isProcessing.value = true;
     try {
-        const seed = chosenWallet.value.seed;
+        const seed = await sessionStore.getWalletSeed(chosenWallet.value.id);
         const wc = WalletCrypto.fromSeed(new SeedEncoder().decode(seed));
         const sk = await wc.getDefaultAccountCrypto().getPrivateSignatureKey(SignatureSchemeId.ED25519);
         const pk = (await sk.getPublicKey()) as Ed25519PublicSignatureKey;

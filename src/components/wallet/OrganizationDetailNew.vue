@@ -37,6 +37,7 @@ import {
 } from '@cmts-dev/carmentis-sdk-core';
 import { useToast } from 'primevue/usetoast';
 import { useOnChainStore } from '../../stores/onchain.ts';
+import { useSessionStore } from '../../stores/sessionStore.ts';
 import { storeToRefs } from 'pinia';
 import { Tendermint37Client } from '@cosmjs/tendermint-rpc';
 import { useQuery } from '@tanstack/vue-query';
@@ -46,6 +47,7 @@ const toast = useToast();
 const route = useRoute();
 const router = useRouter();
 const onChainStore = useOnChainStore();
+const sessionStore = useSessionStore();
 const { isPublishingOrganization, isPublishingCustomJson } = storeToRefs(onChainStore);
 const registerNavbarActions = inject<(actions: any[]) => void>('registerNavbarActions');
 
@@ -103,7 +105,8 @@ const breadcrumbItems = computed(() => {
 const walletKeyPair = computedAsync(async () => {
     if (!wallet.value) return undefined;
     const seedEncoder = new SeedEncoder();
-    const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.value.seed));
+    const rawSeed = await sessionStore.getWalletSeed(wallet.value.id);
+    const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(rawSeed));
     const accountCrypto = walletSeed.getDefaultAccountCrypto();
     const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
     const pk = await sk.getPublicKey();

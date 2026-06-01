@@ -2,6 +2,7 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import { createPinia } from 'pinia';
 import { useStorageStore } from './stores/storage.ts';
+import { useSessionStore } from './stores/sessionStore.ts';
 import router from './router';
 import PrimeVue from 'primevue/config';
 import Aura from '@primeuix/themes/aura';
@@ -31,7 +32,8 @@ app.use(PrimeVue, {
 getDb()
     .then(async () => {
         const storage = useStorageStore();
-        await storage.initStorage();
+        const session = useSessionStore();
+        await Promise.all([storage.initStorage(), session.initialize()]);
     })
     .catch((err) => console.error('Failed to initialize database:', err))
     .finally(() => app.mount('#app'));

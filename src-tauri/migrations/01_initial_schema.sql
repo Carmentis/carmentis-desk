@@ -3,9 +3,13 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS wallets (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     name          TEXT NOT NULL,
-    seed          TEXT NOT NULL,
     node_endpoint TEXT NOT NULL,
     indexer       TEXT
+);
+
+CREATE TABLE IF NOT EXISTS user_profile (
+    id     INTEGER PRIMARY KEY DEFAULT 1,
+    pseudo TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS operators (

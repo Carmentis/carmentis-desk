@@ -7,6 +7,7 @@ import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import SplitButton from 'primevue/splitbutton';
 import { useStorageStore, type OrganizationEntity as OrgEntity, type ApplicationParticipation } from '../../stores/storage';
+import { useSessionStore } from '../../stores/sessionStore.ts';
 import { useAsyncState, computedAsync } from '@vueuse/core';
 import * as walletRepo from '../../db/repositories/walletRepository';
 import * as orgRepo from '../../db/repositories/organizationRepository';
@@ -41,6 +42,7 @@ const route = useRoute();
 const router = useRouter();
 const storageStore = useStorageStore();
 const onChainStore = useOnChainStore();
+const sessionStore = useSessionStore();
 const confirm = useConfirm();
 
 const goBack = () => {
@@ -93,7 +95,8 @@ const { state: participations, execute: fetchParticipations } = useAsyncState(
 const walletKeyPair = computedAsync(async () => {
     if (!wallet.value) return undefined;
     const seedEncoder = new SeedEncoder();
-    const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.value.seed));
+    const rawSeed = await sessionStore.getWalletSeed(wallet.value.id);
+    const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(rawSeed));
     const accountCrypto = walletSeed.getDefaultAccountCrypto();
     const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
     const pk = await sk.getPublicKey();
@@ -105,6 +108,11 @@ const walletKeyPair = computedAsync(async () => {
 });
 const sk = computed(() => walletKeyPair.value?.sk);
 const pk = computed(() => walletKeyPair.value?.pk);
+
+const walletSeed = computedAsync(async () => {
+    if (!wallet.value) return '';
+    return sessionStore.getWalletSeed(wallet.value.id);
+}, '');
 
 // wallet account publication status
 
@@ -262,7 +270,11 @@ const copyMenuItems = ref([
     {
         label: 'Copy Seed',
         icon: 'pi pi-copy',
-        command: () => copyToClipboard(wallet.value?.seed, 'Seed'),
+        command: async () => {
+            if (!wallet.value) return;
+            const seed = await sessionStore.getWalletSeed(wallet.value.id);
+            copyToClipboard(seed, 'Seed');
+        },
     },
 ]);
 
@@ -336,7 +348,11 @@ const menuItems = computed<MenuItem[]>(() => [
             {
                 label: 'Copy seed',
                 icon: 'pi pi-copy',
-                command: () => copyToClipboard(wallet.value?.seed, 'Seed'),
+                command: async () => {
+                    if (!wallet.value) return;
+                    const seed = await sessionStore.getWalletSeed(wallet.value.id);
+                    copyToClipboard(seed, 'Seed');
+                },
             },
         ],
     },
@@ -409,7 +425,7 @@ const menuItems = computed<MenuItem[]>(() => [
                                 <div class="w-full">
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Private seed</label>
                                     <Password
-                                        v-model="wallet.seed"
+                                        v-model="walletSeed"
                                         :feedback="false"
                                         toggleMask
                                         class="w-full"

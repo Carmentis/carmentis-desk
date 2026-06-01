@@ -21,6 +21,7 @@ import {
     AccountVb,
 } from '@cmts-dev/carmentis-sdk-core';
 import { useStorageStore } from './storage';
+import { useSessionStore } from './sessionStore';
 import { ref } from 'vue';
 import * as orgRepo from '../db/repositories/organizationRepository';
 import * as nodeRepo from '../db/repositories/nodeRepository';
@@ -81,6 +82,7 @@ export interface PublishCustomJsonParams {
 
 export const useOnChainStore = defineStore('onchain', () => {
     const storageStore = useStorageStore();
+    const sessionStore = useSessionStore();
     const toast = useToast();
 
     const isPublishingOrganization = ref(false);
@@ -114,7 +116,7 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             // Initialize wallet crypto from seed
             const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
+            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(await sessionStore.getWalletSeed(walletId)));
             const accountCrypto = walletSeed.getDefaultAccountCrypto();
 
             // Create provider
@@ -221,7 +223,7 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             // Initialize wallet crypto from seed
             const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
+            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(await sessionStore.getWalletSeed(walletId)));
             const accountCrypto = walletSeed.getDefaultAccountCrypto();
 
             // Create provider
@@ -336,7 +338,7 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             // Initialize wallet crypto from seed
             const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
+            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(await sessionStore.getWalletSeed(walletId)));
             const accountCrypto = walletSeed.getDefaultAccountCrypto();
 
             // Create provider
@@ -443,7 +445,7 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             // Initialize wallet crypto from seed
             const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
+            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(await sessionStore.getWalletSeed(walletId)));
             const accountCrypto = walletSeed.getDefaultAccountCrypto();
 
             // Create provider
@@ -581,7 +583,7 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             // Initialize wallet crypto from seed
             const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
+            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(await sessionStore.getWalletSeed(walletId)));
             const accountCrypto = walletSeed.getDefaultAccountCrypto();
 
             // Create provider
@@ -693,7 +695,7 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             // Initialize wallet crypto from seed
             const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
+            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(await sessionStore.getWalletSeed(walletId)));
             const accountCrypto = walletSeed.getDefaultAccountCrypto();
 
             // Create provider
@@ -871,7 +873,7 @@ export const useOnChainStore = defineStore('onchain', () => {
             }
 
             const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(wallet.seed));
+            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(await sessionStore.getWalletSeed(walletId)));
             const accountCrypto = walletSeed.getDefaultAccountCrypto();
             const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
             const pk = await sk.getPublicKey();

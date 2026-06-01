@@ -29,6 +29,8 @@ import AccordionContent from 'primevue/accordioncontent';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref, shallowRef } from 'vue';
 import { useStorageStore } from '../../../../stores/storage.ts';
+import { useSessionStore } from '../../../../stores/sessionStore.ts';
+import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import DataApprovalWallet from './DataApprovalWallet.vue';
 import VirtualBlockchainRecordNavigator from '../../VirtualBlockchainRecordNavigator.vue';
@@ -43,11 +45,14 @@ const emit = defineEmits<{
 
 const toast = useToast();
 const store = useStorageStore();
+const sessionStore = useSessionStore();
 const { wallets } = storeToRefs(store);
 const chosenWallet = ref(wallets.value[0]);
-const accountCrypto = computed(() =>
-    WalletCrypto.fromSeed(new SeedEncoder().decode(chosenWallet.value.seed)).getDefaultAccountCrypto(),
-);
+const accountCrypto = computedAsync(async () => {
+    if (!chosenWallet.value) return null;
+    const rawSeed = await sessionStore.getWalletSeed(chosenWallet.value.id);
+    return WalletCrypto.fromSeed(new SeedEncoder().decode(rawSeed)).getDefaultAccountCrypto();
+}, null);
 
 interface ApplicationDescription {
     name: string;
@@ -149,8 +154,9 @@ async function sendRequestToOperator(serverUrl: string, request: object) {
 
 onMounted(async () => {
     try {
+        const rawSeed = await sessionStore.getWalletSeed(chosenWallet.value.id);
         const localAccountCrypto = WalletCrypto.fromSeed(
-            new SeedEncoder().decode(chosenWallet.value.seed),
+            new SeedEncoder().decode(rawSeed),
         ).getDefaultAccountCrypto();
         console.log('Wallet request:', props.params);
 

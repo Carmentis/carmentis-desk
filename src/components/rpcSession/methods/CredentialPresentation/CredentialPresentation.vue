@@ -13,6 +13,7 @@ import { computedAsync } from '@vueuse/core';
 import { convertSdJwtToDcqlCredential } from '../../../../utils/utils.ts';
 import { parseSdJwtEnvelope } from '../../../../composables/credentials/useCredentialType.ts';
 import { useToast } from 'primevue/usetoast';
+import { useSessionStore } from '../../../../stores/sessionStore.ts';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
@@ -27,6 +28,7 @@ const emit = defineEmits<{
 }>();
 
 const toast = useToast();
+const sessionStore = useSessionStore();
 
 const dcqlQuery = computed(() => {
     try {
@@ -167,7 +169,8 @@ async function handlePresent() {
 
     isPresenting.value = true;
     try {
-        const ws = await WalletSdJwtSigner.createFromSeed(chosenWallet.value.seed);
+        const seed = await sessionStore.getWalletSeed(chosenWallet.value.id);
+        const ws = await WalletSdJwtSigner.createFromSeed(seed);
         const sdjwt = ws.getSdJwtInstance();
 
         const claims: Record<string, boolean> = {};

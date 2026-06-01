@@ -8,6 +8,7 @@ import * as nodeRepo from '../db/repositories/nodeRepository';
 import * as appRepo from '../db/repositories/applicationRepository';
 import * as participationRepo from '../db/repositories/participationRepository';
 import * as credentialRepo from '../db/repositories/credentialRepository';
+import { useSessionStore } from './sessionStore';
 
 // ─── Exported entity interfaces (unchanged for type compatibility) ────────────
 
@@ -74,8 +75,8 @@ export interface WalletEntity {
     credentials?: CredentialEntity[];
 }
 
-/** Shallow wallet — only top-level fields, no children loaded. */
-export type WalletStub = Pick<WalletEntity, 'id' | 'name' | 'seed' | 'nodeEndpoint' | 'indexer'>;
+/** Shallow wallet — only top-level fields, no children loaded. Seed is in Stronghold. */
+export type WalletStub = Pick<WalletEntity, 'id' | 'name' | 'nodeEndpoint' | 'indexer'>;
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
@@ -98,16 +99,29 @@ export const useStorageStore = defineStore('storage', () => {
     async function addOrganization(
         data: Omit<WalletEntity, 'id' | 'organizations' | 'participations' | 'credentials'>,
     ): Promise<void> {
-        await walletRepo.insertWallet(data);
+        const session = useSessionStore();
+        const walletId = await walletRepo.insertWallet({
+            name: data.name,
+            nodeEndpoint: data.nodeEndpoint,
+            indexer: data.indexer,
+        });
+        await session.storeWalletSeed(walletId, data.seed);
         organizations.value = await walletRepo.getAllWallets();
     }
 
     async function removeOrganizationById(walletId: number): Promise<void> {
+        const session = useSessionStore();
+        await session.deleteWalletSeed(walletId);
         await walletRepo.deleteWalletById(walletId);
         organizations.value = organizations.value.filter((w) => w.id !== walletId);
     }
 
     async function clearOrganizations(): Promise<void> {
+        const session = useSessionStore();
+        const ids = organizations.value.map((w) => w.id);
+        for (const id of ids) {
+            await session.deleteWalletSeed(id);
+        }
         await walletRepo.deleteAllWallets();
         organizations.value = [];
     }
@@ -144,16 +158,22 @@ export const useStorageStore = defineStore('storage', () => {
         organizations: WalletEntity[];
         operators: OperatorEntity[];
     }): Promise<void> {
+        const session = useSessionStore();
+
+        // Delete existing seeds from Stronghold before wiping DB
+        for (const w of organizations.value) {
+            await session.deleteWalletSeed(w.id);
+        }
         await walletRepo.deleteAllWallets();
         await operatorRepo.deleteAllOperators();
 
         for (const wallet of data.organizations) {
             const walletId = await walletRepo.insertWallet({
                 name: wallet.name,
-                seed: wallet.seed,
                 nodeEndpoint: wallet.nodeEndpoint,
                 indexer: wallet.indexer,
             });
+            await session.storeWalletSeed(walletId, wallet.seed);
 
             for (const org of wallet.organizations ?? []) {
                 const orgId = await orgRepo.insertOrganization(walletId, {

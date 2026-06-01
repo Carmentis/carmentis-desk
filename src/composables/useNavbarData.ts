@@ -9,6 +9,7 @@ import * as walletRepo from '../db/repositories/walletRepository';
 import * as credentialRepo from '../db/repositories/credentialRepository';
 import * as participationRepo from '../db/repositories/participationRepository';
 import type { WalletEntity } from '../stores/storage';
+import { useSessionStore } from '../stores/sessionStore';
 
 /**
  * Loads org/node/app children for every wallet — used by the navbar to
@@ -102,10 +103,15 @@ export async function buildExportData() {
                     };
                 }),
             );
-            const participations = await participationRepo.getAppParticipationsByWalletId(w.id);
-            const credentials = await credentialRepo.getCredentialsByWalletId(w.id);
+            const session = useSessionStore();
+            const [participations, credentials, seed] = await Promise.all([
+                participationRepo.getAppParticipationsByWalletId(w.id),
+                credentialRepo.getCredentialsByWalletId(w.id),
+                session.getWalletSeed(w.id),
+            ]);
             return {
                 ...w,
+                seed,
                 organizations: orgsWithChildren,
                 participations,
                 credentials,

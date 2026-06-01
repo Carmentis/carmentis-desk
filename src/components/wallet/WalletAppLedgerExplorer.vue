@@ -29,11 +29,13 @@ import * as participationRepo from '../../db/repositories/participationRepositor
 import VirtualBlockchainRecordNavigator from '../rpcSession/VirtualBlockchainRecordNavigator.vue';
 import ExportProofButton from '../checker/ExportProofButton.vue';
 import {useToast} from 'primevue/usetoast';
+import { useSessionStore } from '../../stores/sessionStore.ts';
 
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 const confirm = useConfirm();
+const sessionStore = useSessionStore();
 
 const walletId = computed(() => Number(route.params.walletId));
 const appParticipationId = computed(() => route.params.appId as string);
@@ -53,10 +55,11 @@ const { state: participation, execute: fetchParticipation } = useAsyncState(
     { immediate: true },
 );
 
-const accountCrypto = computed<AccountCrypto | null>(() => {
+const accountCrypto = computedAsync<AccountCrypto | null>(async () => {
     if (!wallet.value) return null;
-    return WalletCrypto.fromSeed(new SeedEncoder().decode(wallet.value.seed)).getDefaultAccountCrypto();
-});
+    const rawSeed = await sessionStore.getWalletSeed(wallet.value.id);
+    return WalletCrypto.fromSeed(new SeedEncoder().decode(rawSeed)).getDefaultAccountCrypto();
+}, null);
 
 // app description — single load, non-blocking
 interface AppDescription {

@@ -3,7 +3,6 @@ import { getDb } from '../database';
 export interface WalletRow {
     id: number;
     name: string;
-    seed: string;
     nodeEndpoint: string;
     indexer?: string;
 }
@@ -11,7 +10,6 @@ export interface WalletRow {
 interface DbRow {
     id: number;
     name: string;
-    seed: string;
     node_endpoint: string;
     indexer: string | null;
 }
@@ -20,7 +18,6 @@ function rowToEntity(row: DbRow): WalletRow {
     return {
         id: row.id,
         name: row.name,
-        seed: row.seed,
         nodeEndpoint: row.node_endpoint,
         indexer: row.indexer ?? undefined,
     };
@@ -41,8 +38,8 @@ export async function getWalletById(id: number): Promise<WalletRow | null> {
 export async function insertWallet(data: Omit<WalletRow, 'id'>): Promise<number> {
     const db = await getDb();
     const result = await db.execute(
-        'INSERT INTO wallets (name, seed, node_endpoint, indexer) VALUES (?, ?, ?, ?)',
-        [data.name, data.seed, data.nodeEndpoint, data.indexer ?? null],
+        'INSERT INTO wallets (name, node_endpoint, indexer) VALUES (?, ?, ?)',
+        [data.name, data.nodeEndpoint, data.indexer ?? null],
     );
     return result.lastInsertId;
 }
@@ -52,7 +49,6 @@ export async function updateWallet(id: number, data: Partial<Omit<WalletRow, 'id
     const fields: string[] = [];
     const values: unknown[] = [];
     if (data.name !== undefined) { fields.push('name = ?'); values.push(data.name); }
-    if (data.seed !== undefined) { fields.push('seed = ?'); values.push(data.seed); }
     if (data.nodeEndpoint !== undefined) { fields.push('node_endpoint = ?'); values.push(data.nodeEndpoint); }
     if (data.indexer !== undefined) { fields.push('indexer = ?'); values.push(data.indexer); }
     if (fields.length === 0) return;

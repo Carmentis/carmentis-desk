@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { useStorageStore, WalletEntity } from '../../stores/storage.ts';
+import { useStorageStore, type WalletStub } from '../../stores/storage.ts';
+import { useSessionStore } from '../../stores/sessionStore.ts';
 import { computed, ref, watch } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useRoute } from 'vue-router';
@@ -17,7 +18,8 @@ import {
 import { useOperatorAuthStore } from '../../stores/operatorAuthStore.ts';
 
 const { wallets } = useStorageStore();
-const selectedWallet = ref<WalletEntity | null>(null);
+const sessionStore = useSessionStore();
+const selectedWallet = ref<WalletStub | null>(null);
 const toast = useToast();
 
 const route = useRoute();
@@ -41,7 +43,7 @@ async function login() {
     if (wallet && challenge.value) {
         // extract the public key from the wallet
         const endoder = new SeedEncoder();
-        const seed = endoder.decode(wallet.seed);
+        const seed = endoder.decode(await sessionStore.getWalletSeed(wallet.id));
         const walletCrypto = WalletCrypto.fromSeed(seed);
         const accountCrypto = walletCrypto.getDefaultAccountCrypto();
         const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();

@@ -13,6 +13,7 @@ import { parseSdJwtEnvelope } from '../../composables/credentials/useCredentialT
 import { SDJwtInstance } from '@sd-jwt/core';
 import { useRoute, useRouter } from 'vue-router';
 import { useOnChainStore } from '../../stores/onchain.ts';
+import { useSessionStore } from '../../stores/sessionStore.ts';
 import { storeToRefs } from 'pinia';
 import { Ed25519PrivateSignatureKey, JwkSignatureEncoder, SeedEncoder } from '@cmts-dev/carmentis-sdk-core';
 import * as jose from 'jose';
@@ -24,6 +25,7 @@ const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 const onchainStore = useOnChainStore();
+const sessionStore = useSessionStore();
 const walletId = computed(() => Number(route.params.walletId));
 const { state: wallet } = useAsyncState(
     () => walletRepo.getWalletById(walletId.value),
@@ -54,7 +56,7 @@ const verifiablePresentation = computedAsync(async () => {
     if (!currentWallet) return null;
 
     // derive keys
-    const { seed } = currentWallet;
+    const seed = await sessionStore.getWalletSeed(currentWallet.id);
     const sk = Ed25519PrivateSignatureKey.genFromSeed(new SeedEncoder().decode(seed).slice(0, 32));
     const pk = await sk.getPublicKey();
     const skJwk = await JwkSignatureKeyExporter.exportPrivateKey(sk);

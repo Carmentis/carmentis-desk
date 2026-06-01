@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { useStorageStore } from './storage.ts';
+import { useSessionStore } from './sessionStore.ts';
 import {
     AccountTransactions,
     PrivateSignatureKey,
@@ -45,30 +46,21 @@ export const useWalletStore = defineStore('wallet', () => {
     }
 
     async function getKeyPair(walletId: number) {
-        const storageStore = useStorageStore();
-        const wallet = await storageStore.getWalletById(walletId);
-        if (!wallet) {
-            throw new Error(`Wallet with id ${walletId} not found`);
-        }
-        // compute the key pair
+        const session = useSessionStore();
+        const rawSeed = await session.getWalletSeed(walletId);
         const encoder = new SeedEncoder();
-        const seed = encoder.decode(wallet.seed);
+        const seed = encoder.decode(rawSeed);
         const walletCrypto = WalletCrypto.fromSeed(seed);
         const accountCrypto = walletCrypto.getDefaultAccountCrypto();
         const sk = await accountCrypto.getPrivateSignatureKey(state.value.signatureSchemaType);
         const pk = await sk.getPublicKey();
-
-        // update the key
         return { sk, pk };
     }
 
     async function getDidJwk(walletId: number): Promise<string> {
-        const storageStore = useStorageStore();
-        const wallet = await storageStore.getWalletById(walletId);
-        if (!wallet) {
-            throw new Error(`Wallet with id ${walletId} not found`);
-        }
-        return JwkSignatureKeyExporter.computeDidJwkFromSeed(wallet.seed);
+        const session = useSessionStore();
+        const rawSeed = await session.getWalletSeed(walletId);
+        return JwkSignatureKeyExporter.computeDidJwkFromSeed(rawSeed);
     }
 
     async function getAccountId(walletId: number) {
