@@ -35,6 +35,7 @@ import {
     Utils,
     WalletCrypto,
 } from '@cmts-dev/carmentis-sdk-core';
+import { createIndexerClient } from '../../api/indexer/client.ts';
 import { useToast } from 'primevue/usetoast';
 import { useOnChainStore } from '../../stores/onchain.ts';
 import { useSessionStore } from '../../stores/sessionStore.ts';
@@ -163,16 +164,18 @@ watch(manualNodeRpcEndpoint, async () => {
             const pk = status.validatorInfo.pubkey;
             if (pk) {
                 const b64 = EncoderFactory.bytesToBase64Encoder();
-                const hex = EncoderFactory.bytesToHexEncoder();
-                const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
-                const vbId = await provider.getValidatorNodeIdByCometbftPublicKey(b64.encode(pk.data));
+                if (!wallet.value.indexer) throw new Error('Indexer not configured for this wallet');
+                const nodeResult = await createIndexerClient(wallet.value.indexer).getValidatorNodes({
+                    public_key: b64.encode(pk.data),
+                });
+                if (nodeResult.items.length === 0) throw new Error('Node not found in indexer');
                 toast.add({
                     severity: 'success',
                     summary: 'Node found',
                     detail: `Node found with Virtual Blockchain ID`,
                     life: 3000,
                 });
-                manualNodeVbId.value = hex.encode(vbId);
+                manualNodeVbId.value = nodeResult.items[0].virtualBlockchainId;
             }
         } else {
             manualNodeVbId.value = '';

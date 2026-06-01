@@ -17,25 +17,26 @@ const { accountHistoryQuery, limit, setLimit } = useAccountTransactionsHistory(w
 
 const hasAccount = useHasAccountOnChainQuery(walletId.value);
 
+const HISTORY_TYPE_LABELS: Record<number, string> = {
+    1: 'Transfer',
+    2: 'Stake',
+    3: 'Unstake',
+};
+
 const transactions = computed(() => {
-    if (accountHistoryQuery.data.value) {
-        return accountHistoryQuery.data.value.getTransactions().map((transaction) => {
-            let linkedAccount = transaction.getLinkedAccount().encode();
-            if (linkedAccount.endsWith('000000000000000000000000000000002')) {
-                linkedAccount = 'Fees Account';
-            }
-            return {
-                height: transaction.getHeight(),
-                amount: transaction.getAmount(),
-                transferredAt: transaction.transferredAt().toLocaleString(),
-                type: transaction.getTransactionTypeLabel(),
-                linkedAccount,
-                isNegative: transaction.getAmount().isNegative(),
-                isZero: transaction.getAmount().isZero(),
-            };
-        });
-    }
-    return [];
+    const data = accountHistoryQuery.data.value;
+    if (!data) return [];
+    return data.items.map((dto) => ({
+        height: dto.height,
+        amount: dto.amount,
+        transferredAt: new Date(dto.timestamp * 1000).toLocaleString(),
+        type: HISTORY_TYPE_LABELS[dto.type] ?? String(dto.type),
+        linkedAccount: dto.linkedAccountId.endsWith('000000000000000000000000000000002')
+            ? 'Fees Account'
+            : dto.linkedAccountId,
+        isNegative: dto.amount < 0,
+        isZero: dto.amount === 0,
+    }));
 });
 </script>
 

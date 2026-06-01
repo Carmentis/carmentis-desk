@@ -1,7 +1,10 @@
 import { useQuery } from '@tanstack/vue-query';
 import { useWalletStore } from '../stores/walletStore.ts';
-import { BalanceAvailability, Utils } from '@cmts-dev/carmentis-sdk-core';
 import { type MaybeRefOrGetter, computed, ref, toValue } from 'vue';
+
+function formatCmts(milliCmts: number): string {
+    return (milliCmts / 1000).toFixed(3) + ' CMTS';
+}
 
 export function useAccountIdQuery(walletId: MaybeRefOrGetter<number>) {
     const store = useWalletStore();
@@ -12,7 +15,6 @@ export function useAccountIdQuery(walletId: MaybeRefOrGetter<number>) {
         queryKey: computed(() => ['account-id', toValue(walletId)]),
         queryFn: async () => {
             const id = toValue(walletId);
-            console.log('Fetching account ID for walletId: ', id, ' ...');
             return await store.getAccountId(id);
         },
         retry: 1,
@@ -43,57 +45,31 @@ export function useAccountStateQuery(walletId: MaybeRefOrGetter<number>) {
 export function useAccountTransactionsHistory(walletId: MaybeRefOrGetter<number>) {
     const store = useWalletStore();
     const accountIdQuery = useAccountIdQuery(walletId);
-    const accountStateQuery = useAccountStateQuery(walletId);
 
     const limit = ref(10);
-    const lastAccountHistoryHashOverride = ref<Uint8Array | undefined>(undefined);
-    const lastAccountHistoryHash = computed(() => {
-        if (lastAccountHistoryHashOverride.value !== undefined) {
-            return lastAccountHistoryHashOverride.value;
-        }
-        return accountStateQuery.data.value?.lastHistoryHash;
-    });
 
-    const enabled = computed(() => !!accountIdQuery.data.value && lastAccountHistoryHash.value !== undefined);
+    const enabled = computed(() => !!accountIdQuery.data.value);
     const accountHistoryQuery = useQuery({
         enabled,
         refetchOnWindowFocus: true,
         refetchOnMount: true,
         refetchOnReconnect: true,
-        queryKey: computed(() => ['account-transactions-history', toValue(walletId), accountIdQuery.data.value]),
+        queryKey: computed(() => ['account-transactions-history', toValue(walletId), accountIdQuery.data.value, limit.value]),
         queryFn: async () => {
             const accountId = accountIdQuery.data.value;
-            const lastHistoryHash = lastAccountHistoryHash.value;
-            console.log(
-                `Fetching account transactions history for account id ${Utils.binaryToHexa(accountId)} at history hash ${Utils.binaryToHexa(lastHistoryHash)}`,
-            );
-            if (accountId && lastHistoryHash !== undefined) {
-                try {
-                    return await store.fetchAccountTransactionsHistory(
-                        toValue(walletId),
-                        accountId,
-                        lastHistoryHash,
-                        limit.value,
-                    );
-                } catch (e) {
-                    console.error(e);
-                    throw e;
-                }
+            if (accountId) {
+                return await store.fetchAccountTransactionsHistory(toValue(walletId), accountId, limit.value);
             } else {
                 throw new Error('Account ID is undefined');
             }
         },
     });
 
-    function setLastAccountHistoryHash(hash: Uint8Array) {
-        lastAccountHistoryHashOverride.value = hash;
-    }
-
     function setLimit(newLimit: number) {
         limit.value = newLimit;
     }
 
-    return { accountHistoryQuery, setLastAccountHistoryHash, setLimit, limit };
+    return { accountHistoryQuery, setLimit, limit };
 }
 
 export function useAccountBreakdownQuery(walletId: MaybeRefOrGetter<number>) {
@@ -106,12 +82,16 @@ export function useAccountBreakdownQuery(walletId: MaybeRefOrGetter<number>) {
         refetchOnReconnect: true,
         queryKey: computed(() => ['account-breakdown', toValue(walletId), accountStateQuery.data.value]),
         queryFn: async () => {
-            const accountState = accountStateQuery.data.value;
-            if (accountState) {
-                return BalanceAvailability.createFromAccountStateAbciResponse(accountState);
-            } else {
-                throw new Error('Account state is undefined');
-            }
+            const acc = accountStateQuery.data.value;
+            if (!acc) throw new Error('Account state is undefined');
+            const staked   = acc.stakingLocks.reduce((s, l) => s + l.amount, 0);
+            const vested   = acc.vestingLocks.reduce((s, l) => s + l.amount, 0);
+            const escrowed = acc.escrowLocks.reduce((s, l) => s + l.amount, 0);
+            return {
+                getSpendable: () => formatCmts(acc.balance),
+                getStaked:    () => formatCmts(staked),
+                getVested:    () => formatCmts(vested + escrowed),
+            };
         },
     });
 }

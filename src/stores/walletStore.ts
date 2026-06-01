@@ -2,16 +2,17 @@ import { defineStore } from 'pinia';
 import { useStorageStore } from './storage.ts';
 import { useSessionStore } from './sessionStore.ts';
 import {
-    AccountTransactions,
     PrivateSignatureKey,
     ProviderFactory,
     PublicSignatureKey,
     SeedEncoder,
     SignatureSchemeId,
+    Utils,
     WalletCrypto,
 } from '@cmts-dev/carmentis-sdk-core';
 import { ref } from 'vue';
 import { JwkSignatureKeyExporter } from '../utils/jwk-signature-key-exporter.ts';
+import { createIndexerClient } from '../api/indexer/client.ts';
 
 interface WalletState {
     isLoadingAccount: boolean;
@@ -39,8 +40,14 @@ export const useWalletStore = defineStore('wallet', () => {
     }
 
     async function fetchAccountStateByAccountId(walletId: number, accountId: Uint8Array) {
-        const provider = await getProvider(walletId);
-        return provider.getAccountState(accountId);
+        const storageStore = useStorageStore();
+        const wallet = await storageStore.getWalletById(walletId);
+        if (!wallet?.indexer) throw new Error('Indexer not configured for this wallet');
+        const hexId = Utils.binaryToHexa(accountId);
+        const result = await createIndexerClient(wallet.indexer).getAccounts({ id: hexId });
+        const account = result.items[0];
+        if (!account) throw new Error('Account not found');
+        return account;
     }
 
     async function getKeyPair(walletId: number) {
@@ -72,19 +79,12 @@ export const useWalletStore = defineStore('wallet', () => {
         return await provider.getAccountIdByPublicKey(pk);
     }
 
-    async function fetchAccountTransactionsHistory(
-        walletId: number,
-        accountId: Uint8Array,
-        lastAccountHistoryHash: Uint8Array,
-        limit: number,
-    ) {
-        try {
-            const provider = await getProvider(walletId);
-            const history = await provider.getAccountHistory(accountId, lastAccountHistoryHash, limit);
-            return AccountTransactions.createFromAbciResponse(history);
-        } catch (e) {
-            throw new Error('Unable to retrieve the account history');
-        }
+    async function fetchAccountTransactionsHistory(walletId: number, accountId: Uint8Array, limit: number) {
+        const storageStore = useStorageStore();
+        const wallet = await storageStore.getWalletById(walletId);
+        if (!wallet?.indexer) throw new Error('Indexer not configured for this wallet');
+        const hexId = Utils.binaryToHexa(accountId);
+        return createIndexerClient(wallet.indexer).getAccountHistory({ account_id: hexId, limit });
     }
 
     async function isAccountFoundByPublicKey(walletId: number, pk: PublicSignatureKey) {

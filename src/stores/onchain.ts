@@ -2,24 +2,27 @@ import { defineStore } from 'pinia';
 import {
     Hash,
     IProvider,
+    Provider,
     Microblock,
     OrganizationDescriptionSection,
     ProviderFactory,
     SectionType,
     SeedEncoder,
     SignatureSchemeId,
+    Utils,
     WalletCrypto,
     ValidatorNodeCreationSection,
     ValidatorNodeRpcEndpointSection,
     ValidatorNodeCometbftPublicKeyDeclarationSection,
     CMTSToken,
     VirtualBlockchainType,
-    Provider,
     PublicSignatureKey,
+    PrivateSignatureKey,
     ApplicationDescriptionSection,
     CryptoEncoderFactory,
     AccountVb,
 } from '@cmts-dev/carmentis-sdk-core';
+import { createIndexerClient } from '../api/indexer/client.ts';
 import { useStorageStore } from './storage';
 import { useSessionStore } from './sessionStore';
 import { ref } from 'vue';
@@ -233,7 +236,7 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             const vnRpcEndpointDeclarationSection: ValidatorNodeRpcEndpointSection = {
                 type: SectionType.VN_RPC_ENDPOINT,
-                rpcEndpoint: nodeRpcEndpoint,
+                rpcEndpoint: node.rpcEndpoint,
             };
 
             const vnCometBFTPublicKeyDeclarationSection: ValidatorNodeCometbftPublicKeyDeclarationSection = {
@@ -318,10 +321,10 @@ export const useOnChainStore = defineStore('onchain', () => {
             const nodeStatus = await provider.getNodeStatus(node.rpcEndpoint);
             const cometbftPublicKey = nodeStatus.result.validator_info.pub_key.value;
 
-            const isDeclared = await isDeclaredValidatorNodeByCometbftPublicKey(provider, cometbftPublicKey);
-            if (!isDeclared) throw new Error('The node must be declared before staking');
-
-            const nodeAddress = await provider.getValidatorNodeIdByCometbftPublicKey(cometbftPublicKey);
+            if (!wallet.indexer) throw new Error('Indexer not configured for this wallet');
+            const nodeResult = await createIndexerClient(wallet.indexer).getValidatorNodes({ public_key: cometbftPublicKey });
+            if (nodeResult.items.length === 0) throw new Error('The node must be declared before staking');
+            const nodeAddress = Hash.from(nodeResult.items[0].virtualBlockchainId).toBytes();
 
             // Create the staking request
             const accountVb = await provider.loadAccountVirtualBlockchain(Hash.from(accountId));
@@ -403,7 +406,10 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             const nodeStatus = await provider.getNodeStatus(node.rpcEndpoint);
             const cometbftPublicKey = nodeStatus.result.validator_info.pub_key.value;
-            const nodeAddress = await provider.getValidatorNodeIdByCometbftPublicKey(cometbftPublicKey);
+            if (!wallet.indexer) throw new Error('Indexer not configured for this wallet');
+            const nodeResult = await createIndexerClient(wallet.indexer).getValidatorNodes({ public_key: cometbftPublicKey });
+            if (nodeResult.items.length === 0) throw new Error('Node not found on indexer');
+            const nodeAddress = Hash.from(nodeResult.items[0].virtualBlockchainId).toBytes();
 
             // Create the unstaking request
             const accountVb = await provider.loadAccountVirtualBlockchain(Hash.from(accountId));
@@ -444,32 +450,21 @@ export const useOnChainStore = defineStore('onchain', () => {
         }
     }
 
-    /**
-     * Helper function to check if a validator node is declared by CometBFT public key
-     */
-    async function isDeclaredValidatorNodeByCometbftPublicKey(
-        provider: Provider,
-        cometbftPublicKey: string,
-    ): Promise<boolean> {
-        try {
-            await provider.getValidatorNodeIdByCometbftPublicKey(cometbftPublicKey);
-            return true;
-        } catch {
-            return false;
-        }
-    }
-
     async function updateGasInMicroblock(provider: IProvider, mb: Microblock, usedSigSchemeId: SignatureSchemeId) {
         const gas = await provider.computeMicroblockGas(mb, { signatureSchemeId: usedSigSchemeId });
         mb.setGasPrice(CMTSToken.createMilliToken(1));
         mb.setGas(gas);
     }
 
-    async function fetchAccountStateByPublicKey(nodeEndpoint: string, publicKey: PublicSignatureKey) {
-        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(nodeEndpoint);
+    async function fetchAccountStateByPublicKey(walletId: number, publicKey: PublicSignatureKey) {
+        const wallet = await storageStore.getWalletById(walletId);
+        if (!wallet) throw new Error(`Wallet with id ${walletId} not found`);
+        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
         const accountId = await provider.getAccountIdByPublicKey(publicKey);
-        const accountState = await provider.getAccountState(accountId);
-        return accountState;
+        if (!wallet.indexer) throw new Error('Indexer not configured for this wallet');
+        const hexId = Utils.binaryToHexa(accountId);
+        const result = await createIndexerClient(wallet.indexer).getAccounts({ id: hexId });
+        return result.items[0] ?? null;
     }
 
     /**
@@ -655,8 +650,8 @@ export const useOnChainStore = defineStore('onchain', () => {
         recipientPublicKey: PublicSignatureKey,
         tokenAmount: CMTSToken,
     ): Promise<Hash> {
-        const issuerAccountHash = Hash.from(
-            await provider.getAccountIdByPublicKey(await issuerPrivateSignatureKey.getPublicKey()),
+        const issuerAccountHash = await provider.getAccountIdFromPublicKey(
+            await issuerPrivateSignatureKey.getPublicKey(),
         );
         const accountCreationMb = await AccountVb.createAccountCreationMicroblock(
             recipientPublicKey,
