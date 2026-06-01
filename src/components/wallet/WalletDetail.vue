@@ -6,8 +6,8 @@ import Card from 'primevue/card';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import SplitButton from 'primevue/splitbutton';
-import { useStorageStore, OrganizationEntity } from '../stores/storage';
-import { useOnChainStore } from '../stores/onchain';
+import { useStorageStore, OrganizationEntity } from '../../stores/storage';
+import { useOnChainStore } from '../../stores/onchain';
 import { computedAsync } from '@vueuse/core';
 import MenuBar from 'primevue/menubar';
 import {
@@ -24,10 +24,10 @@ import {
     useAccountIdQuery,
     useAccountStateQuery,
     useAccountTransactionsHistory,
-} from '../composables/useAccountBreakdown.ts';
+} from '../../composables/useAccountBreakdown.ts';
 import WalletDetailTransactionsHistory from './WalletDetailTransactionsHistory.vue';
 import WalletDetailAppParticipationCard from './WalletDetailAppParticipationCard.vue';
-import { useWalletStore } from '../stores/walletStore.ts';
+import { useWalletStore } from '../../stores/walletStore.ts';
 import Message from 'primevue/message';
 import { useConfirm } from 'primevue/useconfirm';
 import type { MenuItem } from 'primevue/menuitem';

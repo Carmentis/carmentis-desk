@@ -2,8 +2,8 @@
 import Button from 'primevue/button';
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { useStorageStore } from '../stores/storage.ts';
-import { useAccountBreakdownQuery } from '../composables/useAccountBreakdown.ts';
+import { useStorageStore } from '../../stores/storage.ts';
+import { useAccountBreakdownQuery } from '../../composables/useAccountBreakdown.ts';
 import { CMTSToken } from '@cmts-dev/carmentis-sdk-core';
 import Message from 'primevue/message';
 

@@ -8,8 +8,8 @@ import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import OpenIdDeepLinkHandler from './components/openid/OpenIdDeepLinkHandler.vue';
 import OpenIdCredentialOfferDeepLinkHandler from './components/openid/OpenIdCredentialOfferDeepLinkHandler.vue';
-import AppNavbar from './components/AppNavbar.vue';
-import AppBreadcrumb from './components/AppBreadcrumb.vue';
+import AppNavbar from './components/layout/AppNavbar.vue';
+import AppBreadcrumb from './components/layout/AppBreadcrumb.vue';
 
 
 const appWindow = getCurrentWindow();

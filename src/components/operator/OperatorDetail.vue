@@ -7,7 +7,7 @@ import { useStorageStore } from '../../stores/storage.ts';
 import { useConfirm } from 'primevue/useconfirm';
 import { useIsOperatorInitialized } from '../../composables/operator.ts';
 import OperatorDetailSetup from './OperatorDetailSetup.vue';
-import { useOperatorAuthStore } from './operatorAuthStore.ts';
+import { useOperatorAuthStore } from '../../stores/operatorAuthStore.ts';
 import OperatorDetailLogin from './OperatorDetailLogin.vue';
 import OperatorDetailDashboard from './OperatorDetailDashboard.vue';
 

@@ -7,13 +7,13 @@ import Breadcrumb from 'primevue/breadcrumb';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
-import { useStorageStore } from '../stores/storage';
-import { useOnChainStore } from '../stores/onchain';
+import { useStorageStore } from '../../stores/storage';
+import { useOnChainStore } from '../../stores/onchain';
 import { storeToRefs } from 'pinia';
 import { Hash, ProviderFactory } from '@cmts-dev/carmentis-sdk-core';
 import { useToast } from 'primevue/usetoast';
 import { useQuery } from '@tanstack/vue-query';
-import { useHasAccountOnChainQuery } from '../composables/useAccountBreakdown.ts';
+import { useHasAccountOnChainQuery } from '../../composables/useAccountBreakdown.ts';
 
 const toast = useToast();
 const route = useRoute();

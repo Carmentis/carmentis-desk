@@ -9,7 +9,7 @@ import { useRouter } from 'vue-router';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { storeToRefs } from 'pinia';
-import { useStorageStore } from '../stores/storage.ts';
+import { useStorageStore } from '../../stores/storage.ts';
 
 const router = useRouter();
 const confirm = useConfirm();

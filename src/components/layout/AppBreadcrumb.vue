@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useStorageStore } from '../stores/storage.ts';
+import { useStorageStore } from '../../stores/storage.ts';
 import Breadcrumb from 'primevue/breadcrumb';
-import { useAccountBreakdownQuery } from '../composables/useAccountBreakdown.ts';
+import { useAccountBreakdownQuery } from '../../composables/useAccountBreakdown.ts';
 
 const route = useRoute();
 const router = useRouter();

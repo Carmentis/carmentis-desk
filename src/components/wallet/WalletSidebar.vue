@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useStorageStore } from '../stores/storage';
+import { useStorageStore } from '../../stores/storage';
 import Card from 'primevue/card';
 
 const props = defineProps<{

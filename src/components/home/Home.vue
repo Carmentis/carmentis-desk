@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useStorageStore } from '../stores/storage.ts';
+import { useStorageStore } from '../../stores/storage.ts';
 import { storeToRefs } from 'pinia';
 import Card from 'primevue/card';
 import InputText from 'primevue/inputtext';
-import router from '../router';
+import router from '../../router';
 import { computed, ref } from 'vue';
 
 const store = useStorageStore();

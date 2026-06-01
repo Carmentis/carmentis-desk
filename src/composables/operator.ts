@@ -3,7 +3,7 @@ import { useStorageStore } from '../stores/storage.ts';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import axios from 'axios';
-import { useOperatorAuthStore } from '../components/operator/operatorAuthStore.ts';
+import { useOperatorAuthStore } from '../stores/operatorAuthStore.ts';
 
 export function useOperatorEndpoint(operatorId: number) {
     const store = useStorageStore();

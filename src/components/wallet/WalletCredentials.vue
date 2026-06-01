@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useStorageStore, type CredentialEntity } from '../stores/storage';
-import { useWalletStore } from '../stores/walletStore';
+import { useStorageStore, type CredentialEntity } from '../../stores/storage';
+import { useWalletStore } from '../../stores/walletStore';
 import MenuBar from 'primevue/menubar';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
@@ -11,8 +11,8 @@ import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import type { MenuItem } from 'primevue/menuitem';
-import CredentialCard from './credentials/CredentialCard.vue';
-import { parseCompactSdJwt, SdJwtParseError } from '../composables/credentials/parseSdJwtToken';
+import CredentialCard from '../credentials/CredentialCard.vue';
+import { parseCompactSdJwt, SdJwtParseError } from '../../composables/credentials/parseSdJwtToken';
 
 const route = useRoute();
 const router = useRouter();

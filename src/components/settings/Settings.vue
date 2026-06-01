@@ -7,7 +7,7 @@ import TabPanel from 'primevue/tabpanel';
 import TabPanels from 'primevue/tabpanels';
 import Button from 'primevue/button';
 import Logs from './Logs.vue';
-import { useTheme } from '../composables/useTheme';
+import { useTheme } from '../../composables/useTheme';
 import { ref, computed } from 'vue';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';

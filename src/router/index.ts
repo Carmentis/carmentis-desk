@@ -1,18 +1,17 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import Home from '../components/Home.vue';
-import CreateOrganization from '../components/CreateOrganization.vue';
-import WalletLayout from '../components/WalletLayout.vue';
-import WalletDetail from '../components/WalletDetail.vue';
-import OrganizationDetailNew from '../components/OrganizationDetailNew.vue';
-import NodeDetail from '../components/NodeDetail.vue';
-import ApplicationDetail from '../components/ApplicationDetail.vue';
-import WalletAppLedgerExplorer from '../components/WalletAppLedgerExplorer.vue';
-import WalletCredentials from '../components/WalletCredentials.vue';
+import Home from '../components/home/Home.vue';
+import CreateOrganization from '../components/wallet/CreateOrganization.vue';
+import WalletLayout from '../components/wallet/WalletLayout.vue';
+import WalletDetail from '../components/wallet/WalletDetail.vue';
+import OrganizationDetailNew from '../components/wallet/OrganizationDetailNew.vue';
+import NodeDetail from '../components/wallet/NodeDetail.vue';
+import ApplicationDetail from '../components/wallet/ApplicationDetail.vue';
+import WalletAppLedgerExplorer from '../components/wallet/WalletAppLedgerExplorer.vue';
+import WalletCredentials from '../components/wallet/WalletCredentials.vue';
 import OperatorDetail from '../components/operator/OperatorDetail.vue';
-import Connect from '../components/Connect.vue';
 import RpcSession from '../components/rpcSession/RpcSession.vue';
-import Help from '../components/Help.vue';
-import Settings from '../components/Settings.vue';
+import Help from '../components/help/Help.vue';
+import Settings from '../components/settings/Settings.vue';
 
 const router = createRouter({
     history: createWebHistory(),

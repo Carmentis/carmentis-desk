@@ -14,7 +14,7 @@ import {
     SignatureSchemeId,
     WalletCrypto,
 } from '@cmts-dev/carmentis-sdk-core';
-import { useOperatorAuthStore } from './operatorAuthStore.ts';
+import { useOperatorAuthStore } from '../../stores/operatorAuthStore.ts';
 
 const { wallets } = useStorageStore();
 const selectedWallet = ref<WalletEntity | null>(null);

@@ -15,7 +15,7 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
-import { useStorageStore, NodeEntity } from '../stores/storage';
+import { useStorageStore, NodeEntity } from '../../stores/storage';
 import { computedAsync } from '@vueuse/core';
 import {
     CarmentisError,
@@ -31,11 +31,11 @@ import {
     WalletCrypto,
 } from '@cmts-dev/carmentis-sdk-core';
 import { useToast } from 'primevue/usetoast';
-import { useOnChainStore } from '../stores/onchain.ts';
+import { useOnChainStore } from '../../stores/onchain.ts';
 import { storeToRefs } from 'pinia';
 import { Tendermint37Client } from '@cosmjs/tendermint-rpc';
 import { useQuery } from '@tanstack/vue-query';
-import { useHasAccountOnChainQuery } from '../composables/useAccountBreakdown.ts';
+import { useHasAccountOnChainQuery } from '../../composables/useAccountBreakdown.ts';
 
 const toast = useToast();
 const route = useRoute();

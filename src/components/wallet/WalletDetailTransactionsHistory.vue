@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
 import { computed } from 'vue';
-import { useAccountTransactionsHistory, useHasAccountOnChainQuery } from '../composables/useAccountBreakdown.ts';
+import { useAccountTransactionsHistory, useHasAccountOnChainQuery } from '../../composables/useAccountBreakdown.ts';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';

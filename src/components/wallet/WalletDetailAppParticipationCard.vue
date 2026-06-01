@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import Card from 'primevue/card';
 import Skeleton from 'primevue/skeleton';
-import { ApplicationParticipation } from '../stores/storage.ts';
+import { ApplicationParticipation } from '../../stores/storage.ts';
 import { Hash, ProviderFactory } from '@cmts-dev/carmentis-sdk-core';
 
 const props = defineProps<{

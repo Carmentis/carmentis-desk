@@ -6,12 +6,12 @@ import Card from 'primevue/card';
 import Breadcrumb from 'primevue/breadcrumb';
 import Dialog from 'primevue/dialog';
 import InputNumber from 'primevue/inputnumber';
-import { useStorageStore } from '../stores/storage';
-import { useOnChainStore } from '../stores/onchain';
+import { useStorageStore } from '../../stores/storage';
+import { useOnChainStore } from '../../stores/onchain';
 import { computedAsync } from '@vueuse/core';
 import { CMTSToken, EncoderFactory, Hash, LockType, ProviderFactory, Utils, AccountStateAbciResponse } from '@cmts-dev/carmentis-sdk-core';
 import { Tendermint37Client } from '@cosmjs/tendermint-rpc';
-import { useHasAccountOnChainQuery } from '../composables/useAccountBreakdown.ts';
+import { useHasAccountOnChainQuery } from '../../composables/useAccountBreakdown.ts';
 
 const route = useRoute();
 const router = useRouter();

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Dropdown from 'primevue/dropdown';
-import { useStorageStore, WalletEntity } from '../stores/storage.ts';
+import { useStorageStore, WalletEntity } from '../../stores/storage.ts';
 import { storeToRefs } from 'pinia';
 import { computed, Ref, ref } from 'vue';
 
