@@ -5,6 +5,8 @@ import type { CredentialPresentation } from './CredentialPresentationRequestType
 import DropdownWalletSelection from '../../../wallet/DropdownWalletSelection.vue';
 import { useStorageStore } from '../../../../stores/storage.ts';
 import { storeToRefs } from 'pinia';
+import { useAsyncState } from '@vueuse/core';
+import * as credentialRepo from '../../../../db/repositories/credentialRepository';
 import { DcqlQuery, DcqlQueryResult } from 'dcql';
 import { SdJwtUtils } from '../../../../utils/SdJwtUtils.ts';
 import { computedAsync } from '@vueuse/core';
@@ -56,9 +58,13 @@ const store = useStorageStore();
 const { wallets } = storeToRefs(store);
 const chosenWallet = ref(wallets.value[0]);
 
-const credentialsInWallet = computed(() => {
-    return chosenWallet.value.credentials ?? [];
-});
+const { state: credentialsInWallet, execute: fetchCredentials } = useAsyncState(
+    () => credentialRepo.getCredentialsByWalletId(chosenWallet.value?.id ?? 0),
+    [],
+    { immediate: true },
+);
+
+watch(chosenWallet, () => fetchCredentials());
 
 const sdJwtCredentials = computedAsync(async () => {
     try {

@@ -6,9 +6,13 @@ import Card from 'primevue/card';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import SplitButton from 'primevue/splitbutton';
-import { useStorageStore, OrganizationEntity } from '../../stores/storage';
+import { useStorageStore, type OrganizationEntity as OrgEntity, type ApplicationParticipation } from '../../stores/storage';
+import { useAsyncState, computedAsync } from '@vueuse/core';
+import * as walletRepo from '../../db/repositories/walletRepository';
+import * as orgRepo from '../../db/repositories/organizationRepository';
+import * as participationRepo from '../../db/repositories/participationRepository';
 import { useOnChainStore } from '../../stores/onchain';
-import { computedAsync } from '@vueuse/core';
+
 import MenuBar from 'primevue/menubar';
 import {
     CryptoEncoderFactory,
@@ -66,7 +70,24 @@ const deleteWallet = () => {
 };
 
 const walletId = computed(() => Number(route.params.walletId));
-const wallet = computed(() => storageStore.organizations.find((w) => w.id === walletId.value));
+
+const { state: wallet, execute: fetchWallet } = useAsyncState(
+    () => walletRepo.getWalletById(walletId.value),
+    null,
+    { immediate: true },
+);
+
+const { state: organizations, execute: fetchOrgs } = useAsyncState(
+    () => orgRepo.getOrganizationsByWalletId(walletId.value),
+    [] as OrgEntity[],
+    { immediate: true },
+);
+
+const { state: participations, execute: fetchParticipations } = useAsyncState(
+    () => participationRepo.getAppParticipationsByWalletId(walletId.value),
+    [] as ApplicationParticipation[],
+    { immediate: true },
+);
 
 // wallet key pair
 const walletKeyPair = computedAsync(async () => {
@@ -175,15 +196,13 @@ async function submitOrgDialog() {
             });
             return;
         }
-        const newOrg: Omit<OrganizationEntity, 'id'> = {
+        await orgRepo.insertOrganization(walletId.value, {
             name: orgName.value,
-            nodes: [],
-            applications: [],
             city: '',
             countryCode: '',
             website: '',
-        };
-        await storageStore.addOrganizationToWallet(walletId.value, newOrg);
+        });
+        await fetchOrgs();
         toast.add({
             severity: 'success',
             summary: 'Organization created',
@@ -209,13 +228,11 @@ async function submitOrgDialog() {
             });
             return;
         }
-        const newOrg: Omit<OrganizationEntity, 'id'> = {
+        await orgRepo.insertOrganization(walletId.value, {
             name: orgName.value,
             vbId: orgVbId.value,
-            nodes: [],
-            applications: [],
-        };
-        await storageStore.addOrganizationToWallet(walletId.value, newOrg);
+        });
+        await fetchOrgs();
         toast.add({
             severity: 'success',
             summary: 'Organization imported',
@@ -520,7 +537,7 @@ const menuItems = computed<MenuItem[]>(() => [
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <div class="flex items-center gap-2">
                                 <i class="pi pi-building text-xl"></i>
-                                <span>Organizations ({{ wallet.organizations.length }})</span>
+                                <span>Organizations ({{ organizations.length }})</span>
                             </div>
                             <div class="flex flex-wrap gap-2">
                                 <Button
@@ -546,7 +563,7 @@ const menuItems = computed<MenuItem[]>(() => [
                         </p>
                     </template>
                     <template #content>
-                        <div v-if="wallet.organizations.length === 0" class="text-center py-8">
+                        <div v-if="organizations.length === 0" class="text-center py-8">
                             <div
                                 class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
                             >
@@ -571,7 +588,7 @@ const menuItems = computed<MenuItem[]>(() => [
                         </div>
                         <div v-else class="space-y-3">
                             <div
-                                v-for="org in wallet.organizations"
+                                v-for="org in organizations"
                                 :key="org.id"
                                 class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
                                 @click="visitOrganization(org.id)"
@@ -613,11 +630,11 @@ const menuItems = computed<MenuItem[]>(() => [
                 </Card>
 
                 <!-- Application Participations -->
-                <Card v-if="(wallet.participations ?? []).length > 0">
+                <Card v-if="participations.length > 0">
                     <template #title>
                         <div class="flex items-center gap-2">
                             <i class="pi pi-box text-xl"></i>
-                            <span>Application Ledgers ({{ (wallet.participations ?? []).length }})</span>
+                            <span>Application Ledgers ({{ participations.length }})</span>
                         </div>
                     </template>
                     <template #subtitle>
@@ -629,10 +646,10 @@ const menuItems = computed<MenuItem[]>(() => [
                     <template #content>
                         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                             <WalletDetailAppParticipationCard
-                                v-for="participation in wallet.participations ?? []"
+                                v-for="participation in participations"
                                 :key="participation.id"
                                 :participation="participation"
-                                :node-endpoint="wallet.nodeEndpoint"
+                                :node-endpoint="wallet!.nodeEndpoint"
                                 :wallet-id="walletId"
                             />
                         </div>

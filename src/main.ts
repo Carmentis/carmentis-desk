@@ -8,6 +8,7 @@ import Aura from '@primeuix/themes/aura';
 import ToastService from 'primevue/toastservice';
 import ConfirmationService from 'primevue/confirmationservice';
 import { VueQueryPlugin } from '@tanstack/vue-query';
+import { getDb } from './db/database.ts';
 
 import './style.css';
 
@@ -26,8 +27,11 @@ app.use(PrimeVue, {
     },
 });
 
-// we init the storage to load the wallets and the operators from the storage
-const storage = useStorageStore();
-storage.initStorage();
-
-app.mount('#app');
+// Open DB (runs migrations) then load initial data before mounting
+getDb()
+    .then(async () => {
+        const storage = useStorageStore();
+        await storage.initStorage();
+    })
+    .catch((err) => console.error('Failed to initialize database:', err))
+    .finally(() => app.mount('#app'));

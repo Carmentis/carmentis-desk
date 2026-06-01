@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useStorageStore } from '../../stores/storage.ts';
 import Breadcrumb from 'primevue/breadcrumb';
+import { useAsyncState } from '@vueuse/core';
 import { useAccountBreakdownQuery } from '../../composables/useAccountBreakdown.ts';
+import * as walletRepo from '../../db/repositories/walletRepository';
+import * as orgRepo from '../../db/repositories/organizationRepository';
+import * as appRepo from '../../db/repositories/applicationRepository';
+import * as nodeRepo from '../../db/repositories/nodeRepository';
+import * as operatorRepo from '../../db/repositories/operatorRepository';
 
 const route = useRoute();
 const router = useRouter();
-const store = useStorageStore();
 
 const walletId = computed(() => Number(route.params.walletId) || null);
 const orgId = computed(() => Number(route.params.orgId) || null);
@@ -15,11 +19,37 @@ const appId = computed(() => Number(route.params.appId) || null);
 const nodeId = computed(() => Number(route.params.nodeId) || null);
 const operatorId = computed(() => Number(route.params.operatorId) || null);
 
-const wallet = computed(() => store.organizations.find((w) => w.id === walletId.value));
-const organization = computed(() => wallet.value?.organizations.find((o) => o.id === orgId.value));
-const application = computed(() => organization.value?.applications.find((a) => a.id === appId.value));
-const node = computed(() => organization.value?.nodes.find((n) => n.id === nodeId.value));
-const operator = computed(() => store.operators.find((o) => o.id === operatorId.value));
+const { state: wallet, execute: fetchWallet } = useAsyncState(
+    () => walletId.value ? walletRepo.getWalletById(walletId.value) : Promise.resolve(null),
+    null,
+    { immediate: true },
+);
+const { state: organization, execute: fetchOrg } = useAsyncState(
+    () => orgId.value ? orgRepo.getOrganizationById(orgId.value) : Promise.resolve(null),
+    null,
+    { immediate: true },
+);
+const { state: application, execute: fetchApp } = useAsyncState(
+    () => appId.value ? appRepo.getApplicationById(appId.value) : Promise.resolve(null),
+    null,
+    { immediate: true },
+);
+const { state: node, execute: fetchNode } = useAsyncState(
+    () => nodeId.value ? nodeRepo.getNodeById(nodeId.value) : Promise.resolve(null),
+    null,
+    { immediate: true },
+);
+const { state: operator, execute: fetchOperator } = useAsyncState(
+    () => operatorId.value ? operatorRepo.getOperatorById(operatorId.value) : Promise.resolve(null),
+    null,
+    { immediate: true },
+);
+
+watch(walletId, () => fetchWallet());
+watch(orgId, () => fetchOrg());
+watch(appId, () => fetchApp());
+watch(nodeId, () => fetchNode());
+watch(operatorId, () => fetchOperator());
 
 const breadcrumbHome = { icon: 'pi pi-home', command: () => router.push('/') };
 

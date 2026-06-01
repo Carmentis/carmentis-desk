@@ -7,7 +7,6 @@ import router from '../../router';
 import { computed, ref } from 'vue';
 
 const store = useStorageStore();
-await store.initStorage();
 
 const { organizations, operators } = storeToRefs(store);
 const searchQuery = ref('');
@@ -79,10 +78,6 @@ function visitOperator(operatorId: number) {
                             <div class="flex items-center gap-2.5 text-surface-600">
                                 <i class="pi pi-server text-surface-400 text-xs"></i>
                                 <span class="truncate text-xs">{{ org.nodeEndpoint }}</span>
-                            </div>
-                            <div class="flex items-center gap-2.5 text-surface-600">
-                                <i class="pi pi-building text-surface-400 text-xs"></i>
-                                <span class="text-xs">{{ org.organizations?.length || 0 }} organizations</span>
                             </div>
                         </div>
                         <div class="pt-2 flex items-center justify-between text-surface-500 hover:text-primary-600 transition-colors text-sm font-medium">

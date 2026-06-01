@@ -15,7 +15,12 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
-import { useStorageStore, NodeEntity } from '../../stores/storage';
+import { NodeEntity, ApplicationEntity } from '../../stores/storage';
+import { useAsyncState } from '@vueuse/core';
+import * as walletRepo from '../../db/repositories/walletRepository';
+import * as orgRepo from '../../db/repositories/organizationRepository';
+import * as nodeRepo from '../../db/repositories/nodeRepository';
+import * as appRepo from '../../db/repositories/applicationRepository';
 import { computedAsync } from '@vueuse/core';
 import {
     CarmentisError,
@@ -40,7 +45,6 @@ import { useHasAccountOnChainQuery } from '../../composables/useAccountBreakdown
 const toast = useToast();
 const route = useRoute();
 const router = useRouter();
-const storageStore = useStorageStore();
 const onChainStore = useOnChainStore();
 const { isPublishingOrganization, isPublishingCustomJson } = storeToRefs(onChainStore);
 const registerNavbarActions = inject<(actions: any[]) => void>('registerNavbarActions');
@@ -48,9 +52,29 @@ const registerNavbarActions = inject<(actions: any[]) => void>('registerNavbarAc
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 
-const wallet = computed(() => storageStore.organizations.find((w) => w.id === walletId.value));
+const { state: wallet } = useAsyncState(
+    () => walletRepo.getWalletById(walletId.value),
+    null,
+    { immediate: true },
+);
 
-const organization = computed(() => wallet.value?.organizations.find((org) => org.id === orgId.value));
+const { state: organization, execute: fetchOrg } = useAsyncState(
+    () => orgRepo.getOrganizationById(orgId.value),
+    null,
+    { immediate: true },
+);
+
+const { state: nodes, execute: fetchNodes } = useAsyncState(
+    () => nodeRepo.getNodesByOrgId(orgId.value),
+    [] as NodeEntity[],
+    { immediate: true },
+);
+
+const { state: applications, execute: fetchApplications } = useAsyncState(
+    () => appRepo.getApplicationsByOrgId(orgId.value),
+    [] as ApplicationEntity[],
+    { immediate: true },
+);
 
 const goBack = () => {
     router.push(`/wallet/${walletId.value}`);
@@ -118,8 +142,7 @@ const walletAccountState = computedAsync(async () => {
     return accountState;
 }, undefined, { shallow: true });
 
-// Nodes management
-const organizationNodes = computed(() => organization.value?.nodes || []);
+// Nodes management (reactive via nodes state from useAsyncState)
 
 const isSearchingForVbId = ref(false);
 const showManualImportForm = ref(false);
@@ -178,7 +201,8 @@ async function submitManualNodeImport() {
         newNode.vbId = manualNodeVbId.value;
     }
 
-    await storageStore.importExistingNodes(walletId.value, orgId.value, [newNode]);
+    await nodeRepo.insertManyNodes(orgId.value, [newNode]);
+    await fetchNodes();
 
     // Reset form
     manualNodeName.value = '';
@@ -195,7 +219,8 @@ async function submitManualNodeImport() {
 }
 
 async function deleteNode(nodeId: number) {
-    await storageStore.deleteNodeById(walletId.value, orgId.value, nodeId);
+    await nodeRepo.deleteNodeById(nodeId);
+    await fetchNodes();
     toast.add({
         severity: 'success',
         summary: 'Node deleted',
@@ -229,7 +254,7 @@ async function fetchNodesOnChain() {
     const nodesIds = stakingLocks.map((sl) => Hash.from(sl.parameters.validatorNodeId as Uint8Array));
     const newNodesIds = [];
     for (const nodeId of nodesIds) {
-        const isAlreadyDeclared = await storageStore.isNodeDeclared(walletId.value, orgId.value, nodeId.encode());
+        const isAlreadyDeclared = await nodeRepo.isNodeDeclared(orgId.value, nodeId.encode());
         if (isAlreadyDeclared) {
         } else {
             newNodesIds.push(nodeId.encode());
@@ -268,7 +293,8 @@ async function importNewNodes() {
     }
 
     // import nodes
-    await storageStore.importExistingNodes(walletId.value, orgId.value, newNodes);
+    await nodeRepo.insertManyNodes(orgId.value, newNodes);
+    await fetchNodes();
     showImportDialog.value = false;
     toast.add({
         severity: 'success',
@@ -302,7 +328,7 @@ const showDeleteConfirmDialog = ref(false);
 
 async function confirmDeleteOrganization() {
     showDeleteConfirmDialog.value = false;
-    await storageStore.deleteOrganizationById(walletId.value, orgId.value);
+    await orgRepo.deleteOrganizationById(orgId.value);
     toast.add({
         severity: 'success',
         summary: 'Organization deleted',
@@ -348,12 +374,13 @@ async function updateOrganizationDetails() {
         return;
     }
 
-    await storageStore.updateOrganizationDetails(walletId.value, orgId.value, {
+    await orgRepo.updateOrganization(orgId.value, {
         name: orgName.value.trim(),
         countryCode: orgCountryCode.value.trim() || undefined,
         city: orgCity.value.trim() || undefined,
         website: orgWebsite.value.trim() || undefined,
     });
+    await fetchOrg();
 
     savedForm.name = orgName.value.trim();
     savedForm.countryCode = orgCountryCode.value.trim();
@@ -438,9 +465,10 @@ async function submitAppDialog() {
             });
             return;
         }
-        await storageStore.addApplicationToOrganization(walletId.value, orgId.value, {
+        await appRepo.insertApplication(orgId.value, {
             name: appName.value,
         });
+        await fetchApplications();
         toast.add({
             severity: 'success',
             summary: 'Application created',
@@ -466,10 +494,11 @@ async function submitAppDialog() {
             });
             return;
         }
-        await storageStore.addApplicationToOrganization(walletId.value, orgId.value, {
+        await appRepo.insertApplication(orgId.value, {
             name: appName.value,
             vbId: appVbId.value,
         });
+        await fetchApplications();
         toast.add({
             severity: 'success',
             summary: 'Application imported',
@@ -481,7 +510,8 @@ async function submitAppDialog() {
 }
 
 async function deleteApplication(appId: number) {
-    await storageStore.deleteApplicationById(walletId.value, orgId.value, appId);
+    await appRepo.deleteApplicationById(appId);
+    await fetchApplications();
     toast.add({
         severity: 'success',
         summary: 'Application deleted',
@@ -658,7 +688,7 @@ const items = [
                                             <!-- Nodes Header Actions -->
                                             <div class="flex justify-between items-center">
                                                 <h3 class="text-lg font-semibold text-gray-900">
-                                                    Nodes ({{ organizationNodes.length }})
+                                                    Nodes ({{ nodes.length }})
                                                 </h3>
                                                 <div class="flex gap-2">
                                                     <Button
@@ -678,7 +708,7 @@ const items = [
                                             </div>
 
                                             <!-- Nodes Content -->
-                                            <div v-if="organizationNodes.length === 0" class="text-center py-8">
+                                            <div v-if="nodes.length === 0" class="text-center py-8">
                                                 <div
                                                     class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
                                                 >
@@ -688,7 +718,7 @@ const items = [
                                             </div>
                                             <div v-else class="space-y-3">
                                                 <div
-                                                    v-for="node of organizationNodes"
+                                                    v-for="node of nodes"
                                                     :key="node.id"
                                                     class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
                                                     @click="visitNode(node.id)"
@@ -745,7 +775,7 @@ const items = [
                                             <!-- Applications Header -->
                                             <div class="flex justify-between items-center">
                                                 <h3 class="text-lg font-semibold text-gray-900">
-                                                    Applications ({{ organization.applications.length }})
+                                                    Applications ({{ applications.length }})
                                                 </h3>
                                                 <div class="flex gap-2">
                                                     <Button
@@ -765,7 +795,7 @@ const items = [
                                             </div>
 
                                             <!-- Applications Content -->
-                                            <div v-if="organization.applications.length === 0" class="text-center py-8">
+                                            <div v-if="applications.length === 0" class="text-center py-8">
                                                 <div
                                                     class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
                                                 >
@@ -790,7 +820,7 @@ const items = [
                                             </div>
                                             <div v-else class="space-y-3">
                                                 <div
-                                                    v-for="app in organization.applications"
+                                                    v-for="app in applications"
                                                     :key="app.id"
                                                     class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
                                                     @click="visitApplication(app.id)"

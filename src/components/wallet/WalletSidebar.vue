@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useStorageStore } from '../../stores/storage';
 import Card from 'primevue/card';
+import { useAsyncState } from '@vueuse/core';
+import * as walletRepo from '../../db/repositories/walletRepository';
+import * as orgRepo from '../../db/repositories/organizationRepository';
+import * as nodeRepo from '../../db/repositories/nodeRepository';
+import * as appRepo from '../../db/repositories/applicationRepository';
+import type { OrganizationEntity } from '../../stores/storage';
 
 const props = defineProps<{
     walletId: number;
@@ -14,9 +19,29 @@ const emit = defineEmits<{
 
 const route = useRoute();
 const router = useRouter();
-const storageStore = useStorageStore();
 
-const wallet = computed(() => storageStore.organizations.find((w) => w.id === props.walletId));
+const { state: wallet } = useAsyncState(
+    () => walletRepo.getWalletById(props.walletId),
+    null,
+    { immediate: true },
+);
+
+const { state: organizations, execute: fetchOrgs } = useAsyncState(
+    async () => {
+        const orgs = await orgRepo.getOrganizationsByWalletId(props.walletId);
+        return Promise.all(
+            orgs.map(async (org) => {
+                const [nodes, applications] = await Promise.all([
+                    nodeRepo.getNodesByOrgId(org.id),
+                    appRepo.getApplicationsByOrgId(org.id),
+                ]);
+                return { ...org, nodes, applications } as OrganizationEntity;
+            }),
+        );
+    },
+    [] as OrganizationEntity[],
+    { immediate: true },
+);
 
 const chainEndpoint = computed(() => wallet.value?.nodeEndpoint || 'Not connected');
 
@@ -137,7 +162,7 @@ function isApplicationActive(orgId: number, appId: number) {
                     <span class="text-sm truncate">{{ wallet.name }}</span>
                 </div>
                 <button
-                    v-if="wallet.organizations.length > 0"
+                    v-if="organizations.length > 0"
                     @click.stop="toggleWallet"
                     class="p-1 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
                 >
@@ -161,7 +186,7 @@ function isApplicationActive(orgId: number, appId: number) {
                     <span class="text-sm">Credentials</span>
                 </div>
 
-                <div v-for="org in wallet.organizations" :key="org.id" class="space-y-1">
+                <div v-for="org in organizations" :key="org.id" class="space-y-1">
                     <!-- Organization Header -->
                     <div
                         class="flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors"

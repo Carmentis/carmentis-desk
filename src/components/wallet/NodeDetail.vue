@@ -6,29 +6,41 @@ import Card from 'primevue/card';
 import Breadcrumb from 'primevue/breadcrumb';
 import Dialog from 'primevue/dialog';
 import InputNumber from 'primevue/inputnumber';
-import { useStorageStore } from '../../stores/storage';
 import { useOnChainStore } from '../../stores/onchain';
-import { computedAsync } from '@vueuse/core';
+import { computedAsync, useAsyncState } from '@vueuse/core';
+import * as walletRepo from '../../db/repositories/walletRepository';
+import * as orgRepo from '../../db/repositories/organizationRepository';
+import * as nodeRepo from '../../db/repositories/nodeRepository';
 import { CMTSToken, EncoderFactory, Hash, LockType, ProviderFactory, Utils, AccountStateAbciResponse } from '@cmts-dev/carmentis-sdk-core';
 import { Tendermint37Client } from '@cosmjs/tendermint-rpc';
 import { useHasAccountOnChainQuery } from '../../composables/useAccountBreakdown.ts';
 
 const route = useRoute();
 const router = useRouter();
-const storageStore = useStorageStore();
 const onchainStore = useOnChainStore();
 const registerNavbarActions = inject<(actions: any[]) => void>('registerNavbarActions');
-await storageStore.initStorage();
 
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 const nodeId = computed(() => Number(route.params.nodeId));
 
-const wallet = computed(() => storageStore.organizations.find((w) => w.id === walletId.value));
+const { state: wallet } = useAsyncState(
+    () => walletRepo.getWalletById(walletId.value),
+    null,
+    { immediate: true },
+);
 
-const organization = computed(() => wallet.value?.organizations.find((org) => org.id === orgId.value));
+const { state: organization } = useAsyncState(
+    () => orgRepo.getOrganizationById(orgId.value),
+    null,
+    { immediate: true },
+);
 
-const node = computed(() => organization.value?.nodes.find((n) => n.id === nodeId.value));
+const { state: node } = useAsyncState(
+    () => nodeRepo.getNodeById(nodeId.value),
+    null,
+    { immediate: true },
+);
 
 // node chain status (the chain on which the node is running)
 const chainNameOnWhichNodeIsConnected = computedAsync(async () => {
@@ -146,12 +158,11 @@ const nodeStakeInformation = computedAsync(async () => {
         return undefined;
     }
 
-    const wallet = await storageStore.getWalletById(walletId.value);
-    if (wallet === undefined) return undefined;
+    if (wallet.value === null) return undefined;
     if (node.value === undefined) return undefined;
     if (node.value.vbId === undefined) return undefined;
 
-    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
+    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
 
     // fetch the account id from the node's public key
     /*

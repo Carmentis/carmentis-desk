@@ -1,31 +1,53 @@
 <script setup lang="ts">
 import Button from 'primevue/button';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { useStorageStore } from '../../stores/storage.ts';
 import { useAccountBreakdownQuery } from '../../composables/useAccountBreakdown.ts';
 import { CMTSToken } from '@cmts-dev/carmentis-sdk-core';
 import Message from 'primevue/message';
+import { useAsyncState } from '@vueuse/core';
+import * as walletRepo from '../../db/repositories/walletRepository';
+import * as orgRepo from '../../db/repositories/organizationRepository';
+import * as appRepo from '../../db/repositories/applicationRepository';
+import * as nodeRepo from '../../db/repositories/nodeRepository';
 
 const route = useRoute();
-const storageStore = useStorageStore();
 
-const walletId = computed(() => Number(route.params.walletId));
-const orgId = computed(() => Number(route.params.orgId));
-const appId = computed(() => Number(route.params.appId));
-const nodeId = computed(() => Number(route.params.nodeId));
+const walletId = computed(() => Number(route.params.walletId) || null);
+const orgId = computed(() => Number(route.params.orgId) || null);
+const appId = computed(() => Number(route.params.appId) || null);
+const nodeId = computed(() => Number(route.params.nodeId) || null);
 
-const wallet = computed(() => storageStore.organizations.find((w) => w.id === walletId.value));
-const walletName = computed(() => (wallet.value !== undefined ? wallet.value.name : ''));
+const { state: wallet, execute: fetchWallet } = useAsyncState(
+    () => walletId.value ? walletRepo.getWalletById(walletId.value) : Promise.resolve(null),
+    null,
+    { immediate: true },
+);
+const { state: organization, execute: fetchOrg } = useAsyncState(
+    () => orgId.value ? orgRepo.getOrganizationById(orgId.value) : Promise.resolve(null),
+    null,
+    { immediate: true },
+);
+const { state: application, execute: fetchApp } = useAsyncState(
+    () => appId.value ? appRepo.getApplicationById(appId.value) : Promise.resolve(null),
+    null,
+    { immediate: true },
+);
+const { state: node, execute: fetchNode } = useAsyncState(
+    () => nodeId.value ? nodeRepo.getNodeById(nodeId.value) : Promise.resolve(null),
+    null,
+    { immediate: true },
+);
 
-const organization = computed(() => wallet.value?.organizations.find((org) => org.id === orgId.value));
-const organizationName = computed(() => (organization.value !== undefined ? organization.value.name : ''));
+watch(walletId, () => fetchWallet());
+watch(orgId, () => fetchOrg());
+watch(appId, () => fetchApp());
+watch(nodeId, () => fetchNode());
 
-const application = computed(() => organization.value?.applications.find((app) => app.id === appId.value));
-const applicationName = computed(() => (application.value !== undefined ? application.value.name : ''));
-
-const node = computed(() => organization.value?.nodes.find((n) => n.id === nodeId.value));
-const nodeName = computed(() => (node.value !== undefined ? node.value.name : ''));
+const walletName = computed(() => wallet.value?.name ?? '');
+const organizationName = computed(() => organization.value?.name ?? '');
+const applicationName = computed(() => application.value?.name ?? '');
+const nodeName = computed(() => node.value?.name ?? '');
 
 // Current page context - only show the current item
 const currentPageContext = computed(() => {

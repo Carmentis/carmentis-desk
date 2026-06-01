@@ -3,7 +3,6 @@ import {computed, onMounted, ref, shallowRef, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
-import Breadcrumb from 'primevue/breadcrumb';
 import Skeleton from 'primevue/skeleton';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
@@ -23,25 +22,37 @@ import {
     SeedEncoder,
     WalletCrypto,
 } from '@cmts-dev/carmentis-sdk-core';
-import {useStorageStore, AppLedgerParticipation} from '../../stores/storage.ts';
+import {AppLedgerParticipation, ApplicationParticipation} from '../../stores/storage.ts';
+import { useAsyncState, computedAsync } from '@vueuse/core';
+import * as walletRepo from '../../db/repositories/walletRepository';
+import * as participationRepo from '../../db/repositories/participationRepository';
 import VirtualBlockchainRecordNavigator from '../rpcSession/VirtualBlockchainRecordNavigator.vue';
 import ExportProofButton from '../checker/ExportProofButton.vue';
 import {useToast} from 'primevue/usetoast';
-import {computedAsync} from "@vueuse/core";
 
 const route = useRoute();
 const router = useRouter();
-const store = useStorageStore();
 const toast = useToast();
 const confirm = useConfirm();
 
 const walletId = computed(() => Number(route.params.walletId));
 const appParticipationId = computed(() => route.params.appId as string);
 
-const wallet = computed(() => store.organizations.find((w) => w.id === walletId.value));
-const participation = computed(() =>
-    (wallet.value?.participations ?? []).find((p) => p.id === appParticipationId.value),
+const { state: wallet } = useAsyncState(
+    () => walletRepo.getWalletById(walletId.value),
+    null,
+    { immediate: true },
 );
+
+const { state: participation, execute: fetchParticipation } = useAsyncState(
+    async () => {
+        const all = await participationRepo.getAppParticipationsByWalletId(walletId.value);
+        return all.find((p) => p.id === appParticipationId.value) ?? null;
+    },
+    null as ApplicationParticipation | null,
+    { immediate: true },
+);
+
 const accountCrypto = computed<AccountCrypto | null>(() => {
     if (!wallet.value) return null;
     return WalletCrypto.fromSeed(new SeedEncoder().decode(wallet.value.seed)).getDefaultAccountCrypto();
@@ -156,9 +167,10 @@ function confirmDeleteLedger(vbId: string) {
         rejectProps: {label: 'Cancel', severity: 'secondary', outlined: true},
         acceptProps: {label: 'Delete', severity: 'danger', icon: 'pi pi-trash'},
         accept: async () => {
-            await store.deleteAppLedger(walletId.value, appParticipationId.value, vbId);
+            await participationRepo.deleteAppLedger(walletId.value, appParticipationId.value, vbId);
             selectedIdx.value = null;
             selectedVb.value = null;
+            await fetchParticipation();
             // navigate back if no ledgers remain
             if (!participation.value || participation.value.appLedgers.length === 0) {
                 router.push(`/wallet/${walletId.value}`);

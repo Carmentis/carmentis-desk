@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useStorageStore, type CredentialEntity } from '../../stores/storage';
+import { type CredentialEntity } from '../../stores/storage';
 import { useWalletStore } from '../../stores/walletStore';
+import { useAsyncState } from '@vueuse/core';
+import * as walletRepo from '../../db/repositories/walletRepository';
+import * as credentialRepo from '../../db/repositories/credentialRepository';
 import MenuBar from 'primevue/menubar';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
@@ -16,14 +19,23 @@ import { parseCompactSdJwt, SdJwtParseError } from '../../composables/credential
 
 const route = useRoute();
 const router = useRouter();
-const storageStore = useStorageStore();
 const walletStore = useWalletStore();
 const toast = useToast();
 const confirm = useConfirm();
 
 const walletId = computed(() => Number(route.params.walletId));
-const wallet = computed(() => storageStore.organizations.find((w) => w.id === walletId.value));
-const credentials = computed(() => wallet.value?.credentials ?? []);
+
+const { state: wallet } = useAsyncState(
+    () => walletRepo.getWalletById(walletId.value),
+    null,
+    { immediate: true },
+);
+
+const { state: credentials, execute: fetchCredentials } = useAsyncState(
+    () => credentialRepo.getCredentialsByWalletId(walletId.value),
+    [] as CredentialEntity[],
+    { immediate: true },
+);
 
 // ---------------------------------------------------------------------------
 // Add credential dialog
@@ -68,7 +80,8 @@ async function handleAddSubmit() {
 
         const name = sdJwtName.value.trim() || parsed.jwt.payload.vct;
 
-        await storageStore.addCredential(walletId.value, { name, data: token });
+        await credentialRepo.insertCredential(walletId.value, { name, data: token });
+        await fetchCredentials();
         toast.add({
             severity: 'success',
             summary: 'Credential added',
@@ -106,7 +119,8 @@ function requestDelete(credentialId: number) {
         acceptLabel: 'Delete',
         acceptClass: 'p-button-danger',
         accept: async () => {
-            await storageStore.deleteCredentialById(walletId.value, credentialId);
+            await credentialRepo.deleteCredentialById(credentialId);
+            await fetchCredentials();
             toast.add({
                 severity: 'success',
                 summary: 'Credential deleted',

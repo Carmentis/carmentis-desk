@@ -1,6 +1,7 @@
 use tauri::Manager;
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_log::{Target, TargetKind};
+use tauri_plugin_sql::{Migration, MigrationKind};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -54,7 +55,19 @@ pub fn run() {
 
             Ok(())
         })
-        .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(
+            tauri_plugin_sql::Builder::default()
+                .add_migrations(
+                    "sqlite:carmentis.db",
+                    vec![Migration {
+                        version: 1,
+                        description: "initial_schema",
+                        sql: include_str!("../migrations/01_initial_schema.sql"),
+                        kind: MigrationKind::Up,
+                    }],
+                )
+                .build(),
+        )
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![greet, save_file])

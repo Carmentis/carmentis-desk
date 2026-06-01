@@ -6,7 +6,9 @@ import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import Tag from 'primevue/tag';
 import { useToast } from 'primevue/usetoast';
-import { CredentialEntity, useStorageStore } from '../../stores/storage';
+import { CredentialEntity } from '../../stores/storage';
+import { useAsyncState } from '@vueuse/core';
+import * as walletRepo from '../../db/repositories/walletRepository';
 import { parseSdJwtEnvelope } from '../../composables/credentials/useCredentialType';
 import { SDJwtInstance } from '@sd-jwt/core';
 import { useRoute, useRouter } from 'vue-router';
@@ -21,10 +23,13 @@ import { computedAsync } from '@vueuse/core';
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
-const storageStore = useStorageStore();
 const onchainStore = useOnChainStore();
 const walletId = computed(() => Number(route.params.walletId));
-const wallet = computed(() => storageStore.organizations.find((w) => w.id === walletId.value));
+const { state: wallet } = useAsyncState(
+    () => walletRepo.getWalletById(walletId.value),
+    null,
+    { immediate: true },
+);
 
 const props = defineProps<{
     credential: CredentialEntity | null;

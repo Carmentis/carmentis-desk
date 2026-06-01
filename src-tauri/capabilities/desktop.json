@@ -10,7 +10,7 @@
   ],
   "permissions": [
     "updater:default",
-    "store:default",
+    "sql:default",
     "process:default",
     "deep-link:default",
     "log:default"

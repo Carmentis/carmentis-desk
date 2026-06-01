@@ -8,7 +8,7 @@
   "permissions": [
     "core:default",
     "opener:default",
-    "store:default",
+    "sql:default",
     "process:default",
     "deep-link:default",
     "core:window:allow-unminimize",

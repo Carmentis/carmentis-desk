@@ -22,6 +22,9 @@ import {
 } from '@cmts-dev/carmentis-sdk-core';
 import { useStorageStore } from './storage';
 import { ref } from 'vue';
+import * as orgRepo from '../db/repositories/organizationRepository';
+import * as nodeRepo from '../db/repositories/nodeRepository';
+import * as appRepo from '../db/repositories/applicationRepository';
 import { useToast } from 'primevue/usetoast';
 
 const MAXIMAL_ALLOWED_TOKEN_TRANSFER = 1000000000;
@@ -103,10 +106,10 @@ export const useOnChainStore = defineStore('onchain', () => {
                 throw new Error(`Wallet with id ${walletId} not found`);
             }
 
-            // Get organization from wallet
-            const organization = wallet.organizations.find((org) => org.id === orgId);
+            // Get organization from storage
+            const organization = await orgRepo.getOrganizationById(orgId);
             if (!organization) {
-                throw new Error(`Organization with id ${orgId} not found in wallet ${walletId}`);
+                throw new Error(`Organization with id ${orgId} not found`);
             }
 
             // Initialize wallet crypto from seed
@@ -164,7 +167,7 @@ export const useOnChainStore = defineStore('onchain', () => {
             }
 
             // Update organization in storage with the VB ID
-            await storageStore.addVbIdToOrganization(walletId, orgId, organisationId);
+            await orgRepo.updateOrganization(orgId, { vbId: organisationId });
 
             toast.add({
                 severity: 'success',
@@ -199,10 +202,10 @@ export const useOnChainStore = defineStore('onchain', () => {
                 throw new Error(`Wallet with id ${walletId} not found`);
             }
 
-            // Get organization from wallet
-            const organization = wallet.organizations.find((org) => org.id === orgId);
+            // Get organization from storage
+            const organization = await orgRepo.getOrganizationById(orgId);
             if (!organization) {
-                throw new Error(`Organization with id ${orgId} not found in wallet ${walletId}`);
+                throw new Error(`Organization with id ${orgId} not found`);
             }
 
             // Check if organization is published
@@ -211,7 +214,7 @@ export const useOnChainStore = defineStore('onchain', () => {
             }
 
             // Get node from organization
-            const node = organization.nodes.find((n) => n.id === nodeId);
+            const node = await nodeRepo.getNodeById(nodeId);
             if (!node) {
                 throw new Error(`Node with id ${nodeId} not found in organization ${orgId}`);
             }
@@ -274,9 +277,7 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             // Update node in storage with the VB ID
             const nodeVbId = microblockHash.encode();
-            await storageStore.updateNode(walletId, orgId, nodeId, {
-                vbId: nodeVbId,
-            });
+            await nodeRepo.updateNode(nodeId, { vbId: nodeVbId });
 
             console.log(`Node claimed successfully with VB ID: ${nodeVbId}`);
             toast.add({
@@ -316,10 +317,10 @@ export const useOnChainStore = defineStore('onchain', () => {
                 throw new Error(`Wallet with id ${walletId} not found`);
             }
 
-            // Get organization from wallet
-            const organization = wallet.organizations.find((org) => org.id === orgId);
+            // Get organization from storage
+            const organization = await orgRepo.getOrganizationById(orgId);
             if (!organization) {
-                throw new Error(`Organization with id ${orgId} not found in wallet ${walletId}`);
+                throw new Error(`Organization with id ${orgId} not found`);
             }
 
             // Check if organization is published
@@ -328,7 +329,7 @@ export const useOnChainStore = defineStore('onchain', () => {
             }
 
             // Get node from organization
-            const node = organization.nodes.find((n) => n.id === nodeId);
+            const node = await nodeRepo.getNodeById(nodeId);
             if (!node) {
                 throw new Error(`Node with id ${nodeId} not found in organization ${orgId}`);
             }
@@ -423,10 +424,10 @@ export const useOnChainStore = defineStore('onchain', () => {
                 throw new Error(`Wallet with id ${walletId} not found`);
             }
 
-            // Get organization from wallet
-            const organization = wallet.organizations.find((org) => org.id === orgId);
+            // Get organization from storage
+            const organization = await orgRepo.getOrganizationById(orgId);
             if (!organization) {
-                throw new Error(`Organization with id ${orgId} not found in wallet ${walletId}`);
+                throw new Error(`Organization with id ${orgId} not found`);
             }
 
             // Check if organization is published
@@ -435,7 +436,7 @@ export const useOnChainStore = defineStore('onchain', () => {
             }
 
             // Get node from organization
-            const node = organization.nodes.find((n) => n.id === nodeId);
+            const node = await nodeRepo.getNodeById(nodeId);
             if (!node) {
                 throw new Error(`Node with id ${nodeId} not found in organization ${orgId}`);
             }
@@ -561,10 +562,10 @@ export const useOnChainStore = defineStore('onchain', () => {
                 throw new Error(`Wallet with id ${walletId} not found`);
             }
 
-            // Get organization from wallet
-            const organization = wallet.organizations.find((org) => org.id === orgId);
+            // Get organization from storage
+            const organization = await orgRepo.getOrganizationById(orgId);
             if (!organization) {
-                throw new Error(`Organization with id ${orgId} not found in wallet ${walletId}`);
+                throw new Error(`Organization with id ${orgId} not found`);
             }
 
             // Check if organization is published
@@ -573,7 +574,7 @@ export const useOnChainStore = defineStore('onchain', () => {
             }
 
             // Get application from organization
-            const application = organization.applications.find((app) => app.id === appId);
+            const application = await appRepo.getApplicationById(appId);
             if (!application) {
                 throw new Error(`Application with id ${appId} not found in organization ${orgId}`);
             }
@@ -638,7 +639,7 @@ export const useOnChainStore = defineStore('onchain', () => {
             }
 
             // Update application in storage with the VB ID
-            await storageStore.updateApplication(walletId, orgId, appId, {
+            await appRepo.updateApplication(appId, {
                 vbId: applicationVbId,
                 name: name,
             });
@@ -864,7 +865,7 @@ export const useOnChainStore = defineStore('onchain', () => {
             const wallet = await storageStore.getWalletById(walletId);
             if (!wallet) throw new Error(`Wallet with id ${walletId} not found`);
 
-            const organization = wallet.organizations.find((org) => org.id === orgId);
+            const organization = await orgRepo.getOrganizationById(orgId);
             if (!organization || !organization.vbId) {
                 throw new Error('Organization is not published on-chain');
             }

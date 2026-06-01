@@ -7,9 +7,12 @@ import Breadcrumb from 'primevue/breadcrumb';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
-import { useStorageStore } from '../../stores/storage';
 import { useOnChainStore } from '../../stores/onchain';
 import { storeToRefs } from 'pinia';
+import { useAsyncState } from '@vueuse/core';
+import * as walletRepo from '../../db/repositories/walletRepository';
+import * as orgRepo from '../../db/repositories/organizationRepository';
+import * as appRepo from '../../db/repositories/applicationRepository';
 import { Hash, ProviderFactory } from '@cmts-dev/carmentis-sdk-core';
 import { useToast } from 'primevue/usetoast';
 import { useQuery } from '@tanstack/vue-query';
@@ -18,7 +21,6 @@ import { useHasAccountOnChainQuery } from '../../composables/useAccountBreakdown
 const toast = useToast();
 const route = useRoute();
 const router = useRouter();
-const storageStore = useStorageStore();
 const onchainStore = useOnChainStore();
 const { isPublishingApplication } = storeToRefs(onchainStore);
 const registerNavbarActions = inject<(actions: any[]) => void>('registerNavbarActions');
@@ -27,11 +29,23 @@ const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 const appId = computed(() => Number(route.params.appId));
 
-const wallet = computed(() => storageStore.organizations.find((w) => w.id === walletId.value));
+const { state: wallet } = useAsyncState(
+    () => walletRepo.getWalletById(walletId.value),
+    null,
+    { immediate: true },
+);
 
-const organization = computed(() => wallet.value?.organizations.find((org) => org.id === orgId.value));
+const { state: organization } = useAsyncState(
+    () => orgRepo.getOrganizationById(orgId.value),
+    null,
+    { immediate: true },
+);
 
-const application = computed(() => organization.value?.applications.find((app) => app.id === appId.value));
+const { state: application } = useAsyncState(
+    () => appRepo.getApplicationById(appId.value),
+    null,
+    { immediate: true },
+);
 
 const goBack = () => {
     router.push(`/wallet/${walletId.value}/organization/${orgId.value}`);
@@ -73,7 +87,7 @@ const showDeleteConfirmDialog = ref(false);
 
 async function confirmDeleteApplication() {
     showDeleteConfirmDialog.value = false;
-    await storageStore.deleteApplicationById(walletId.value, orgId.value, appId.value);
+    await appRepo.deleteApplicationById(appId.value);
     toast.add({
         severity: 'success',
         summary: 'Application deleted',
@@ -114,7 +128,7 @@ async function updateApplicationDetails() {
         return;
     }
 
-    await storageStore.updateApplication(walletId.value, orgId.value, appId.value, {
+    await appRepo.updateApplication(appId.value, {
         name: appName.value.trim(),
         description: appDescription.value.trim() || undefined,
         website: appWebsite.value.trim() || undefined,

@@ -8,14 +8,14 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
-import { storeToRefs } from 'pinia';
 import { useStorageStore } from '../../stores/storage.ts';
+import { useNavbarData, buildExportData } from '../../composables/useNavbarData';
 
 const router = useRouter();
 const confirm = useConfirm();
 const toast = useToast();
 const store = useStorageStore();
-const { organizations, operators } = storeToRefs(store);
+const { navTree: organizations, operators } = useNavbarData();
 
 const showOperatorDialog = ref(false);
 const newOperatorName = ref('');
@@ -108,18 +108,20 @@ async function createOperator() {
     }
 }
 
-function exportData() {
-    const payload = {
-        organizations: organizations.value,
-        operators: operators.value,
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `carmentis-desk-export-${new Date().toISOString().slice(0, 10)}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+async function exportData() {
+    try {
+        const fullWallets = await buildExportData();
+        const payload = { organizations: fullWallets, operators: operators.value };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `carmentis-desk-export-${new Date().toISOString().slice(0, 10)}.json`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+    } catch {
+        toast.add({ severity: 'error', summary: 'Export failed', detail: 'Could not export data.', life: 4000 });
+    }
 }
 
 function confirmClearAllOperators() {
