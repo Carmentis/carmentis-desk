@@ -8,7 +8,6 @@ import {
     PublicSignatureKey,
     SeedEncoder,
     SignatureSchemeId,
-    Utils,
     WalletCrypto,
 } from '@cmts-dev/carmentis-sdk-core';
 import { ref } from 'vue';
@@ -40,7 +39,6 @@ export const useWalletStore = defineStore('wallet', () => {
     }
 
     async function fetchAccountStateByAccountId(walletId: number, accountId: Uint8Array) {
-        console.log(`Fetching account state for account id ${Utils.binaryToHexa(accountId)} (wallet ID: ${walletId})`);
         const provider = await getProvider(walletId);
         return provider.getAccountState(accountId);
     }
@@ -85,17 +83,15 @@ export const useWalletStore = defineStore('wallet', () => {
             const history = await provider.getAccountHistory(accountId, lastAccountHistoryHash, limit);
             return AccountTransactions.createFromAbciResponse(history);
         } catch (e) {
-            console.error(e);
-            throw new Error('Unable to retreive the account history');
+            throw new Error('Unable to retrieve the account history');
         }
     }
 
     async function isAccountFoundByPublicKey(walletId: number, pk: PublicSignatureKey) {
         try {
-            const id = await getAccountIdFromPublicKey(walletId, pk);
-            console.log(`Account found with id ${Utils.binaryToHexa(id)}`);
+            await getAccountIdFromPublicKey(walletId, pk);
             return true;
-        } catch (e) {
+        } catch {
             return false;
         }
     }

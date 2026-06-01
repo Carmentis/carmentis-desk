@@ -85,6 +85,11 @@ export const useOnChainStore = defineStore('onchain', () => {
     const sessionStore = useSessionStore();
     const toast = useToast();
 
+    async function _walletCrypto(walletId: number) {
+        const seed = await sessionStore.getWalletSeed(walletId);
+        return WalletCrypto.fromSeed(new SeedEncoder().decode(seed)).getDefaultAccountCrypto();
+    }
+
     const isPublishingOrganization = ref(false);
     const isClaimingNode = ref(false);
     const isStakingOnNode = ref(false);
@@ -114,22 +119,12 @@ export const useOnChainStore = defineStore('onchain', () => {
                 throw new Error(`Organization with id ${orgId} not found`);
             }
 
-            // Initialize wallet crypto from seed
-            const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(await sessionStore.getWalletSeed(walletId)));
-            const accountCrypto = walletSeed.getDefaultAccountCrypto();
-
-            // Create provider
+            const accountCrypto = await _walletCrypto(walletId);
             const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
-
-            // Get signing keys
             const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
             const pk = await sk.getPublicKey();
-
-            // Get the account id
             const accountId = await provider.getAccountIdByPublicKey(pk);
 
-            // construct the microblock to publish
             const organisationPrivateKey = sk;
             let organisationId = organization.vbId;
             const orgDescSection: OrganizationDescriptionSection = {
@@ -140,7 +135,6 @@ export const useOnChainStore = defineStore('onchain', () => {
                 countryCode,
             };
             if (organisationId) {
-                console.log(`Organisation already published on chain, updating it`);
                 const orgVB = await provider.loadOrganizationVirtualBlockchain(Hash.from(organisationId));
                 const mb = await orgVB.createMicroblock();
                 mb.addSection(orgDescSection);
@@ -150,7 +144,6 @@ export const useOnChainStore = defineStore('onchain', () => {
                 });
                 await provider.publishMicroblock(mb);
             } else {
-                console.log(`Organisation not published on chain, publishing it`);
                 const mb = Microblock.createGenesisOrganizationMicroblock();
                 mb.addSections([
                     {
@@ -178,7 +171,6 @@ export const useOnChainStore = defineStore('onchain', () => {
                 life: 3000,
             });
         } catch (e) {
-            console.error(e);
             toast.add({
                 severity: 'error',
                 summary: 'Error publishing organization',
@@ -221,34 +213,16 @@ export const useOnChainStore = defineStore('onchain', () => {
                 throw new Error(`Node with id ${nodeId} not found in organization ${orgId}`);
             }
 
-            // Initialize wallet crypto from seed
-            const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(await sessionStore.getWalletSeed(walletId)));
-            const accountCrypto = walletSeed.getDefaultAccountCrypto();
-
-            // Create provider
+            const accountCrypto = await _walletCrypto(walletId);
             const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
-
-            // Get signing keys
             const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
             const pk = await sk.getPublicKey();
-
-            // Get the account id
             const accountId = await provider.getAccountIdByPublicKey(pk);
 
-            // Get organization ID
             const organizationId = Hash.from(organization.vbId);
             const organisationPrivateKey = sk;
-            const nodeRpcEndpoint = node.rpcEndpoint;
-
-            // Get node status to retrieve CometBFT public key
             const nodeStatus = await provider.getNodeStatus(node.rpcEndpoint);
             const { type: cometPublicKeyType, value: cometPublicKey } = nodeStatus.result.validator_info.pub_key;
-
-            // Create the node claim request
-            console.log(
-                `Creating node claiming request for node: organizationId=${organizationId.encode()}, public key=${cometPublicKey}, public key type=${cometPublicKeyType}, rpc endpoint=${nodeRpcEndpoint}`,
-            );
 
             const mb = Microblock.createGenesisValidatorNodeMicroblock();
 
@@ -281,7 +255,6 @@ export const useOnChainStore = defineStore('onchain', () => {
             const nodeVbId = microblockHash.encode();
             await nodeRepo.updateNode(nodeId, { vbId: nodeVbId });
 
-            console.log(`Node claimed successfully with VB ID: ${nodeVbId}`);
             toast.add({
                 severity: 'success',
                 summary: 'Node claimed',
@@ -291,7 +264,6 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             return microblockHash;
         } catch (e) {
-            console.error('Error claiming node:', e);
             toast.add({
                 severity: 'error',
                 summary: 'Error claiming node',
@@ -336,39 +308,20 @@ export const useOnChainStore = defineStore('onchain', () => {
                 throw new Error(`Node with id ${nodeId} not found in organization ${orgId}`);
             }
 
-            // Initialize wallet crypto from seed
-            const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(await sessionStore.getWalletSeed(walletId)));
-            const accountCrypto = walletSeed.getDefaultAccountCrypto();
-
-            // Create provider
+            const accountCrypto = await _walletCrypto(walletId);
             const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
-
-            // Get signing keys
             const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
             const pk = await sk.getPublicKey();
-
-            // Get the account id
             const accountId = await provider.getAccountIdByPublicKey(pk);
-            if (accountId === undefined) throw new Error('Error getting account id');
             const organisationPrivateKey = sk;
 
-            // Get node status to retrieve CometBFT public key
             const nodeStatus = await provider.getNodeStatus(node.rpcEndpoint);
             const cometbftPublicKey = nodeStatus.result.validator_info.pub_key.value;
 
-            // Check if the node is declared
             const isDeclared = await isDeclaredValidatorNodeByCometbftPublicKey(provider, cometbftPublicKey);
-            if (!isDeclared) {
-                throw new Error('The node must be declared before staking');
-            }
+            if (!isDeclared) throw new Error('The node must be declared before staking');
 
-            // Get validator node id from CometBFT public key
             const nodeAddress = await provider.getValidatorNodeIdByCometbftPublicKey(cometbftPublicKey);
-
-            console.log(
-                `Creating staking request for node: validator node address=${Hash.from(nodeAddress).encode()}, amount=${amount.toString()}`,
-            );
 
             // Create the staking request
             const accountVb = await provider.loadAccountVirtualBlockchain(Hash.from(accountId));
@@ -388,7 +341,6 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             const microblockHash = await provider.publishMicroblock(mb);
 
-            console.log(`Staked ${amount.toString()} successfully on node`);
             toast.add({
                 severity: 'success',
                 summary: 'Staking successful',
@@ -398,7 +350,6 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             return microblockHash;
         } catch (e) {
-            console.error('Error staking on node:', e);
             toast.add({
                 severity: 'error',
                 summary: 'Error staking',
@@ -443,32 +394,16 @@ export const useOnChainStore = defineStore('onchain', () => {
                 throw new Error(`Node with id ${nodeId} not found in organization ${orgId}`);
             }
 
-            // Initialize wallet crypto from seed
-            const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(await sessionStore.getWalletSeed(walletId)));
-            const accountCrypto = walletSeed.getDefaultAccountCrypto();
-
-            // Create provider
+            const accountCrypto = await _walletCrypto(walletId);
             const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
-
-            // Get signing keys
             const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
             const pk = await sk.getPublicKey();
-
-            // Get the account id
             const accountId = await provider.getAccountIdByPublicKey(pk);
             const organisationPrivateKey = sk;
 
-            // Get node status to retrieve CometBFT public key
             const nodeStatus = await provider.getNodeStatus(node.rpcEndpoint);
             const cometbftPublicKey = nodeStatus.result.validator_info.pub_key.value;
-
-            // Get validator node id from CometBFT public key
             const nodeAddress = await provider.getValidatorNodeIdByCometbftPublicKey(cometbftPublicKey);
-
-            console.log(
-                `Creating unstaking request for ${amount.toString()} node: validator node id=${Hash.from(nodeAddress).encode()}`,
-            );
 
             // Create the unstaking request
             const accountVb = await provider.loadAccountVirtualBlockchain(Hash.from(accountId));
@@ -488,7 +423,6 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             const microblockHash = await provider.publishMicroblock(mb);
 
-            console.log(`Unstaked ${amount.toString()} successfully from node`);
             toast.add({
                 severity: 'success',
                 summary: 'Unstaking successful',
@@ -498,7 +432,6 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             return microblockHash;
         } catch (e) {
-            console.error('Error unstaking from node:', e);
             toast.add({
                 severity: 'error',
                 summary: 'Error unstaking',
@@ -521,23 +454,13 @@ export const useOnChainStore = defineStore('onchain', () => {
         try {
             await provider.getValidatorNodeIdByCometbftPublicKey(cometbftPublicKey);
             return true;
-        } catch (e) {
-            console.error('Error checking if validator node is declared: ', e);
+        } catch {
             return false;
         }
     }
 
     async function updateGasInMicroblock(provider: IProvider, mb: Microblock, usedSigSchemeId: SignatureSchemeId) {
-        const gas = await provider.computeMicroblockGas(mb, {
-            signatureSchemeId: usedSigSchemeId,
-        });
-        /*
-		const protocolVariables = await provider.getProtocolState();
-		const feesCalculationFormulaVersion = protocolVariables.getFeesCalculationVersion();
-		const feesCalculationFormula = FeesCalculationFormulaFactory.getFeesCalculationFormulaByVersion(feesCalculationFormulaVersion);
-		mb.setGas(await feesCalculationFormula.computeFees(usedSigSchemeId, mb))
-
-		 */
+        const gas = await provider.computeMicroblockGas(mb, { signatureSchemeId: usedSigSchemeId });
         mb.setGasPrice(CMTSToken.createMilliToken(1));
         mb.setGas(gas);
     }
@@ -581,19 +504,10 @@ export const useOnChainStore = defineStore('onchain', () => {
                 throw new Error(`Application with id ${appId} not found in organization ${orgId}`);
             }
 
-            // Initialize wallet crypto from seed
-            const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(await sessionStore.getWalletSeed(walletId)));
-            const accountCrypto = walletSeed.getDefaultAccountCrypto();
-
-            // Create provider
+            const accountCrypto = await _walletCrypto(walletId);
             const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
-
-            // Get signing keys
             const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
             const pk = await sk.getPublicKey();
-
-            // Get the account id
             const accountId = await provider.getAccountIdByPublicKey(pk);
 
             // Prepare application description section
@@ -611,7 +525,6 @@ export const useOnChainStore = defineStore('onchain', () => {
             let applicationVbId: string;
 
             if (isAlreadyPublished) {
-                console.log(`Application already published on chain, updating it`);
                 const appVb = await provider.loadApplicationVirtualBlockchain(Hash.from(application.vbId!));
                 const mb = await appVb.createMicroblock();
                 mb.addSections([appDescSection]);
@@ -622,7 +535,6 @@ export const useOnChainStore = defineStore('onchain', () => {
                 await provider.publishMicroblock(mb);
                 applicationVbId = application.vbId!;
             } else {
-                console.log(`Application not published on chain, publishing a new one`);
                 const mb = Microblock.createGenesisApplicationMicroblock();
                 mb.setHeight(1);
                 mb.addSections([
@@ -653,7 +565,6 @@ export const useOnChainStore = defineStore('onchain', () => {
                 life: 3000,
             });
         } catch (e) {
-            console.error(e);
             toast.add({
                 severity: 'error',
                 summary: 'Error publishing application',
@@ -693,24 +604,13 @@ export const useOnChainStore = defineStore('onchain', () => {
                 throw new Error(`Wallet with id ${walletId} not found`);
             }
 
-            // Initialize wallet crypto from seed
-            const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(await sessionStore.getWalletSeed(walletId)));
-            const accountCrypto = walletSeed.getDefaultAccountCrypto();
-
-            // Create provider
+            const accountCrypto = await _walletCrypto(walletId);
             const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
-
-            // Get signing keys
             const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
-            // Decode recipient public key
             const encoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
             const recipientPk = await encoder.decodePublicKey(recipientPublicKey);
 
-            console.log(`Transferring ${amount} tokens to account with public key ${recipientPublicKey}`);
-
             try {
-                // Try to find existing recipient account
                 const recipientAccountHash = Hash.from(await provider.getAccountIdByPublicKey(recipientPk));
                 await creditExistingAccount(sk, provider, recipientAccountHash, amount);
                 toast.add({
@@ -719,9 +619,7 @@ export const useOnChainStore = defineStore('onchain', () => {
                     detail: `Transferred ${amount.toString()} tokens successfully`,
                     life: 3000,
                 });
-            } catch (error) {
-                // Recipient account doesn't exist, create a new one
-                console.warn(`Recipient account not found: ${error}`);
+            } catch {
                 await createAndCreditNewAccount(sk, provider, recipientPk, amount);
                 toast.add({
                     severity: 'success',
@@ -731,7 +629,6 @@ export const useOnChainStore = defineStore('onchain', () => {
                 });
             }
         } catch (e) {
-            console.error('Error transferring tokens:', e);
             toast.add({
                 severity: 'error',
                 summary: 'Error transferring tokens',
@@ -753,13 +650,11 @@ export const useOnChainStore = defineStore('onchain', () => {
      * @returns The hash of the created account
      */
     async function createAndCreditNewAccount(
-        issuerPrivateSignatureKey: any,
+        issuerPrivateSignatureKey: PrivateSignatureKey,
         provider: Provider,
         recipientPublicKey: PublicSignatureKey,
         tokenAmount: CMTSToken,
     ): Promise<Hash> {
-        console.log('Creating new token account...');
-
         const issuerAccountHash = Hash.from(
             await provider.getAccountIdByPublicKey(await issuerPrivateSignatureKey.getPublicKey()),
         );
@@ -768,22 +663,6 @@ export const useOnChainStore = defineStore('onchain', () => {
             tokenAmount,
             issuerAccountHash.toBytes(),
         );
-        /*
-		const feesCalculationFormulaVersion = (
-			await provider.getProtocolState()
-		).getFeesCalculationVersion();
-		const feesCalculationFormula =
-			FeesCalculationFormulaFactory.getFeesCalculationFormulaByVersion(
-				feesCalculationFormulaVersion
-			);
-		accountCreationMb.setGas(
-			await feesCalculationFormula.computeFees(
-				issuerPrivateSignatureKey.getSignatureSchemeId(),
-				accountCreationMb
-			)
-		);
-
-		 */
         const gas = await provider.computeMicroblockGas(accountCreationMb, {
             signatureSchemeId: issuerPrivateSignatureKey.getSignatureSchemeId(),
         });
@@ -792,17 +671,8 @@ export const useOnChainStore = defineStore('onchain', () => {
         await accountCreationMb.seal(issuerPrivateSignatureKey, {
             feesPayerAccount: issuerAccountHash.toBytes(),
         });
-
-        // publish
         await provider.publishMicroblock(accountCreationMb);
-
-        const hash = accountCreationMb.getHash();
-
-        console.log(
-            `Token account created (${hash.encode()}) with initial balance of ${tokenAmount.toString()} tokens`,
-        );
-
-        return hash;
+        return accountCreationMb.getHash();
     }
 
     /**
@@ -813,15 +683,11 @@ export const useOnChainStore = defineStore('onchain', () => {
      * @param tokenAmount The amount of tokens to credit
      */
     async function creditExistingAccount(
-        issuerPrivateSignatureKey: any,
+        issuerPrivateSignatureKey: PrivateSignatureKey,
         provider: Provider,
         receiverAccountHash: Hash,
         tokenAmount: CMTSToken,
     ): Promise<Hash> {
-        console.log(
-            `Transferring ${tokenAmount.toString()} tokens to existing account at ${receiverAccountHash.encode()}`,
-        );
-
         const issuerPublicKey = await issuerPrivateSignatureKey.getPublicKey();
         const senderAccountHash = await provider.getAccountIdFromPublicKey(issuerPublicKey);
         const senderAccount = await provider.loadAccountVirtualBlockchain(senderAccountHash);
@@ -838,21 +704,11 @@ export const useOnChainStore = defineStore('onchain', () => {
         });
         tokenTransferMb.setGasPrice(CMTSToken.createMilliToken(1));
         tokenTransferMb.setGas(gas);
-
-        const issuerAccountHash = senderAccountHash;
         await tokenTransferMb.seal(issuerPrivateSignatureKey, {
-            feesPayerAccount: issuerAccountHash.toBytes(),
+            feesPayerAccount: senderAccountHash.toBytes(),
         });
-
-        // publish
         const hash = tokenTransferMb.getHash();
-        console.log(`Transferring ${tokenAmount} tokens to account id ${hash.encode()}`);
-        console.log(tokenTransferMb.toString());
         await provider.publishMicroblock(tokenTransferMb);
-
-        console.log(
-            `Transfer of ${tokenAmount} tokens completed successfully to account ${receiverAccountHash.encode()}`,
-        );
         return hash;
     }
 
@@ -872,12 +728,9 @@ export const useOnChainStore = defineStore('onchain', () => {
                 throw new Error('Organization is not published on-chain');
             }
 
-            const seedEncoder = new SeedEncoder();
-            const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(await sessionStore.getWalletSeed(walletId)));
-            const accountCrypto = walletSeed.getDefaultAccountCrypto();
+            const accountCrypto = await _walletCrypto(walletId);
             const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
             const pk = await sk.getPublicKey();
-
             const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
             const accountId = await provider.getAccountIdByPublicKey(pk);
 
@@ -895,7 +748,6 @@ export const useOnChainStore = defineStore('onchain', () => {
                 life: 3000,
             });
         } catch (e) {
-            console.error(e);
             toast.add({
                 severity: 'error',
                 summary: 'Error publishing custom data',
