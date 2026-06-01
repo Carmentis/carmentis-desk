@@ -88,8 +88,6 @@ const createOrganization = async () => {
         seed: finalSeed,
         nodeEndpoint: nodeEndpoint.value,
         indexer: indexer.value || undefined,
-        organizations: [],
-        participations: [],
     });
     await router.push('/');
 };

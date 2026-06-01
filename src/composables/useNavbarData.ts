@@ -57,7 +57,7 @@ export function useNavbarData() {
                 }),
             );
         },
-        [] as WalletEntity[],
+        [],
         { immediate: true },
     );
 

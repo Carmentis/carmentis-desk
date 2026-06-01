@@ -53,7 +53,7 @@ export async function insertOrganization(
         'INSERT INTO organizations (wallet_id, name, vb_id, country_code, city, website) VALUES (?, ?, ?, ?, ?, ?)',
         [walletId, data.name, data.vbId ?? null, data.countryCode ?? null, data.city ?? null, data.website ?? null],
     );
-    return result.lastInsertId;
+    return result.lastInsertId!;
 }
 
 export async function updateOrganization(

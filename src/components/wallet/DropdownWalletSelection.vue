@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import Dropdown from 'primevue/dropdown';
-import { useStorageStore, WalletEntity } from '../../stores/storage.ts';
-import { storeToRefs } from 'pinia';
-import { computed, Ref, ref } from 'vue';
+import type { WalletStub } from '../../stores/storage.ts';
+import { ref } from 'vue';
 
 const props = defineProps<{
-    wallets: WalletEntity[];
-    chosenWallet: WalletEntity;
+    wallets: WalletStub[];
+    chosenWallet: WalletStub;
 }>();
 const emit = defineEmits<{
     selectedWalletIndex: [index: number];

@@ -41,7 +41,7 @@ export async function insertWallet(data: Omit<WalletRow, 'id'>): Promise<number>
         'INSERT INTO wallets (name, node_endpoint, indexer) VALUES (?, ?, ?)',
         [data.name, data.nodeEndpoint, data.indexer ?? null],
     );
-    return result.lastInsertId;
+    return result.lastInsertId!;
 }
 
 export async function updateWallet(id: number, data: Partial<Omit<WalletRow, 'id'>>): Promise<void> {

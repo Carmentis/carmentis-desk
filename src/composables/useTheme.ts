@@ -1,18 +1,14 @@
 import { ref, watch } from 'vue';
-import { useStorageStore } from '../stores/storage';
 
 export type Theme = 'light' | 'dark';
 
+const THEME_KEY = 'carmentis_theme';
 const currentTheme = ref<Theme>('light');
 
 export function useTheme() {
-    const storageStore = useStorageStore();
-
-    // Initialize theme from localStorage
-    const initTheme = async () => {
-        const storage = await storageStore.getStorage();
-        const savedTheme = await storage.get<Theme>('theme');
-        if (savedTheme) {
+    const initTheme = () => {
+        const savedTheme = localStorage.getItem(THEME_KEY) as Theme | null;
+        if (savedTheme === 'light' || savedTheme === 'dark') {
             currentTheme.value = savedTheme;
             applyTheme(savedTheme);
         }
@@ -26,16 +22,13 @@ export function useTheme() {
         }
     };
 
-    const toggleTheme = async () => {
+    const toggleTheme = () => {
         const newTheme: Theme = currentTheme.value === 'light' ? 'dark' : 'light';
         currentTheme.value = newTheme;
         applyTheme(newTheme);
-
-        const storage = await storageStore.getStorage();
-        await storage.set('theme', newTheme);
+        localStorage.setItem(THEME_KEY, newTheme);
     };
 
-    // Watch for theme changes
     watch(currentTheme, (newTheme) => {
         applyTheme(newTheme);
     });

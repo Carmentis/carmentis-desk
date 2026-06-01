@@ -35,6 +35,7 @@ import { storeToRefs } from 'pinia';
 import DataApprovalWallet from './DataApprovalWallet.vue';
 import VirtualBlockchainRecordNavigator from '../../VirtualBlockchainRecordNavigator.vue';
 import type { DataApprovalParams } from './DataApprovalRequestType.ts';
+import * as participationRepo from '../../../../db/repositories/participationRepository.ts';
 
 const props = defineProps<{ params: DataApprovalParams }>();
 
@@ -73,6 +74,7 @@ async function approve() {
     if (!microblockToApprove.value || !virtualBlockchainContainingMicroblock.value) return;
     isProcessing.value = true;
     try {
+        if (!accountCrypto.value) return;
         const genesisSeed = await virtualBlockchainContainingMicroblock.value.getGenesisSeed();
         const actorCrypto = accountCrypto.value.deriveActorFromVbSeed(genesisSeed.toBytes());
         const actorPrivateSignatureKey = await actorCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
@@ -96,13 +98,11 @@ async function approve() {
         const hexEncoder = EncoderFactory.bytesToHexEncoder();
         const vbId = hexEncoder.encode(b64Encoder.decode(sigResponse.b64VbHash));
         const appId = virtualBlockchainContainingMicroblock.value.getApplicationId().encode();
-        await store.addAppLedgerParticipation(
-            chosenWallet.value.id,
-            appId,
-            vbId,
-            props.params.serverUrl,
-            approvalData.value!.b64SerializedMicroblock,
-        );
+        await participationRepo.insertAppLedger(chosenWallet.value.id, appId, {
+            id: vbId,
+            operatorEndpoint: props.params.serverUrl,
+            b64EncodedMicroblock: approvalData.value!.b64SerializedMicroblock,
+        });
         console.log(`Stored app ledger participation: app=${appId}, vb=${vbId}`);
 
         toast.add({
@@ -587,6 +587,7 @@ onMounted(async () => {
                         <template #content>
                             <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide mb-3">History</p>
                             <VirtualBlockchainRecordNavigator
+                                v-if="accountCrypto && virtualBlockchainContainingMicroblock"
                                 :application-ledger="virtualBlockchainContainingMicroblock"
                                 :account-crypto="accountCrypto"
                             />

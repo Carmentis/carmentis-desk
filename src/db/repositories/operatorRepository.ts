@@ -39,7 +39,7 @@ export async function insertOperator(data: Omit<OperatorEntity, 'id'>): Promise<
         'INSERT INTO operators (name, http_endpoint, wallet_id, public_key, pseudo) VALUES (?, ?, ?, ?, ?)',
         [data.name, data.httpEndpoint, data.walletId ?? null, data.publicKey ?? null, data.pseudo ?? null],
     );
-    return result.lastInsertId;
+    return result.lastInsertId!;
 }
 
 export async function deleteOperatorById(id: number): Promise<void> {

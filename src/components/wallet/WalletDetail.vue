@@ -81,7 +81,7 @@ const { state: wallet, execute: fetchWallet } = useAsyncState(
 
 const { state: organizations, execute: fetchOrgs } = useAsyncState(
     () => orgRepo.getOrganizationsByWalletId(walletId.value),
-    [] as OrgEntity[],
+    [],
     { immediate: true },
 );
 
@@ -625,16 +625,6 @@ const menuItems = computed<MenuItem[]>(() => [
                                         </div>
                                         <div class="text-sm text-gray-600 space-y-1">
                                             <div class="flex items-center gap-4">
-                                                <span class="flex items-center gap-1">
-                                                    <i class="pi pi-sitemap text-gray-400"></i>
-                                                    {{ org.nodes.length }}
-                                                    node(s)
-                                                </span>
-                                                <span class="flex items-center gap-1">
-                                                    <i class="pi pi-box text-gray-400"></i>
-                                                    {{ org.applications.length }}
-                                                    app(s)
-                                                </span>
                                             </div>
                                         </div>
                                     </div>

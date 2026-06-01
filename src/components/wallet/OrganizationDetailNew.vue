@@ -120,7 +120,7 @@ const pk = computed(() => walletKeyPair.value?.pk);
 
 // wallet account id and state
 const walletAccountId = computedAsync(async () => {
-    if (wallet.value === undefined) return undefined;
+    if (wallet.value === null) return undefined;
     if (!pk.value) return undefined;
     const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
     try {
@@ -136,7 +136,7 @@ const walletAccountId = computedAsync(async () => {
 });
 
 const walletAccountState = computedAsync(async () => {
-    if (wallet.value === undefined) return undefined;
+    if (wallet.value === null) return undefined;
     if (!pk.value) return undefined;
     if (walletAccountId.value === undefined) return undefined;
     const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
@@ -153,7 +153,7 @@ const manualNodeName = ref('');
 const manualNodeVbId = ref('');
 const manualNodeRpcEndpoint = ref('');
 watch(manualNodeRpcEndpoint, async () => {
-    if (wallet.value === undefined) return;
+    if (!wallet.value) return;
     isSearchingForVbId.value = true;
     try {
         const endpoint = manualNodeRpcEndpoint.value;

@@ -44,7 +44,7 @@ export async function insertNode(orgId: number, data: Omit<NodeRow, 'id' | 'orgI
         'INSERT INTO nodes (org_id, name, vb_id, rpc_endpoint) VALUES (?, ?, ?, ?)',
         [orgId, data.name, data.vbId ?? null, data.rpcEndpoint],
     );
-    return result.lastInsertId;
+    return result.lastInsertId!;
 }
 
 export async function insertManyNodes(orgId: number, nodes: Omit<NodeRow, 'id' | 'orgId'>[]): Promise<NodeRow[]> {

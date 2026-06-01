@@ -47,7 +47,7 @@ export async function insertApplication(orgId: number, data: Omit<ApplicationRow
         'INSERT INTO applications (org_id, name, vb_id, description, website) VALUES (?, ?, ?, ?, ?)',
         [orgId, data.name, data.vbId ?? null, data.description ?? null, data.website ?? null],
     );
-    return result.lastInsertId;
+    return result.lastInsertId!;
 }
 
 export async function updateApplication(

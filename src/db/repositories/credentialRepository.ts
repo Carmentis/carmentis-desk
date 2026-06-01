@@ -30,7 +30,7 @@ export async function insertCredential(
         'INSERT INTO credentials (wallet_id, name, data) VALUES (?, ?, ?)',
         [walletId, data.name, data.data],
     );
-    return result.lastInsertId;
+    return result.lastInsertId!;
 }
 
 export async function deleteCredentialById(id: number): Promise<void> {

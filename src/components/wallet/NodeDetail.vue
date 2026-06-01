@@ -159,7 +159,7 @@ const nodeStakeInformation = computedAsync(async () => {
     }
 
     if (wallet.value === null) return undefined;
-    if (node.value === undefined) return undefined;
+    if (node.value === null) return undefined;
     if (node.value.vbId === undefined) return undefined;
 
     const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
