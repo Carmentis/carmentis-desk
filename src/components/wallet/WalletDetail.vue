@@ -20,7 +20,7 @@ import {
     SeedEncoder,
     SignatureSchemeId,
     WalletCrypto,
-    CMTSToken,
+    CMTSToken, Utils,
 } from '@cmts-dev/carmentis-sdk-core';
 import Password from 'primevue/password';
 import { useToast } from 'primevue/usetoast';
@@ -36,6 +36,9 @@ import { useWalletStore } from '../../stores/walletStore.ts';
 import Message from 'primevue/message';
 import { useConfirm } from 'primevue/useconfirm';
 import type { MenuItem } from 'primevue/menuitem';
+import {createIndexerClient} from "../../api/indexer/client.ts";
+import {getAppControllerGetOrganizationsUrl} from "../../api/indexer/indexer.ts";
+import WalletDetailSync from "./WalletDetailSync.vue";
 
 const toast = useToast();
 const route = useRoute();
@@ -380,6 +383,7 @@ const menuItems = computed<MenuItem[]>(() => [
             <div class="space-y-4">
                 <!-- Actions Bar -->
                 <MenuBar :model="menuItems"></MenuBar>
+                <WalletDetailSync/>
 
                 <!-- Wallet Keys and Balance Cards Side-by-Side -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

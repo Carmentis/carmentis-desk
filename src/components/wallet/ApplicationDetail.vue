@@ -13,8 +13,8 @@ import { useAsyncState } from '@vueuse/core';
 import * as walletRepo from '../../db/repositories/walletRepository';
 import * as orgRepo from '../../db/repositories/organizationRepository';
 import * as appRepo from '../../db/repositories/applicationRepository';
-import { Hash, ProviderFactory } from '@cmts-dev/carmentis-sdk-core';
 import { useToast } from 'primevue/usetoast';
+import { createIndexerClient } from '../../api/indexer/client.ts';
 import { useQuery } from '@tanstack/vue-query';
 import { useHasAccountOnChainQuery } from '../../composables/useAccountBreakdown.ts';
 
@@ -169,16 +169,22 @@ async function confirmPublishApplication() {
     });
 }
 
-// query used to identify if the application is found online
+// query used to identify if the application is found online (via the indexer)
+const applicationVbId = computed(() =>
+    typeof application.value?.vbId === 'string' ? application.value.vbId : undefined,
+);
+const walletIndexer = computed(() => wallet.value?.indexer);
+
 const { data: isApplicationFoundOnChain, isLoading: isFetchingApplicationFromChain } = useQuery({
-    queryKey: ['application-on-chain', appId],
+    enabled: computed(() => !!applicationVbId.value && !!walletIndexer.value),
+    queryKey: ['application-on-chain', applicationVbId, walletIndexer],
     queryFn: async () => {
-        if (!application.value || !application.value.vbId) return undefined;
-        if (!wallet.value) return undefined;
-        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
+        const vbId = applicationVbId.value;
+        const indexer = walletIndexer.value;
+        if (!vbId || !indexer) return false;
         try {
-            await provider.loadApplicationVirtualBlockchain(Hash.from(application.value.vbId));
-            return true;
+            const result = await createIndexerClient(indexer).getApplications({ vb_id: vbId });
+            return result.items.length > 0;
         } catch (e) {
             console.error(`Application not found online: ${e}`);
             return false;

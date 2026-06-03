@@ -50,7 +50,6 @@ const router = useRouter();
 const onChainStore = useOnChainStore();
 const sessionStore = useSessionStore();
 const { isPublishingOrganization, isPublishingCustomJson } = storeToRefs(onChainStore);
-const registerNavbarActions = inject<(actions: any[]) => void>('registerNavbarActions');
 
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
@@ -417,16 +416,22 @@ async function confirmPublishOrganization() {
     });
 }
 
-// query used to identify if the organization is found online
+// query used to identify if the organization is found online (via the indexer)
+const organizationVbId = computed(() =>
+    typeof organization.value?.vbId === 'string' ? organization.value.vbId : undefined,
+);
+const walletIndexer = computed(() => wallet.value?.indexer);
+
 const { data: isOrganizationFoundOnChain, isLoading: isFetchingOrganizationFromChain } = useQuery({
-    queryKey: ['organization-on-chain', orgId],
+    enabled: computed(() => !!organizationVbId.value && !!walletIndexer.value),
+    queryKey: ['organization-on-chain', organizationVbId, walletIndexer],
     queryFn: async () => {
-        if (!organization.value || !organization.value.vbId) return undefined;
-        if (!wallet.value) return undefined;
-        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
+        const vbId = organizationVbId.value;
+        const indexer = walletIndexer.value;
+        if (!vbId || !indexer) return false;
         try {
-            await provider.loadOrganizationVirtualBlockchain(Hash.from(organization.value.vbId));
-            return true;
+            const result = await createIndexerClient(indexer).getOrganizations({ vb_id: vbId });
+            return result.items.length > 0;
         } catch (e) {
             console.error(`Organization not found online: ${e}`);
             return false;
