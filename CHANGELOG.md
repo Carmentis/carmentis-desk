@@ -1,3 +1,20 @@
+# [1.15.0](https://github.com/Carmentis/carmentis-desk/compare/v1.14.0...v1.15.0) (2026-06-03)
+
+
+### Bug Fixes
+
+* delay router installation until session initialization to avoid premature navigation callbacks ([a2a7588](https://github.com/Carmentis/carmentis-desk/commit/a2a7588b09e76592bb4ca2f77e8965954017a919))
+
+
+### Features
+
+* add Carmentis indexer client and TypeScript models ([5f20cdb](https://github.com/Carmentis/carmentis-desk/commit/5f20cdbb3e42f92be7432b024739ec026fad244b))
+* add optional indexer field to organization creation ([2ab0a31](https://github.com/Carmentis/carmentis-desk/commit/2ab0a313cf2a1cbfea8c7d0c116f2f740f83bc41))
+* enhance on-chain sync logic with indexer integration and cleanup ([8054b6f](https://github.com/Carmentis/carmentis-desk/commit/8054b6f83cc62edd9efb74cbb80c7c142736da2e))
+* implement WalletDetailSync component to fetch and import new on-chain data ([e90d1c9](https://github.com/Carmentis/carmentis-desk/commit/e90d1c9b145332dfabf094334afbc61f51539eec))
+* introduce session-based vault management and onboarding flow ([fe4c737](https://github.com/Carmentis/carmentis-desk/commit/fe4c737c1445f0b07349e500d3a6f11f28a72fc5))
+* update permissions and dependencies for SQL execution support ([3b764f1](https://github.com/Carmentis/carmentis-desk/commit/3b764f12a93c282579889e0cfa6f3b28aba05eda))
+
 # [1.14.0](https://github.com/Carmentis/carmentis-desk/compare/v1.13.1...v1.14.0) (2026-06-01)
 
 
