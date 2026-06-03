@@ -68,7 +68,7 @@ export const useWalletStore = defineStore('wallet', () => {
         return JwkSignatureKeyExporter.computeDidJwkFromSeed(rawSeed);
     }
 
-    async function getAccountId(walletId: number) {
+    async function getAccountId(walletId: number): Promise<Uint8Array> {
         const provider = await getProvider(walletId);
         const { pk } = await getKeyPair(walletId);
         return await provider.getAccountIdByPublicKey(pk);

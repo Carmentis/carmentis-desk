@@ -1,14 +1,14 @@
 import {
     getAppControllerGetAccountHistoryUrl,
-    getAppControllerGetAccountsUrl,
+    getAppControllerGetAccountsUrl, getAppControllerGetApplicationsUrl, getAppControllerGetOrganizationsUrl,
     getAppControllerGetValidatorNodesUrl,
 } from './indexer';
 import type {
     AccountHistoryListResponseDto,
     AccountListResponseDto,
     AppControllerGetAccountHistoryParams,
-    AppControllerGetAccountsParams,
-    AppControllerGetValidatorNodesParams,
+    AppControllerGetAccountsParams, AppControllerGetApplicationsParams, AppControllerGetOrganizationsParams,
+    AppControllerGetValidatorNodesParams, ApplicationListResponseDto, OrganizationListResponseDto,
     ValidatorNodeListResponseDto,
 } from './model';
 
@@ -21,6 +21,10 @@ export function createIndexerClient(baseUrl: string) {
     return {
         getAccounts: (p?: AppControllerGetAccountsParams) =>
             get<AccountListResponseDto>(getAppControllerGetAccountsUrl(p)),
+        getOrganizations: (p?: AppControllerGetOrganizationsParams) =>
+            get<OrganizationListResponseDto>(getAppControllerGetOrganizationsUrl(p)),
+        getApplications: (p?: AppControllerGetApplicationsParams) =>
+            get<ApplicationListResponseDto>(getAppControllerGetApplicationsUrl(p)),
         getAccountHistory: (p?: AppControllerGetAccountHistoryParams) =>
             get<AccountHistoryListResponseDto>(getAppControllerGetAccountHistoryUrl(p)),
         getValidatorNodes: (p?: AppControllerGetValidatorNodesParams) =>
