@@ -4,6 +4,7 @@ import {
     getAppControllerGetValidatorNodesUrl,
 } from './indexer';
 import type {
+    AccountDto,
     AccountHistoryListResponseDto,
     AccountListResponseDto,
     AppControllerGetAccountHistoryParams,

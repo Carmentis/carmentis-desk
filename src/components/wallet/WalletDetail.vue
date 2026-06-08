@@ -20,7 +20,7 @@ import {
     SeedEncoder,
     SignatureSchemeId,
     WalletCrypto,
-    CMTSToken, Utils,
+    CMTSToken, Utils, EncoderFactory,
 } from '@cmts-dev/carmentis-sdk-core';
 import Password from 'primevue/password';
 import { useToast } from 'primevue/usetoast';
@@ -517,6 +517,18 @@ const menuItems = computed<MenuItem[]>(() => [
                                         label="Refresh"
                                         icon="pi pi-cycle"
                                         size="small"
+                                    />
+                                    <Button
+                                        v-if="!!accountIdQuery.data"
+                                        label="Copy Account ID"
+                                        icon="pi pi-copy"
+                                        size="small"
+                                        @click="copyToClipboard(
+                                            EncoderFactory.bytesToHexEncoder()
+                                            .encode(accountIdQuery.data.value)
+                                            .toUpperCase(),
+                                            'Account ID'
+                                            )"
                                     />
                                 </div>
                             </div>

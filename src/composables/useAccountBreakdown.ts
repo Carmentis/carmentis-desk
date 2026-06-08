@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/vue-query';
 import { useWalletStore } from '../stores/walletStore.ts';
 import { type MaybeRefOrGetter, computed, ref, toValue } from 'vue';
+import {BalanceAvailability, CMTSToken, LockType, TokenUnit, Utils} from "@cmts-dev/carmentis-sdk-core";
+import {AccountDto} from "../api/indexer/model";
 
 function formatCmts(milliCmts: number): string {
     return (milliCmts / 1000).toFixed(3) + ' CMTS';
@@ -72,9 +74,55 @@ export function useAccountTransactionsHistory(walletId: MaybeRefOrGetter<number>
     return { accountHistoryQuery, setLimit, limit };
 }
 
+export function getBalanceAvailability(account: AccountDto) {
+    const locks: Lock[] = []
+    for (const lock of account.escrowLocks) {
+        locks.push({
+            type: LockType.Escrow,
+            lockedAmountInAtomics: lock.amount,
+            parameters: {
+                escrowIdentifier: Utils.binaryFromHexa(lock.escrowIdentifier),
+                fundEmitterAccountId: Utils.binaryFromHexa(lock.fundEmitterAccountId),
+                transferAuthorizerAccountId: Utils.binaryFromHexa(lock.transferAuthorizerAccountId),
+                startTimestamp: lock.startTimestamp,
+                durationDays: lock.durationDays,
+            }
+        });
+    }
+    for (const lock of account.stakingLocks) {
+        locks.push({
+            type: LockType.NodeStaking,
+            lockedAmountInAtomics: lock.amount,
+            parameters: {
+                validatorNodeId: Utils.binaryFromHexa(lock.validatorNodeId),
+                plannedUnlockAmountInAtomics: lock.plannedSlashingAmountInAtomics,
+                plannedUnlockTimestamp: lock.plannedUnlockTimestamp,
+                slashed: lock.slashed,
+                plannedSlashingAmountInAtomics: lock.plannedUnlockAmountInAtomics,
+                plannedSlashingTimestamp: lock.plannedUnlockTimestamp,
+            }
+        });
+    }
+    for (const lock of account.vestingLocks) {
+        locks.push({
+            type: LockType.Vesting,
+            lockedAmountInAtomics: lock.amount,
+            parameters: {
+                initialVestedAmountInAtomics: lock.initialVestedAmountInAtomics,
+                cliffStartTimestamp: lock.cliffStartTimestamp,
+                cliffDurationDays: lock.cliffDurationDays,
+                vestingDurationDays: lock.vestingDurationDays,
+            }
+        });
+    }
+    return new BalanceAvailability(account.balance, locks);
+}
+
+
 export function useAccountBreakdownQuery(walletId: MaybeRefOrGetter<number>) {
     const accountStateQuery = useAccountStateQuery(walletId);
     const enabled = computed(() => !!accountStateQuery.data.value);
+    const store = useWalletStore();
     return useQuery({
         enabled,
         refetchOnWindowFocus: true,
@@ -84,13 +132,26 @@ export function useAccountBreakdownQuery(walletId: MaybeRefOrGetter<number>) {
         queryFn: async () => {
             const acc = accountStateQuery.data.value;
             if (!acc) throw new Error('Account state is undefined');
-            const staked   = acc.stakingLocks.reduce((s, l) => s + l.amount, 0);
-            const vested   = acc.vestingLocks.reduce((s, l) => s + l.amount, 0);
-            const escrowed = acc.escrowLocks.reduce((s, l) => s + l.amount, 0);
+            const breakdown = getBalanceAvailability(acc);
             return {
-                getSpendable: () => formatCmts(acc.balance),
-                getStaked:    () => formatCmts(staked),
-                getVested:    () => formatCmts(vested + escrowed),
+                getSpendable: () => {
+                    return breakdown.getSpendable().toString(
+                        TokenUnit.TOKEN,
+                        { locale: "system", grouping: true, decimalPlaces: 2 }
+                    )
+                },
+                getStaked:    () => {
+                    return breakdown.getStaked().toString(
+                        TokenUnit.TOKEN,
+                        { locale: "system", grouping: true, decimalPlaces: 2 }
+                    )
+                },
+                getVested:    () => {
+                    return breakdown.getVested().toString(
+                        TokenUnit.TOKEN,
+                        { locale: "system", grouping: true, decimalPlaces: 2 }
+                    )
+                },
             };
         },
     });

@@ -87,6 +87,14 @@ export const useWalletStore = defineStore('wallet', () => {
         return createIndexerClient(wallet.indexer).getAccountHistory({ account_id: hexId, limit });
     }
 
+    async function fetchAccountBalances(walletId: number, accountId: Uint8Array, limit: number) {
+        const storageStore = useStorageStore();
+        const wallet = await storageStore.getWalletById(walletId);
+        if (!wallet?.indexer) throw new Error('Indexer not configured for this wallet');
+        const hexId = Utils.binaryToHexa(accountId);
+        return createIndexerClient(wallet.indexer).get({ account_id: hexId, limit });
+    }
+
     async function isAccountFoundByPublicKey(walletId: number, pk: PublicSignatureKey) {
         try {
             await getAccountIdFromPublicKey(walletId, pk);
