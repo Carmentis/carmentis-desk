@@ -126,10 +126,14 @@ function confirmDeleteUser(user: any) {
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <i class="pi pi-users text-2xl text-primary-500"></i>
-                    <span>Users</span>
+                    <span>Administrators</span>
                 </div>
                 <Button label="Add User" icon="pi pi-plus" size="small" @click="openCreateUserDialog" />
             </div>
+            <p class="text-sm text-surface-600 leading-relaxed">
+                Users listed below are the administrators of this operator. They have full access to manage the operator's resources and settings.
+                <br/>These users are not regular users: <span class="font-bold">Do not add unauthorized users, otherwise leaving control over your wallets!</span>
+            </p>
         </template>
         <template #content>
             <!-- Loading State -->
@@ -153,7 +157,7 @@ function confirmDeleteUser(user: any) {
                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-surface-100 mb-4">
                     <i class="pi pi-users text-3xl text-surface-400"></i>
                 </div>
-                <h3 class="text-lg font-medium text-surface-900 mb-2">No users found</h3>
+                <h3 class="text-lg font-medium text-surface-900 mb-2">No admin found</h3>
                 <p class="text-surface-500">No users are currently registered with this operator.</p>
             </div>
 
@@ -179,7 +183,7 @@ function confirmDeleteUser(user: any) {
                     responsiveLayout="scroll"
                     class="text-sm"
                 >
-                    <Column field="pseudo" header="User" sortable style="min-width: 200px">
+                    <Column field="pseudo" header="Admin" sortable style="min-width: 200px">
                         <template #body="slotProps">
                             <div class="flex items-center gap-3">
                                 <Avatar

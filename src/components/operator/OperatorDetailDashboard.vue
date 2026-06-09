@@ -18,7 +18,7 @@ import OperatorDetailDashboardApiKeysList from './OperatorDetailDashboardApiKeys
                 <Tab value="users">
                     <div class="flex items-center gap-2">
                         <i class="pi pi-users"></i>
-                        <span>Users</span>
+                        <span>Administrators</span>
                     </div>
                 </Tab>
 

@@ -127,6 +127,13 @@ function confirmDeleteApplication(application: any) {
                 </div>
                 <Button label="Add Application" icon="pi pi-plus" size="small" @click="openCreateApplicationDialog" />
             </div>
+
+            <p class="text-sm text-surface-600 leading-relaxed lg:w-6/12">
+                Applications listed below are applications known by the operator.
+                Note that the operator is not responsible of publishing the application and only needs to be aware of its
+                virtual blockchain identifier. This identifier is used to identify application ledgers in which
+                day-to-day operations are performed.
+            </p>
         </template>
         <template #content>
             <!-- Loading State -->

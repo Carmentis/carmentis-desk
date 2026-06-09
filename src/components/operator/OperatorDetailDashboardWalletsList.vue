@@ -178,6 +178,10 @@ function confirmDeleteWallet(wallet: any) {
                     <Button label="Add Wallet" icon="pi pi-plus" size="small" @click="openCreateWalletDialog" />
                 </div>
             </div>
+            <p class="text-sm text-surface-600 leading-relaxed">
+                Wallets listed below are wallets managed by this operator.<br/>
+                These wallets are used to derive cryptographic keys, sign transactions and pay.
+            </p>
         </template>
         <template #content>
             <!-- Loading State -->

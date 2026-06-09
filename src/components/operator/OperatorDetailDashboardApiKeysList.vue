@@ -157,6 +157,10 @@ function formatDate(dateString: string | null): string {
                 </div>
                 <Button label="Add API Key" icon="pi pi-plus" size="small" @click="openCreateApiKeyDialog" />
             </div>
+
+            <p class="text-sm text-surface-600 leading-relaxed lg:w-6/12">
+                API keys listed below should be used by your server/application to interact with the operator.
+            </p>
         </template>
         <template #content>
             <!-- Loading State -->
