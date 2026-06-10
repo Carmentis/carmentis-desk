@@ -1,3 +1,16 @@
+# [1.16.0](https://github.com/Carmentis/carmentis-desk/compare/v1.15.0...v1.16.0) (2026-06-10)
+
+
+### Bug Fixes
+
+* ensure `Copy Account ID` button checks for non-empty account ID value ([d103bfe](https://github.com/Carmentis/carmentis-desk/commit/d103bfeae2c78bbfae96989d24bee52953f6a34a))
+
+
+### Features
+
+* add "Copy Account ID" button to WalletDetail for quick ID copying ([b8410a5](https://github.com/Carmentis/carmentis-desk/commit/b8410a5f39bc0fbda6b9c84f12db1a3afcd51292))
+* add descriptions for operator detail sections (wallets, administrators, applications, API keys) ([ce6554c](https://github.com/Carmentis/carmentis-desk/commit/ce6554c3dce79bb969c6b6511184ae942c6342f6))
+
 # [1.15.0](https://github.com/Carmentis/carmentis-desk/compare/v1.14.0...v1.15.0) (2026-06-03)
 
 
