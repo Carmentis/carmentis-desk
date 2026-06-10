@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/vue-query';
 import { useWalletStore } from '../stores/walletStore.ts';
 import { type MaybeRefOrGetter, computed, ref, toValue } from 'vue';
-import {BalanceAvailability, CMTSToken, LockType, TokenUnit, Utils} from "@cmts-dev/carmentis-sdk-core";
+import {BalanceAvailability, CMTSToken, LockType, TokenUnit, Utils, Lock} from "@cmts-dev/carmentis-sdk-core";
 import {AccountDto} from "../api/indexer/model";
 
 function formatCmts(milliCmts: number): string {

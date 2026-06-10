@@ -519,7 +519,7 @@ const menuItems = computed<MenuItem[]>(() => [
                                         size="small"
                                     />
                                     <Button
-                                        v-if="!!accountIdQuery.data"
+                                        v-if="!!accountIdQuery.data && !!accountIdQuery.data.value"
                                         label="Copy Account ID"
                                         icon="pi pi-copy"
                                         size="small"
