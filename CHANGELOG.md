@@ -1,3 +1,10 @@
+# [1.17.0](https://github.com/Carmentis/carmentis-desk/compare/v1.16.0...v1.17.0) (2026-06-11)
+
+
+### Features
+
+* add network selection in CreateOrganization with support for testnet, devnet, and custom options ([c0bb8f2](https://github.com/Carmentis/carmentis-desk/commit/c0bb8f2f27da207ac2a48822006992cd189b8f8e))
+
 # [1.16.0](https://github.com/Carmentis/carmentis-desk/compare/v1.15.0...v1.16.0) (2026-06-10)
 
 
