@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import {ref, computed, watch} from 'vue';
 import { useRouter } from 'vue-router';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
@@ -13,11 +13,31 @@ import { wordlist } from '@scure/bip39/wordlists/english.js';
 const router = useRouter();
 const storageStore = useStorageStore();
 
+// Networks selection (for quick network setup)
+const networkMethod = ref<'testnet' | 'devnet' | 'custom'>('devnet');
+const networkOptions = ref([
+    { label: 'Testnet', value: 'testnet', node: 'https://ares.testnet.carmentis.io', indexer: 'https://indexer.testnet.carmentis.io' },
+    { label: 'Devnet', value: "devnet", node: 'https://node1.server1.devnet.carmentis.io', indexer: 'https://indexer.server4.devnet.carmentis.io' },
+    { label: 'Custom', value: "custom", node: '', indexer: '' }
+]);
+const isCustomNetwork = computed(() => networkMethod.value === 'custom');
+
 const organizationName = ref('');
 const seed = ref('');
 const passphrase = ref('');
-const nodeEndpoint = ref('https://ares.testnet.carmentis.io');
+const nodeEndpoint = ref('');
 const indexer = ref('');
+
+watch(networkMethod, (newMethod) => {
+    const foundMethod = networkOptions.value.find(option => option.value === newMethod);
+    if (foundMethod) {
+        nodeEndpoint.value = foundMethod.node;
+        indexer.value = foundMethod.indexer;
+    } else {
+        nodeEndpoint.value = '';
+        indexer.value = '';
+    }
+})
 
 // Method selection: 'seed' or 'passphrase'
 const creationMethod = ref<'seed' | 'passphrase'>('seed');
@@ -25,6 +45,7 @@ const methodOptions = ref([
     { label: 'Seed Phrase', value: 'seed' },
     { label: 'Passphrase', value: 'passphrase' },
 ]);
+
 
 const isGeneratingSeed = ref(false);
 const generateSeed = () => {
@@ -102,7 +123,7 @@ const goBack = () => {
         <!-- Header -->
         <div class="mb-8">
             <h1 class="text-3xl font-bold text-gray-900">Create a Wallet</h1>
-            <p class="mt-2 text-sm text-gray-600">Set up a new wallet for your organization</p>
+            <p class="mt-2 text-sm text-gray-600">Set up a new wallet</p>
         </div>
 
         <!-- Form Card -->
@@ -195,31 +216,48 @@ const goBack = () => {
                         </small>
                     </div>
 
-                    <!-- Node Endpoint -->
+                    <!-- Network Selection -->
                     <div>
-                        <label for="node-endpoint" class="block text-sm font-medium text-gray-700 mb-2">
-                            Node Endpoint
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Network Configuration
+                            <span class="text-red-500">*</span>
                         </label>
-                        <InputText
-                            id="node-endpoint"
-                            v-model="nodeEndpoint"
-                            placeholder="https://ares.testnet.carmentis.io"
+                        <SelectButton
+                            v-model="networkMethod"
+                            :options="networkOptions"
+                            optionLabel="label"
+                            optionValue="value"
                             class="w-full"
                         />
-                        <small class="text-gray-500 mt-1 block">Default: ares.testnet.carmentis.io</small>
                     </div>
 
-                    <!-- Indexer -->
-                    <div>
-                        <label for="indexer" class="block text-sm font-medium text-gray-700 mb-2">
-                            Indexer
-                        </label>
-                        <InputText
-                            id="indexer"
-                            v-model="indexer"
-                            placeholder="https://indexer.testnet.carmentis.io"
-                            class="w-full"
-                        />
+
+                    <div v-if="isCustomNetwork || true">
+                        <!-- Node Endpoint -->
+                        <div>
+                            <label for="node-endpoint" class="block text-sm font-medium text-gray-700 mb-2">
+                                Node Endpoint
+                            </label>
+                            <InputText
+                                id="node-endpoint"
+                                v-model="nodeEndpoint"
+                                placeholder="https://ares.testnet.carmentis.io"
+                                class="w-full"
+                            />
+                        </div>
+
+                        <!-- Indexer -->
+                        <div>
+                            <label for="indexer" class="block text-sm font-medium text-gray-700 mb-2">
+                                Indexer
+                            </label>
+                            <InputText
+                                id="indexer"
+                                v-model="indexer"
+                                placeholder="https://indexer.testnet.carmentis.io"
+                                class="w-full"
+                            />
+                        </div>
                     </div>
                 </div>
             </template>
