@@ -425,6 +425,7 @@ const walletIndexer = computed(() => wallet.value?.indexer);
 const { data: isOrganizationFoundOnChain, isLoading: isFetchingOrganizationFromChain } = useQuery({
     enabled: computed(() => !!organizationVbId.value && !!walletIndexer.value),
     queryKey: ['organization-on-chain', organizationVbId, walletIndexer],
+    refetchInterval: 2000,
     queryFn: async () => {
         const vbId = organizationVbId.value;
         const indexer = walletIndexer.value;

@@ -13,6 +13,7 @@ import {
 import { ref } from 'vue';
 import { JwkSignatureKeyExporter } from '../utils/jwk-signature-key-exporter.ts';
 import { createIndexerClient } from '../api/indexer/client.ts';
+import {AppControllerGetAccountHistoryParams} from "../api/indexer/model";
 
 interface WalletState {
     isLoadingAccount: boolean;
@@ -79,12 +80,12 @@ export const useWalletStore = defineStore('wallet', () => {
         return await provider.getAccountIdByPublicKey(pk);
     }
 
-    async function fetchAccountTransactionsHistory(walletId: number, accountId: Uint8Array, limit: number) {
+    async function fetchAccountTransactionsHistory(walletId: number, accountId: Uint8Array, params: AppControllerGetAccountHistoryParams) {
         const storageStore = useStorageStore();
         const wallet = await storageStore.getWalletById(walletId);
         if (!wallet?.indexer) throw new Error('Indexer not configured for this wallet');
         const hexId = Utils.binaryToHexa(accountId);
-        return createIndexerClient(wallet.indexer).getAccountHistory({ account_id: hexId, limit });
+        return createIndexerClient(wallet.indexer).getAccountHistory({ account_id: hexId, order: 'DESC', sort: 'height', ...params });
     }
 
     async function isAccountFoundByPublicKey(walletId: number, pk: PublicSignatureKey) {

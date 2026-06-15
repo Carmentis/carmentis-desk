@@ -1,11 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import Home from '../components/home/Home.vue';
-import CreateOrganization from '../components/wallet/CreateOrganization.vue';
+import CreateWallet from '../components/wallet/CreateWallet.vue';
 import WalletLayout from '../components/wallet/WalletLayout.vue';
 import WalletDetail from '../components/wallet/WalletDetail.vue';
-import OrganizationDetailNew from '../components/wallet/OrganizationDetailNew.vue';
-import NodeDetail from '../components/wallet/NodeDetail.vue';
-import ApplicationDetail from '../components/wallet/ApplicationDetail.vue';
+import Organization from '../components/wallet/Organization.vue';
+import Node from '../components/wallet/Node.vue';
+import Application from '../components/wallet/Application.vue';
 import WalletAppLedgerExplorer from '../components/wallet/WalletAppLedgerExplorer.vue';
 import WalletCredentials from '../components/wallet/WalletCredentials.vue';
 import OperatorDetail from '../components/operator/OperatorDetail.vue';
@@ -42,7 +42,7 @@ const router = createRouter({
         {
             path: '/wallet/new',
             name: 'create-organization',
-            component: CreateOrganization,
+            component: CreateWallet,
         },
         {
             path: '/operator/:operatorId',
@@ -61,17 +61,17 @@ const router = createRouter({
                 {
                     path: 'organization/:orgId',
                     name: 'organization-detail',
-                    component: OrganizationDetailNew,
+                    component: Organization,
                 },
                 {
                     path: 'organization/:orgId/node/:nodeId',
                     name: 'node-detail',
-                    component: NodeDetail,
+                    component: Node,
                 },
                 {
                     path: 'organization/:orgId/application/:appId',
                     name: 'application-detail',
-                    component: ApplicationDetail,
+                    component: Application,
                 },
                 {
                     path: 'participation/:appId',

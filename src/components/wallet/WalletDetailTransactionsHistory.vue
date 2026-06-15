@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
-import { computed } from 'vue';
+import {computed, ref} from 'vue';
 import { useAccountTransactionsHistory, useHasAccountOnChainQuery } from '../../composables/useAccountBreakdown.ts';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
@@ -8,12 +8,21 @@ import Column from 'primevue/column';
 import ProgressSpinner from 'primevue/progressspinner';
 import InputNumber from 'primevue/inputnumber';
 import Button from 'primevue/button';
+import {computedAsync} from "@vueuse/core";
 
 const route = useRoute();
-
 const walletId = computed(() => Number(route.params.walletId));
 
-const { accountHistoryQuery, limit, setLimit } = useAccountTransactionsHistory(walletId.value);
+// define the limit to use
+const limit = ref(10);
+const higherThanHeight = ref(0);
+const accountHistoryQuery = computed(() => {
+    const res = useAccountTransactionsHistory(walletId.value, {
+        limit: limit.value,
+        height_gte: higherThanHeight.value
+    });
+    return res.accountHistoryQuery
+})
 
 const hasAccount = useHasAccountOnChainQuery(walletId.value);
 
@@ -24,7 +33,7 @@ const HISTORY_TYPE_LABELS: Record<number, string> = {
 };
 
 const transactions = computed(() => {
-    const data = accountHistoryQuery.data.value;
+    const data = accountHistoryQuery.value.data.value;
     if (!data) return [];
     return data.items.map((dto) => ({
         height: dto.height,
@@ -75,9 +84,21 @@ const transactions = computed(() => {
                     <InputNumber
                         id="limit"
                         v-model="limit"
-                        @update:modelValue="setLimit"
+                        @update:modelValue="(newLimit) => (limit = newLimit)"
                         :min="1"
                         :max="20"
+                        showButtons
+                        buttonLayout="horizontal"
+                    />
+                    <Button @click="() => accountHistoryQuery.refetch()">Refetch</Button>
+                </div>
+                <div class="flex items-center gap-2 w-auto">
+                    <label for="limit" class="text-sm font-normal">From height:</label>
+                    <InputNumber
+                        id="heigher_than_height"
+                        v-model="higherThanHeight"
+                        @update:modelValue="(hth) => (higherThanHeight = hth)"
+                        :min="0"
                         showButtons
                         buttonLayout="horizontal"
                     />
@@ -86,7 +107,7 @@ const transactions = computed(() => {
             </div>
         </template>
         <template #content>
-            <DataTable :value="transactions" stripedRows>
+            <DataTable :value="transactions.reverse()" stripedRows>
                 <Column field="height" header="Height" sortable></Column>
                 <Column field="amount" header="Amount" sortable>
                     <template #body="slotProps">

@@ -2,11 +2,14 @@ import { useQuery } from '@tanstack/vue-query';
 import { useWalletStore } from '../stores/walletStore.ts';
 import { type MaybeRefOrGetter, computed, ref, toValue } from 'vue';
 import {BalanceAvailability, CMTSToken, LockType, TokenUnit, Utils, Lock} from "@cmts-dev/carmentis-sdk-core";
-import {AccountDto} from "../api/indexer/model";
+import {AccountDto, AppControllerGetAccountHistoryParams} from "../api/indexer/model";
 
 function formatCmts(milliCmts: number): string {
     return (milliCmts / 1000).toFixed(3) + ' CMTS';
 }
+
+// Refetch interval in milliseconds
+const DEFAULT_REFETCH_INTERVAL = 50000;
 
 export function useAccountIdQuery(walletId: MaybeRefOrGetter<number>) {
     const store = useWalletStore();
@@ -14,6 +17,7 @@ export function useAccountIdQuery(walletId: MaybeRefOrGetter<number>) {
         refetchOnWindowFocus: true,
         refetchOnMount: true,
         refetchOnReconnect: true,
+        refetchInterval: DEFAULT_REFETCH_INTERVAL,
         queryKey: computed(() => ['account-id', toValue(walletId)]),
         queryFn: async () => {
             const id = toValue(walletId);
@@ -38,40 +42,38 @@ export function useAccountStateQuery(walletId: MaybeRefOrGetter<number>) {
                 throw new Error('Account ID is undefined');
             }
         },
+        refetchInterval: DEFAULT_REFETCH_INTERVAL,
         refetchOnReconnect: true,
         refetchOnMount: true,
         refetchOnWindowFocus: true,
     });
 }
 
-export function useAccountTransactionsHistory(walletId: MaybeRefOrGetter<number>) {
+export function useAccountTransactionsHistory(walletId: MaybeRefOrGetter<number>, params: AppControllerGetAccountHistoryParams = {}) {
     const store = useWalletStore();
     const accountIdQuery = useAccountIdQuery(walletId);
-
-    const limit = ref(10);
 
     const enabled = computed(() => !!accountIdQuery.data.value);
     const accountHistoryQuery = useQuery({
         enabled,
+        refetchInterval: DEFAULT_REFETCH_INTERVAL,
         refetchOnWindowFocus: true,
         refetchOnMount: true,
         refetchOnReconnect: true,
-        queryKey: computed(() => ['account-transactions-history', toValue(walletId), accountIdQuery.data.value, limit.value]),
+        queryKey: computed(() => ['account-transactions-history', toValue(walletId), accountIdQuery.data.value]),
         queryFn: async () => {
             const accountId = accountIdQuery.data.value;
             if (accountId) {
-                return await store.fetchAccountTransactionsHistory(toValue(walletId), accountId, limit.value);
+                return await store.fetchAccountTransactionsHistory(toValue(walletId), accountId, params);
             } else {
                 throw new Error('Account ID is undefined');
             }
         },
     });
 
-    function setLimit(newLimit: number) {
-        limit.value = newLimit;
-    }
 
-    return { accountHistoryQuery, setLimit, limit };
+
+    return { accountHistoryQuery };
 }
 
 export function getBalanceAvailability(account: AccountDto) {
@@ -125,6 +127,7 @@ export function useAccountBreakdownQuery(walletId: MaybeRefOrGetter<number>) {
     const store = useWalletStore();
     return useQuery({
         enabled,
+        refetchInterval: DEFAULT_REFETCH_INTERVAL,
         refetchOnWindowFocus: true,
         refetchOnMount: true,
         refetchOnReconnect: true,
