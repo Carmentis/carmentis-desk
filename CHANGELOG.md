@@ -1,3 +1,11 @@
+# [1.18.0](https://github.com/Carmentis/carmentis-desk/compare/v1.17.1...v1.18.0) (2026-06-15)
+
+
+### Features
+
+* improve transaction history filtering and enhance refetch logic ([a031ef6](https://github.com/Carmentis/carmentis-desk/commit/a031ef6555313cf9222a37d3747fa9779ded91ab))
+* reduce refetch interval and enhance query options for better real-time updates ([4500751](https://github.com/Carmentis/carmentis-desk/commit/4500751e42d18609ae2bf58487f4781ad261b5a4))
+
 ## [1.17.1](https://github.com/Carmentis/carmentis-desk/compare/v1.17.0...v1.17.1) (2026-06-15)
 
 
