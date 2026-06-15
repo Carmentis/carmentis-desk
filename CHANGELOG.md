@@ -1,3 +1,10 @@
+## [1.17.1](https://github.com/Carmentis/carmentis-desk/compare/v1.17.0...v1.17.1) (2026-06-15)
+
+
+### Bug Fixes
+
+* update @cmts-dev/carmentis-sdk-core to 1.2.24 ([cf2213a](https://github.com/Carmentis/carmentis-desk/commit/cf2213a88485110f04b3df36e47d431966395121))
+
 # [1.17.0](https://github.com/Carmentis/carmentis-desk/compare/v1.16.0...v1.17.0) (2026-06-11)
 
 
