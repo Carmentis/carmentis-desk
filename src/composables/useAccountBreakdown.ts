@@ -9,7 +9,7 @@ function formatCmts(milliCmts: number): string {
 }
 
 // Refetch interval in milliseconds
-const DEFAULT_REFETCH_INTERVAL = 50000;
+const DEFAULT_REFETCH_INTERVAL = 3000;
 
 export function useAccountIdQuery(walletId: MaybeRefOrGetter<number>) {
     const store = useWalletStore();
@@ -42,6 +42,8 @@ export function useAccountStateQuery(walletId: MaybeRefOrGetter<number>) {
                 throw new Error('Account ID is undefined');
             }
         },
+        staleTime: 1000,
+        refetchIntervalInBackground: true,
         refetchInterval: DEFAULT_REFETCH_INTERVAL,
         refetchOnReconnect: true,
         refetchOnMount: true,
@@ -59,6 +61,7 @@ export function useAccountTransactionsHistory(walletId: MaybeRefOrGetter<number>
         refetchInterval: DEFAULT_REFETCH_INTERVAL,
         refetchOnWindowFocus: true,
         refetchOnMount: true,
+        staleTime: 1000,
         refetchOnReconnect: true,
         queryKey: computed(() => ['account-transactions-history', toValue(walletId), accountIdQuery.data.value]),
         queryFn: async () => {
@@ -124,9 +127,9 @@ export function getBalanceAvailability(account: AccountDto) {
 export function useAccountBreakdownQuery(walletId: MaybeRefOrGetter<number>) {
     const accountStateQuery = useAccountStateQuery(walletId);
     const enabled = computed(() => !!accountStateQuery.data.value);
-    const store = useWalletStore();
     return useQuery({
         enabled,
+        refetchIntervalInBackground: true,
         refetchInterval: DEFAULT_REFETCH_INTERVAL,
         refetchOnWindowFocus: true,
         refetchOnMount: true,
