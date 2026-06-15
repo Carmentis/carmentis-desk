@@ -3,7 +3,7 @@ import Card from 'primevue/card';
 import { useStorageStore } from '../../../../stores/storage.ts';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
-import DropdownWalletSelection from '../../../wallet/DropdownWalletSelection.vue';
+import DropdownWalletSelection from '../../../home/wallet/DropdownWalletSelection.vue';
 
 const store = useStorageStore();
 const { wallets } = storeToRefs(store);

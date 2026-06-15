@@ -15,12 +15,12 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
-import { NodeEntity, ApplicationEntity } from '../../stores/storage';
+import { NodeEntity, ApplicationEntity } from '../../../../stores/storage';
 import { useAsyncState } from '@vueuse/core';
-import * as walletRepo from '../../db/repositories/walletRepository';
-import * as orgRepo from '../../db/repositories/organizationRepository';
-import * as nodeRepo from '../../db/repositories/nodeRepository';
-import * as appRepo from '../../db/repositories/applicationRepository';
+import * as walletRepo from '../../../../db/repositories/walletRepository';
+import * as orgRepo from '../../../../db/repositories/organizationRepository';
+import * as nodeRepo from '../../../../db/repositories/nodeRepository';
+import * as appRepo from '../../../../db/repositories/applicationRepository';
 import { computedAsync } from '@vueuse/core';
 import {
     CarmentisError,
@@ -35,14 +35,14 @@ import {
     Utils,
     WalletCrypto,
 } from '@cmts-dev/carmentis-sdk-core';
-import { createIndexerClient } from '../../api/indexer/client.ts';
+import { createIndexerClient } from '../../../../api/indexer/client.ts';
 import { useToast } from 'primevue/usetoast';
-import { useOnChainStore } from '../../stores/onchain.ts';
-import { useSessionStore } from '../../stores/sessionStore.ts';
+import { useOnChainStore } from '../../../../stores/onchain.ts';
+import { useSessionStore } from '../../../../stores/sessionStore.ts';
 import { storeToRefs } from 'pinia';
 import { Tendermint37Client } from '@cosmjs/tendermint-rpc';
 import { useQuery } from '@tanstack/vue-query';
-import { useHasAccountOnChainQuery } from '../../composables/useAccountBreakdown.ts';
+import { useHasAccountOnChainQuery } from '../../../../composables/useAccountBreakdown.ts';
 
 const toast = useToast();
 const route = useRoute();

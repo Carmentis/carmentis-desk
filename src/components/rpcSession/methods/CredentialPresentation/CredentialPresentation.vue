@@ -2,7 +2,7 @@
 import { WalletSdJwtSigner } from '../../../../utils/WalletSdJwtSigner.ts';
 import { computed, ref, watch } from 'vue';
 import type { CredentialPresentation } from './CredentialPresentationRequestType.ts';
-import DropdownWalletSelection from '../../../wallet/DropdownWalletSelection.vue';
+import DropdownWalletSelection from '../../../home/wallet/DropdownWalletSelection.vue';
 import { useStorageStore } from '../../../../stores/storage.ts';
 import { storeToRefs } from 'pinia';
 import { useAsyncState } from '@vueuse/core';

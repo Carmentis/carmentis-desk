@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Dropdown from 'primevue/dropdown';
-import type { WalletStub } from '../../stores/storage.ts';
+import type { WalletStub } from '../../../stores/storage.ts';
 import { ref } from 'vue';
 
 const props = defineProps<{

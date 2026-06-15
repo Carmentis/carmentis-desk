@@ -3,11 +3,11 @@ import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
-import { useStorageStore } from '../../stores/storage.ts';
+import { useStorageStore } from '../../../stores/storage.ts';
 import { useConfirm } from 'primevue/useconfirm';
-import { useIsOperatorInitialized } from '../../composables/operator.ts';
+import { useIsOperatorInitialized } from '../../../composables/operator.ts';
 import OperatorDetailSetup from './OperatorDetailSetup.vue';
-import { useOperatorAuthStore } from '../../stores/operatorAuthStore.ts';
+import { useOperatorAuthStore } from '../../../stores/operatorAuthStore.ts';
 import OperatorDetailLogin from './OperatorDetailLogin.vue';
 import OperatorDetailDashboard from './OperatorDetailDashboard.vue';
 

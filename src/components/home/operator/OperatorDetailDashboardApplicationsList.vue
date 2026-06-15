@@ -6,7 +6,7 @@ import {
     useCreateApplicationMutation,
     useDeleteApplicationMutation,
     useGetAllWallets,
-} from '../../composables/operator.ts';
+} from '../../../composables/operator.ts';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { useStorageStore, type WalletStub } from '../../stores/storage.ts';
-import { useSessionStore } from '../../stores/sessionStore.ts';
+import { useStorageStore, type WalletStub } from '../../../stores/storage.ts';
+import { useSessionStore } from '../../../stores/sessionStore.ts';
 import { computed, ref, watch } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useRoute } from 'vue-router';
-import { useGetChallenge, useLoginMutation } from '../../composables/operator.ts';
+import { useGetChallenge, useLoginMutation } from '../../../composables/operator.ts';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Dropdown from 'primevue/dropdown';
@@ -15,7 +15,7 @@ import {
     SignatureSchemeId,
     WalletCrypto,
 } from '@cmts-dev/carmentis-sdk-core';
-import { useOperatorAuthStore } from '../../stores/operatorAuthStore.ts';
+import { useOperatorAuthStore } from '../../../stores/operatorAuthStore.ts';
 
 const { wallets } = useStorageStore();
 const sessionStore = useSessionStore();

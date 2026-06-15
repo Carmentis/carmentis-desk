@@ -22,14 +22,14 @@ import {
     SeedEncoder,
     WalletCrypto,
 } from '@cmts-dev/carmentis-sdk-core';
-import {AppLedgerParticipation, ApplicationParticipation} from '../../stores/storage.ts';
+import {AppLedgerParticipation, ApplicationParticipation} from '../../../../stores/storage.ts';
 import { useAsyncState, computedAsync } from '@vueuse/core';
-import * as walletRepo from '../../db/repositories/walletRepository';
-import * as participationRepo from '../../db/repositories/participationRepository';
-import VirtualBlockchainRecordNavigator from '../rpcSession/VirtualBlockchainRecordNavigator.vue';
-import ExportProofButton from '../checker/ExportProofButton.vue';
+import * as walletRepo from '../../../../db/repositories/walletRepository';
+import * as participationRepo from '../../../../db/repositories/participationRepository';
+import VirtualBlockchainRecordNavigator from '../../../rpcSession/VirtualBlockchainRecordNavigator.vue';
+import ExportProofButton from '../../../checker/ExportProofButton.vue';
 import {useToast} from 'primevue/usetoast';
-import { useSessionStore } from '../../stores/sessionStore.ts';
+import { useSessionStore } from '../../../../stores/sessionStore.ts';
 
 const route = useRoute();
 const router = useRouter();

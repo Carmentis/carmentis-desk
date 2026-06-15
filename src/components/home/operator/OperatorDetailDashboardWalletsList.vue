@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
 import { computed, ref } from 'vue';
-import { useGetAllWallets, useCreateWalletMutation, useDeleteWalletMutation } from '../../composables/operator.ts';
-import { useStorageStore, type WalletStub } from '../../stores/storage.ts';
-import { useSessionStore } from '../../stores/sessionStore.ts';
+import { useGetAllWallets, useCreateWalletMutation, useDeleteWalletMutation } from '../../../composables/operator.ts';
+import { useStorageStore, type WalletStub } from '../../../stores/storage.ts';
+import { useSessionStore } from '../../../stores/sessionStore.ts';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';

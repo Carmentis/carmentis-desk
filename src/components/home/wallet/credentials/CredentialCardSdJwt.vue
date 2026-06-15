@@ -4,9 +4,9 @@ import { computedAsync } from '@vueuse/core';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
-import type { CredentialEntity } from '../../stores/storage';
-import { parseSdJwt } from '../../composables/credentials/useCredentialType';
-import SdJwtPresentationDialog from './SdJwtPresentationDialog.vue';
+import type { CredentialEntity } from '../../../../stores/storage';
+import { parseSdJwt } from '../../../../composables/credentials/useCredentialType';
+import SdJwtPresentationDialog from '../../../credentials/SdJwtPresentationDialog.vue';
 
 const props = defineProps<{
     credential: CredentialEntity;

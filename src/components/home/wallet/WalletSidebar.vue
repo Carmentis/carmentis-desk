@@ -3,11 +3,11 @@ import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Card from 'primevue/card';
 import { useAsyncState } from '@vueuse/core';
-import * as walletRepo from '../../db/repositories/walletRepository';
-import * as orgRepo from '../../db/repositories/organizationRepository';
-import * as nodeRepo from '../../db/repositories/nodeRepository';
-import * as appRepo from '../../db/repositories/applicationRepository';
-import type { OrganizationEntity } from '../../stores/storage';
+import * as walletRepo from '../../../db/repositories/walletRepository';
+import * as orgRepo from '../../../db/repositories/organizationRepository';
+import * as nodeRepo from '../../../db/repositories/nodeRepository';
+import * as appRepo from '../../../db/repositories/applicationRepository';
+import type { OrganizationEntity } from '../../../stores/storage';
 
 const props = defineProps<{
     walletId: number;

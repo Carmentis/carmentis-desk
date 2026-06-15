@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
 import { computed, ref } from 'vue';
-import { useGetAllUsers, useCreateUserMutation, useDeleteUserMutation } from '../../composables/operator.ts';
+import { useGetAllUsers, useCreateUserMutation, useDeleteUserMutation } from '../../../composables/operator.ts';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';

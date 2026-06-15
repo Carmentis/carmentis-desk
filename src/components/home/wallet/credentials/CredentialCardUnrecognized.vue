@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
-import type { CredentialEntity } from '../../stores/storage';
+import type { CredentialEntity } from '../../../../stores/storage';
 
 const props = defineProps<{
     credential: CredentialEntity;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { CredentialEntity } from '../../stores/storage';
-import { detectCredentialType } from '../../composables/credentials/useCredentialType';
+import type { CredentialEntity } from '../../../../stores/storage';
+import { detectCredentialType } from '../../../../composables/credentials/useCredentialType';
 import CredentialCardUnrecognized from './CredentialCardUnrecognized.vue';
 import CredentialCardSdJwt from './CredentialCardSdJwt.vue';
 
