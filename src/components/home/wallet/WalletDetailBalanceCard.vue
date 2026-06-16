@@ -31,81 +31,16 @@ import Message from "primevue/message";
 import Dialog from "primevue/dialog";
 import WalletDetailTransactionsHistoryDialog
     from "./components/transactionsHistory/WalletDetailTransactionsHistoryDialog.vue";
+import WalletDetailTokenTransferDialog from "./WalletDetailTokenTransferDialog.vue";
 
-const toast = useToast();
 const route = useRoute();
 const clipboard = useClipboard();
-const onChainStore = useOnChainStore();
 const walletId = computed(() => Number(route.params.walletId));
 
 const accountIdQuery = useAccountIdQuery(walletId.value);
-const accountStateQuery = useAccountStateQuery(walletId.value);
 const breakdownQuery = useAccountBreakdownQuery(walletId.value);
 
-
-const { state: wallet } = useAsyncState(
-    () => walletRepo.getWalletById(walletId.value),
-    null,
-    { immediate: true },
-);
-
-
-// transfer dialog
-const walletStore = useWalletStore();
-const isCreatingNewAccount = ref<boolean | undefined>(undefined);
-const showTransferDialog = ref(false);
-const transferPublicKey = ref('');
-const transferAmount = ref('');
-watch(transferPublicKey, async () => {
-    try {
-        // attempt to parse the public key
-        const encoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
-        const pk = await encoder.decodePublicKey(transferPublicKey.value);
-        isCreatingNewAccount.value = !(await walletStore.isAccountFoundByPublicKey(walletId.value, pk));
-    } catch (e) {
-        isCreatingNewAccount.value = undefined;
-    }
-});
-
-function openTransferDialog() {
-    transferPublicKey.value = '';
-    transferAmount.value = '';
-    showTransferDialog.value = true;
-}
-
-async function submitTransferDialog() {
-    if (!transferPublicKey.value) {
-        toast.add({
-            severity: 'error',
-            summary: 'Validation error',
-            detail: 'Public key is required',
-            life: 3000,
-        });
-        return;
-    }
-    if (!transferAmount.value || Number(transferAmount.value) <= 0) {
-        toast.add({
-            severity: 'error',
-            summary: 'Validation error',
-            detail: 'Valid amount is required',
-            life: 3000,
-        });
-        return;
-    }
-
-    try {
-        const amount = CMTSToken.createCMTS(Number(transferAmount.value));
-        await onChainStore.transferTokens({
-            walletId: walletId.value,
-            recipientPublicKey: transferPublicKey.value,
-            amount: amount,
-        });
-        showTransferDialog.value = false;
-    } catch (e) {
-        console.error('Transfer failed:', e);
-    }
-}
-
+const showTokenTransferDialog = ref(false);
 const showAccountTransactionsHistory = ref(false);
 </script>
 <template>
@@ -177,7 +112,7 @@ const showAccountTransactionsHistory = ref(false);
                                         {{ new Date(breakdownQuery.dataUpdatedAt.value).toLocaleString() }}
                                     </span>
                     <Button
-                        @click="openTransferDialog"
+                        @click="showTokenTransferDialog = true"
                         label="Transfer"
                         icon="pi pi-send"
                         size="small"
@@ -232,51 +167,7 @@ const showAccountTransactionsHistory = ref(false);
         </template>
     </Card>
 
-
-    <!-- Transfer Dialog -->
-    <Dialog v-model:visible="showTransferDialog" header="Transfer Tokens" modal class="w-full max-w-md">
-        <div class="space-y-4">
-            <div v-if="isCreatingNewAccount === true">
-                <Message>You are creating a new account</Message>
-            </div>
-            <div v-if="isCreatingNewAccount === false">
-                <Message>The account has been found online.</Message>
-            </div>
-            <div>
-                <label for="transfer-public-key" class="block text-sm font-medium text-gray-700 mb-2">
-                    Recipient Public Key
-                    <span class="text-red-500">*</span>
-                </label>
-                <InputText
-                    id="transfer-public-key"
-                    v-model="transferPublicKey"
-                    placeholder="Enter recipient public key"
-                    class="w-full"
-                />
-            </div>
-            <div>
-                <label for="transfer-amount" class="block text-sm font-medium text-gray-700 mb-2">
-                    Amount
-                    <span class="text-red-500">*</span>
-                </label>
-                <InputText
-                    id="transfer-amount"
-                    v-model="transferAmount"
-                    type="number"
-                    placeholder="Enter amount"
-                    class="w-full"
-                />
-            </div>
-        </div>
-        <template #footer>
-            <div class="flex justify-end gap-2">
-                <Button label="Cancel" @click="showTransferDialog = false" severity="secondary" outlined />
-                <Button label="Transfer" @click="submitTransferDialog" icon="pi pi-send" />
-            </div>
-        </template>
-    </Dialog>
-
-
     <!-- dialogs -->
+    <WalletDetailTokenTransferDialog v-model:isOpen="showTokenTransferDialog" />
     <WalletDetailTransactionsHistoryDialog v-model:is-open="showAccountTransactionsHistory" />
 </template>
