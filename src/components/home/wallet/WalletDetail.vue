@@ -106,20 +106,20 @@ const menuItems = computed<MenuItem[]>(() => [
                 <MenuBar :model="menuItems"></MenuBar>
                 <WalletDetailSync/>
 
-                <!-- Wallet Keys and Balance Cards Side-by-Side -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <WalletDetailKeysCard/>
-                    <WalletDetailBalanceCard/>
-                </div>
-
-
-
                 <Tabs value="0">
                     <TabList>
+                        <Tab value="-1">Keys</Tab>
+                        <Tab value="-2">Balance</Tab>
                         <Tab value="0">Organizations</Tab>
                         <Tab value="1">Application ledgers</Tab>
                     </TabList>
                     <TabPanels>
+                        <TabPanel value="-1">
+                            <WalletDetailKeysCard/>
+                        </TabPanel>
+                        <TabPanel value="-2">
+                            <WalletDetailBalanceCard/>
+                        </TabPanel>
                         <TabPanel value="0">
                             <WalletDetailOrganizationsCard/>
                         </TabPanel>
