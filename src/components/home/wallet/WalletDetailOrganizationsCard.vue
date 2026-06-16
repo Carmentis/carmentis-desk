@@ -8,6 +8,8 @@ import {useRoute, useRouter} from "vue-router";
 import {useToast} from "primevue/usetoast";
 import InputText from "primevue/inputtext";
 import Dialog from "primevue/dialog";
+import DataTable from "primevue/datatable";
+import Column from "primevue/column";
 
 const toast = useToast();
 const router = useRouter();
@@ -160,7 +162,22 @@ function visitOrganization(orgId: number) {
                 </div>
             </div>
             <div v-else class="space-y-3">
-                <div
+                <DataTable
+                    :value="organizations"
+                    stripedRows
+                    showGridlines
+                    :paginator="organizations.length > 10"
+                    :rows="10"
+                    :rowsPerPageOptions="[5, 10, 20, 50]"
+                    responsiveLayout="scroll"
+                    class="text-sm hover:cursor-pointer"
+                    @rowClick="(row: { data: { id: number; }; }) => visitOrganization(row.data.id)"
+                >
+                    <Column field="name" header="name" sortable style="min-width: 150px"></Column>
+                    <Column field="vbId" header="ID" sortable style="min-width: 150px"/>
+                </DataTable>
+
+                <!--div
                     v-for="org in organizations"
                     :key="org.id"
                     class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
@@ -187,7 +204,7 @@ function visitOrganization(orgId: number) {
                         </div>
                         <i class="pi pi-chevron-right text-gray-400"></i>
                     </div>
-                </div>
+                </div-->
             </div>
         </template>
     </Card>
