@@ -16,54 +16,16 @@ const toast = useToast();
 const router = useRouter();
 const route = useRoute();
 
+const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnChain');
 const openCreateAppDialog = ref(false);
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
-
-const { state: wallet } = useAsyncState(
-    () => walletRepo.getWalletById(walletId.value),
-    null,
-    { immediate: true },
-);
-
-
-const { state: organization } = useAsyncState(
-    () => orgRepo.getOrganizationById(orgId.value),
-    null,
-    { immediate: true },
-);
-
 
 const { state: applications, execute: fetchApplications } = useAsyncState(
     () => appRepo.getApplicationsByOrgId(orgId.value),
     [] as ApplicationEntity[],
     { immediate: true },
 );
-
-
-const walletIndexer = computed(() => wallet.value?.indexer);
-
-const organizationVbId = computed(() =>
-    typeof organization.value?.vbId === 'string' ? organization.value.vbId : undefined,
-);
-
-const { data: isOrganizationFoundOnChain, isLoading: isFetchingOrganizationFromChain } = useQuery({
-    enabled: computed(() => !!organizationVbId.value && !!walletIndexer.value),
-    queryKey: ['organization-on-chain', organizationVbId, walletIndexer],
-    refetchInterval: 2000,
-    queryFn: async () => {
-        const vbId = organizationVbId.value;
-        const indexer = walletIndexer.value;
-        if (!vbId || !indexer) return false;
-        try {
-            const result = await createIndexerClient(indexer).getOrganizations({ vb_id: vbId });
-            return result.items.length > 0;
-        } catch (e) {
-            console.error(`Organization not found online: ${e}`);
-            return false;
-        }
-    },
-});
 
 
 async function deleteApplication(appId: number) {
@@ -81,7 +43,6 @@ function visitApplication(appId: number) {
     router.push(`/wallet/${walletId.value}/organization/${orgId.value}/application/${appId}`);
 }
 
-const showAppCreationDialog = ref(false);
 </script>
 <template>
     <div
