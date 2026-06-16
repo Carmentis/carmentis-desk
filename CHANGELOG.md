@@ -1,3 +1,18 @@
+# [1.19.0](https://github.com/Carmentis/carmentis-desk/compare/v1.18.0...v1.19.0) (2026-06-16)
+
+
+### Features
+
+* add `Transaction` class and enhance transaction history features ([32240d2](https://github.com/Carmentis/carmentis-desk/commit/32240d29e86042517ce8a692b12eca17e1546fbc))
+* add `useClipboard` composable and refactor clipboard functionality ([d21bbb7](https://github.com/Carmentis/carmentis-desk/commit/d21bbb72d0138d1a88405974cfbccd4e81c6e765))
+* add empty state message for application ledger participations card ([a8e244e](https://github.com/Carmentis/carmentis-desk/commit/a8e244eb0db6009dccafcf300ea1e29fede659a7))
+* add escrowed balance display to wallet breakdown ([cf92098](https://github.com/Carmentis/carmentis-desk/commit/cf920980fc7186d863acd46fcca231442d3e96df))
+* extract and modularize token transfer dialog ([e92e4d2](https://github.com/Carmentis/carmentis-desk/commit/e92e4d28ef82015b54c15e4b7d40f1537f5f0f93))
+* improve transaction history UI and refetch behavior ([6586d88](https://github.com/Carmentis/carmentis-desk/commit/6586d889b5a9f2f31a534be0e38ddd5bf168fda5))
+* modularize wallet keys card and refactor related logic ([c63809f](https://github.com/Carmentis/carmentis-desk/commit/c63809fbd30010a77f5b203ef3b723ffeee80293))
+* modularize wallet organizations and participations into separate components ([9961c72](https://github.com/Carmentis/carmentis-desk/commit/9961c72f1c14034117594e750846c2bafa485a59))
+* transactions history in dialog ([d17308f](https://github.com/Carmentis/carmentis-desk/commit/d17308fb45a3f43c6a853c3a6974a465bd6f1d6f))
+
 # [1.18.0](https://github.com/Carmentis/carmentis-desk/compare/v1.17.1...v1.18.0) (2026-06-15)
 
 
