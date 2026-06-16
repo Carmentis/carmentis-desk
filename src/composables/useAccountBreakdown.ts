@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/vue-query';
 import { useWalletStore } from '../stores/walletStore.ts';
-import { type MaybeRefOrGetter, computed, ref, toValue } from 'vue';
+import {type MaybeRefOrGetter, computed, ref, toValue, Ref} from 'vue';
 import {BalanceAvailability, CMTSToken, LockType, TokenUnit, Utils, Lock} from "@cmts-dev/carmentis-sdk-core";
 import {AccountDto, AppControllerGetAccountHistoryParams} from "../api/indexer/model";
 
@@ -51,7 +51,7 @@ export function useAccountStateQuery(walletId: MaybeRefOrGetter<number>) {
     });
 }
 
-export function useAccountTransactionsHistory(walletId: MaybeRefOrGetter<number>, params: AppControllerGetAccountHistoryParams = {}) {
+export function useAccountTransactionsHistory(walletId: MaybeRefOrGetter<number>, fromHeight: Ref<number>, nbLimit: Ref<number>) {
     const store = useWalletStore();
     const accountIdQuery = useAccountIdQuery(walletId);
 
@@ -59,15 +59,24 @@ export function useAccountTransactionsHistory(walletId: MaybeRefOrGetter<number>
     const accountHistoryQuery = useQuery({
         enabled,
         refetchInterval: DEFAULT_REFETCH_INTERVAL,
+        refetchIntervalInBackground: true,
         refetchOnWindowFocus: true,
         refetchOnMount: true,
-        staleTime: 1000,
         refetchOnReconnect: true,
-        queryKey: computed(() => ['account-transactions-history', toValue(walletId), accountIdQuery.data.value]),
+        queryKey: computed(() => [
+            'account-transactions-history',
+            toValue(walletId),
+            accountIdQuery.data.value,
+            fromHeight,
+            nbLimit
+        ]),
         queryFn: async () => {
             const accountId = accountIdQuery.data.value;
             if (accountId) {
-                return await store.fetchAccountTransactionsHistory(toValue(walletId), accountId, params);
+                return await store.fetchAccountTransactionsHistory(toValue(walletId), accountId, {
+                    height_gte: fromHeight.value,
+                    limit: nbLimit.value,
+                });
             } else {
                 throw new Error('Account ID is undefined');
             }

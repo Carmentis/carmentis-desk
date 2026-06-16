@@ -30,7 +30,7 @@ import {
     useAccountStateQuery,
     useAccountTransactionsHistory,
 } from '../../../composables/useAccountBreakdown.ts';
-import WalletDetailTransactionsHistory from './WalletDetailTransactionsHistory.vue';
+import WalletDetailTransactionsHistory from './components/transactionsHistory/WalletDetailTransactionsHistory.vue';
 import WalletDetailAppParticipationCard from './WalletDetailAppParticipationCard.vue';
 import { useWalletStore } from '../../../stores/walletStore.ts';
 import Message from 'primevue/message';
@@ -313,7 +313,6 @@ async function copyToClipboard(text: string | undefined, label: string) {
 const accountIdQuery = useAccountIdQuery(walletId.value);
 const accountStateQuery = useAccountStateQuery(walletId.value);
 const breakdownQuery = useAccountBreakdownQuery(walletId.value);
-const { accountHistoryQuery } = useAccountTransactionsHistory(walletId.value);
 
 watch(walletId, () => {
     accountStateQuery.refetch()
@@ -323,7 +322,6 @@ watch(walletId, () => {
 async function refetchWallet() {
     await accountStateQuery.refetch();
     await breakdownQuery.refetch();
-    await accountHistoryQuery.refetch();
 }
 
 function refetchBreakdown() {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
 import {computed, ref} from 'vue';
-import { useAccountTransactionsHistory, useHasAccountOnChainQuery } from '../../../composables/useAccountBreakdown.ts';
+import { useAccountTransactionsHistory, useHasAccountOnChainQuery } from '../../../../../composables/useAccountBreakdown.ts';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -9,18 +9,16 @@ import ProgressSpinner from 'primevue/progressspinner';
 import InputNumber from 'primevue/inputnumber';
 import Button from 'primevue/button';
 import {computedAsync} from "@vueuse/core";
+import {Transaction} from "./Transaction.ts";
 
 const route = useRoute();
 const walletId = computed(() => Number(route.params.walletId));
 
 // define the limit to use
-const limit = ref(10);
+const limit = ref(5);
 const higherThanHeight = ref(0);
 const accountHistoryQuery = computed(() => {
-    const res = useAccountTransactionsHistory(walletId.value, {
-        limit: limit.value,
-        height_gte: higherThanHeight.value
-    });
+    const res = useAccountTransactionsHistory(walletId.value, higherThanHeight, limit);
     return res.accountHistoryQuery
 })
 
@@ -35,17 +33,21 @@ const HISTORY_TYPE_LABELS: Record<number, string> = {
 const transactions = computed(() => {
     const data = accountHistoryQuery.value.data.value;
     if (!data) return [];
-    return data.items.map((dto) => ({
-        height: dto.height,
-        amount: dto.amount,
-        transferredAt: new Date(dto.timestamp * 1000).toLocaleString(),
-        type: HISTORY_TYPE_LABELS[dto.type] ?? String(dto.type),
-        linkedAccount: dto.linkedAccountId.endsWith('000000000000000000000000000000002')
-            ? 'Fees Account'
-            : dto.linkedAccountId,
-        isNegative: dto.amount < 0,
-        isZero: dto.amount === 0,
-    }));
+    return data.items.map((dto) => {
+        const transaction = new Transaction(dto);
+        const amount = transaction.getAmount();
+        return {
+            height: transaction.getHeight(),
+            amount: transaction.getAmount().toString(),
+            transferredAt: transaction.transferredAt().toLocaleString(),
+            type: transaction.getTransactionTypeLabel(),
+            linkedAccount: dto.linkedAccountId.endsWith('000000000000000000000000000000002')
+                ? 'Fees Account'
+                : dto.linkedAccountId,
+            isNegative: amount.isNegative(),
+            isZero: amount.isZero(),
+        }
+    });
 });
 </script>
 
@@ -79,7 +81,13 @@ const transactions = computed(() => {
                     <i class="pi pi-calendar" />
                     <span>Transaction History</span>
                 </div>
-                <div class="flex items-center gap-2 w-auto">
+
+                <Button @click="() => accountHistoryQuery.refetch()">Refetch</Button>
+            </div>
+        </template>
+        <template #content>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="flex flex-col items-start gap-2 w-auto">
                     <label for="limit" class="text-sm font-normal">Limit:</label>
                     <InputNumber
                         id="limit"
@@ -90,9 +98,8 @@ const transactions = computed(() => {
                         showButtons
                         buttonLayout="horizontal"
                     />
-                    <Button @click="() => accountHistoryQuery.refetch()">Refetch</Button>
                 </div>
-                <div class="flex items-center gap-2 w-auto">
+                <div class="flex flex-col items-start gap-2 w-auto">
                     <label for="limit" class="text-sm font-normal">From height:</label>
                     <InputNumber
                         id="heigher_than_height"
@@ -102,12 +109,9 @@ const transactions = computed(() => {
                         showButtons
                         buttonLayout="horizontal"
                     />
-                    <Button @click="() => accountHistoryQuery.refetch()">Refetch</Button>
                 </div>
             </div>
-        </template>
-        <template #content>
-            <DataTable :value="transactions.reverse()" stripedRows>
+            <DataTable :value="transactions" stripedRows>
                 <Column field="height" header="Height" sortable></Column>
                 <Column field="amount" header="Amount" sortable>
                     <template #body="slotProps">
