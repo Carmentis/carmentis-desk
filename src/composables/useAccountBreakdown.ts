@@ -167,6 +167,12 @@ export function useAccountBreakdownQuery(walletId: MaybeRefOrGetter<number>) {
                         { locale: "system", grouping: true, decimalPlaces: 2 }
                     )
                 },
+                getEscrowed: () => {
+                    return breakdown.getEscrowed().toString(
+                        TokenUnit.TOKEN,
+                        { locale: "system", grouping: true, decimalPlaces: 2 }
+                    )
+                },
             };
         },
     });

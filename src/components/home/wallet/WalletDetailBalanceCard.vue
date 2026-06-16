@@ -152,17 +152,28 @@ const showAccountTransactionsHistory = ref(false);
                     </div>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-4">
-                    <div class="text-sm text-gray-600 font-medium mb-1">Vested</div>
-                    <div class="text-2xl font-bold text-gray-900">
-                        {{ breakdownQuery.data.value.getVested() }}
-                    </div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4">
                     <div class="text-sm text-gray-600 font-medium mb-1">Staked</div>
                     <div class="text-2xl font-bold text-gray-900">
                         {{ breakdownQuery.data.value.getStaked() }}
                     </div>
                 </div>
+                <div class="flex gap-4">
+                    <div class="bg-gray-50 rounded-lg p-4 w-1/2">
+                        <div class="text-sm text-gray-600 font-medium mb-1">Vested</div>
+                        <div class="text-2xl font-bold text-gray-900">
+                            {{ breakdownQuery.data.value.getVested() }}
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 w-1/2">
+                        <div class="text-sm text-gray-600 font-medium mb-1">Escrowed</div>
+                        <div class="text-2xl font-bold text-gray-900">
+                            {{ breakdownQuery.data.value.getEscrowed() }}
+                        </div>
+                    </div>
+                </div>
+
+
+
             </div>
         </template>
     </Card>
