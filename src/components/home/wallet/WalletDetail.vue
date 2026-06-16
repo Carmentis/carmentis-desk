@@ -1,43 +1,24 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import {computed, ref, watch} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
-import SplitButton from 'primevue/splitbutton';
-import { useStorageStore, type OrganizationEntity as OrgEntity, type ApplicationParticipation } from '../../../stores/storage';
-import { useSessionStore } from '../../../stores/sessionStore.ts';
-import {useAsyncState, computedAsync} from '@vueuse/core';
+import {type ApplicationParticipation, useStorageStore} from '../../../stores/storage';
+import {useSessionStore} from '../../../stores/sessionStore.ts';
+import {useAsyncState} from '@vueuse/core';
 import * as walletRepo from '../../../db/repositories/walletRepository';
 import * as orgRepo from '../../../db/repositories/organizationRepository';
 import * as participationRepo from '../../../db/repositories/participationRepository';
-import { useOnChainStore } from '../../../stores/onchain';
+import {useOnChainStore} from '../../../stores/onchain';
 
 import MenuBar from 'primevue/menubar';
-import {
-    CryptoEncoderFactory,
-    SeedEncoder,
-    SignatureSchemeId,
-    WalletCrypto,
-    CMTSToken, Utils, EncoderFactory,
-} from '@cmts-dev/carmentis-sdk-core';
-import Password from 'primevue/password';
-import { useToast } from 'primevue/usetoast';
-import {
-    useAccountBreakdownQuery,
-    useAccountIdQuery,
-    useAccountStateQuery,
-    useAccountTransactionsHistory,
-} from '../../../composables/useAccountBreakdown.ts';
-import WalletDetailTransactionsHistoryDialog from './components/transactionsHistory/WalletDetailTransactionsHistoryDialog.vue';
+import {useToast} from 'primevue/usetoast';
+import {useAccountBreakdownQuery, useAccountStateQuery,} from '../../../composables/useAccountBreakdown.ts';
 import WalletDetailAppParticipationCard from './WalletDetailAppParticipationCard.vue';
-import { useWalletStore } from '../../../stores/walletStore.ts';
-import Message from 'primevue/message';
-import { useConfirm } from 'primevue/useconfirm';
-import type { MenuItem } from 'primevue/menuitem';
-import {createIndexerClient} from "../../../api/indexer/client.ts";
-import {getAppControllerGetOrganizationsUrl} from "../../../api/indexer/indexer.ts";
+import {useConfirm} from 'primevue/useconfirm';
+import type {MenuItem} from 'primevue/menuitem';
 import WalletDetailSync from "./WalletDetailSync.vue";
 import {useClipboard} from "../../../composables/useClipboard.ts";
 import WalletDetailBalanceCard from "./WalletDetailBalanceCard.vue";
