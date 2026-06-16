@@ -43,6 +43,8 @@ import { storeToRefs } from 'pinia';
 import { Tendermint37Client } from '@cosmjs/tendermint-rpc';
 import { useQuery } from '@tanstack/vue-query';
 import { useHasAccountOnChainQuery } from '../../../../composables/useAccountBreakdown.ts';
+import OrganizationApplicationCreationDialog from "./OrganizationApplicationCreationDialog.vue";
+import OrganizationDeletionDialog from "./OrganizationDeletionDialog.vue";
 
 const toast = useToast();
 const route = useRoute();
@@ -331,17 +333,6 @@ const showPublishConfirmDialog = ref(false);
 // Delete confirmation dialog
 const showDeleteConfirmDialog = ref(false);
 
-async function confirmDeleteOrganization() {
-    showDeleteConfirmDialog.value = false;
-    await orgRepo.deleteOrganizationById(orgId.value);
-    toast.add({
-        severity: 'success',
-        summary: 'Organization deleted',
-        detail: 'Organization deleted successfully',
-        life: 3000,
-    });
-    goBack();
-}
 
 // Initialize form values when organization loads
 function initializeForm() {
@@ -442,6 +433,9 @@ const { data: isOrganizationFoundOnChain, isLoading: isFetchingOrganizationFromC
 
 // Application management
 const showAppDialog = ref(false);
+const showDeletionDialog = ref(false);
+
+
 const appDialogMode = ref<'create' | 'import'>('create');
 const appName = ref('');
 const appDescription = ref('');
@@ -457,69 +451,6 @@ function openCreateAppDialog() {
     showAppDialog.value = true;
 }
 
-function openImportAppDialog() {
-    appDialogMode.value = 'import';
-    appName.value = '';
-    appDescription.value = '';
-    appWebsite.value = '';
-    appVbId.value = '';
-    showAppDialog.value = true;
-}
-
-async function submitAppDialog() {
-    if (appDialogMode.value === 'create') {
-        if (!appName.value) {
-            toast.add({
-                severity: 'error',
-                summary: 'Validation error',
-                detail: 'Application name is required',
-                life: 3000,
-            });
-            return;
-        }
-        await appRepo.insertApplication(orgId.value, {
-            name: appName.value,
-        });
-        await fetchApplications();
-        toast.add({
-            severity: 'success',
-            summary: 'Application created',
-            detail: `Application "${appName.value}" created successfully`,
-            life: 3000,
-        });
-    } else {
-        if (!appVbId.value) {
-            toast.add({
-                severity: 'error',
-                summary: 'Validation error',
-                detail: 'VB ID is required for import',
-                life: 3000,
-            });
-            return;
-        }
-        if (!appName.value) {
-            toast.add({
-                severity: 'error',
-                summary: 'Validation error',
-                detail: 'Application name is required for import',
-                life: 3000,
-            });
-            return;
-        }
-        await appRepo.insertApplication(orgId.value, {
-            name: appName.value,
-            vbId: appVbId.value,
-        });
-        await fetchApplications();
-        toast.add({
-            severity: 'success',
-            summary: 'Application imported',
-            detail: 'Application imported successfully',
-            life: 3000,
-        });
-    }
-    showAppDialog.value = false;
-}
 
 async function deleteApplication(appId: number) {
     await appRepo.deleteApplicationById(appId);
@@ -796,13 +727,6 @@ const items = [
                                                         icon="pi pi-plus"
                                                         size="small"
                                                     />
-                                                    <Button
-                                                        @click="openImportAppDialog"
-                                                        label="Import App"
-                                                        icon="pi pi-download"
-                                                        size="small"
-                                                        outlined
-                                                    />
                                                 </div>
                                             </div>
 
@@ -821,13 +745,7 @@ const items = [
                                                         icon="pi pi-plus"
                                                         size="small"
                                                     />
-                                                    <Button
-                                                        @click="openImportAppDialog"
-                                                        label="Import Application"
-                                                        icon="pi pi-download"
-                                                        size="small"
-                                                        outlined
-                                                    />
+
                                                 </div>
                                             </div>
                                             <div v-else class="space-y-3">
@@ -1205,78 +1123,9 @@ const items = [
                 </template>
             </Dialog>
 
-            <!-- Delete Confirmation Dialog -->
-            <Dialog
-                v-model:visible="showDeleteConfirmDialog"
-                header="Delete Organization"
-                modal
-                class="w-full max-w-md"
-            >
-                <div class="space-y-4">
-                    <p class="text-gray-600">
-                        Are you sure you want to delete the organization "{{ organization.name }}"?
-                    </p>
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-3">
-                        <div class="flex gap-2">
-                            <i class="pi pi-exclamation-triangle text-red-600 mt-0.5"></i>
-                            <p class="text-sm text-red-800">
-                                This action will delete the organization and all its nodes. This cannot be undone.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <template #footer>
-                    <div class="flex justify-end gap-2">
-                        <Button label="Cancel" @click="showDeleteConfirmDialog = false" severity="secondary" outlined />
-                        <Button
-                            label="Delete"
-                            @click="confirmDeleteOrganization"
-                            icon="pi pi-trash"
-                            severity="danger"
-                        />
-                    </div>
-                </template>
-            </Dialog>
 
-            <!-- Application Dialog -->
-            <Dialog
-                v-model:visible="showAppDialog"
-                :header="appDialogMode === 'create' ? 'Create Application' : 'Import Application'"
-                modal
-                class="w-full max-w-md"
-            >
-                <div class="space-y-4">
-                    <div>
-                        <label for="app-name" class="block text-sm font-medium text-gray-700 mb-2">
-                            Application Name
-                            <span class="text-red-500">*</span>
-                        </label>
-                        <InputText
-                            id="app-name"
-                            v-model="appName"
-                            placeholder="Enter application name"
-                            class="w-full"
-                        />
-                    </div>
-                    <div v-if="appDialogMode === 'import'">
-                        <label for="app-vbid" class="block text-sm font-medium text-gray-700 mb-2">
-                            Virtual Blockchain ID
-                            <span class="text-red-500">*</span>
-                        </label>
-                        <InputText id="app-vbid" v-model="appVbId" placeholder="Enter VB ID" class="w-full" />
-                    </div>
-                </div>
-                <template #footer>
-                    <div class="flex justify-end gap-2">
-                        <Button label="Cancel" @click="showAppDialog = false" severity="secondary" outlined />
-                        <Button
-                            :label="appDialogMode === 'create' ? 'Create' : 'Import'"
-                            @click="submitAppDialog"
-                            icon="pi pi-check"
-                        />
-                    </div>
-                </template>
-            </Dialog>
+            <OrganizationDeletionDialog v-model:show-deletion-dialog="showDeletionDialog"/>
+            <OrganizationApplicationCreationDialog v-model:showAppDialog="showAppDialog" />
         </div>
 
         <!-- Not Found State -->
