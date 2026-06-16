@@ -21,15 +21,7 @@ const accountHistoryQuery = computed(() => {
     const res = useAccountTransactionsHistory(walletId.value, higherThanHeight, limit);
     return res.accountHistoryQuery
 })
-
 const hasAccount = useHasAccountOnChainQuery(walletId.value);
-
-const HISTORY_TYPE_LABELS: Record<number, string> = {
-    1: 'Transfer',
-    2: 'Stake',
-    3: 'Unstake',
-};
-
 const transactions = computed(() => {
     const data = accountHistoryQuery.value.data.value;
     if (!data) return [];
