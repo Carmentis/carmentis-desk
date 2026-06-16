@@ -48,13 +48,13 @@ import OrganizationDeletionDialog from "./OrganizationDeletionDialog.vue";
 import OrganizationApplications from "./OrganizationApplications.vue";
 import OrganizationNodes from "./OrganizationNodes.vue";
 import OrganizationCustomData from "./OrganizationCustomData.vue";
+import OrganizationPublicationDialog from "./OrganizationPublicationDialog.vue";
 
 const toast = useToast();
 const route = useRoute();
 const router = useRouter();
 const onChainStore = useOnChainStore();
-const sessionStore = useSessionStore();
-const { isPublishingOrganization, isPublishingCustomJson } = storeToRefs(onChainStore);
+const { isPublishingOrganization  } = storeToRefs(onChainStore);
 
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
@@ -71,57 +71,11 @@ const { state: organization, execute: fetchOrg } = useAsyncState(
     { immediate: true },
 );
 
-const { state: nodes, execute: fetchNodes } = useAsyncState(
-    () => nodeRepo.getNodesByOrgId(orgId.value),
-    [] as NodeEntity[],
-    { immediate: true },
-);
-
-const { state: applications, execute: fetchApplications } = useAsyncState(
-    () => appRepo.getApplicationsByOrgId(orgId.value),
-    [] as ApplicationEntity[],
-    { immediate: true },
-);
 
 const goBack = () => {
     router.push(`/wallet/${walletId.value}`);
 };
 
-// Breadcrumb
-const breadcrumbHome = ref({
-    icon: 'pi pi-home',
-    command: () => router.push('/'),
-});
-
-const breadcrumbItems = computed(() => {
-    if (!wallet.value || !organization.value) return [];
-    return [
-        {
-            label: wallet.value.name,
-            command: () => router.push(`/wallet/${walletId.value}`),
-        },
-        {
-            label: organization.value.name,
-        },
-    ];
-});
-
-// wallet key pair (needed for account state)
-const walletKeyPair = computedAsync(async () => {
-    if (!wallet.value) return undefined;
-    const seedEncoder = new SeedEncoder();
-    const rawSeed = await sessionStore.getWalletSeed(wallet.value.id);
-    const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(rawSeed));
-    const accountCrypto = walletSeed.getDefaultAccountCrypto();
-    const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
-    const pk = await sk.getPublicKey();
-    const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
-    return {
-        sk: await sigEncoder.encodePrivateKey(sk),
-        pk: await sigEncoder.encodePublicKey(pk),
-    };
-});
-const pk = computed(() => walletKeyPair.value?.pk);
 
 
 
@@ -209,21 +163,6 @@ async function updateOrganizationDetails() {
     });
 }
 
-async function confirmPublishOrganization() {
-    showPublishConfirmDialog.value = false;
-    // update organization details locally
-    await updateOrganizationDetails();
-
-    // publish information on-chain
-    await onChainStore.publishOrganization({
-        walletId: walletId.value,
-        orgId: orgId.value,
-        organizationName: orgName.value.trim(),
-        countryCode: orgCountryCode.value.trim(),
-        city: orgCity.value.trim(),
-        website: orgWebsite.value.trim(),
-    });
-}
 
 // query used to identify if the organization is found online (via the indexer)
 const organizationVbId = computed(() =>
@@ -249,20 +188,10 @@ const { data: isOrganizationFoundOnChain, isLoading: isFetchingOrganizationFromC
     },
 });
 
-// Application management
-
-const showDeletionDialog = ref(false);;
-
+const showDeletionDialog = ref(false);
+const showOrganizationPublicationDialog = ref(false);
 
 const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
-
-// Custom JSON publishing dialog
-
-
-
-
-
-
 
 const items = [
     {
@@ -435,46 +364,13 @@ const items = [
             </div>
 
 
-
-            <!-- Publish Confirmation Dialog -->
-            <Dialog
-                v-model:visible="showPublishConfirmDialog"
-                header="Publish Organization"
-                modal
-                class="w-full max-w-md"
-            >
-                <div class="space-y-4">
-                    <p class="text-gray-600">Are you sure you want to publish this organization on-chain?</p>
-                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                        <div class="flex gap-2">
-                            <i class="pi pi-info-circle text-amber-600 mt-0.5"></i>
-                            <p class="text-sm text-amber-800">
-                                This action will create a virtual blockchain for your organization and cannot be undone.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <template #footer>
-                    <div class="flex justify-end gap-2">
-                        <Button
-                            label="Cancel"
-                            @click="showPublishConfirmDialog = false"
-                            severity="secondary"
-                            outlined
-                        />
-                        <Button
-                            label="Confirm Publish"
-                            @click="confirmPublishOrganization"
-                            icon="pi pi-cloud-upload"
-                            :loading="isPublishingOrganization"
-                        />
-                    </div>
-                </template>
-            </Dialog>
-
-
-
-
+            <OrganizationPublicationDialog
+                v-model:show-publish-confirm-dialog="showPublishConfirmDialog"
+                v-model:org-name="orgName"
+                v-model:org-city="orgCity"
+                v-model:org-country-code="orgCountryCode"
+                v-model:org-website="orgWebsite"
+            />
             <OrganizationDeletionDialog v-model:show-deletion-dialog="showDeletionDialog"/>
 
         </div>
