@@ -41,6 +41,7 @@ import {getAppControllerGetOrganizationsUrl} from "../../../api/indexer/indexer.
 import WalletDetailSync from "./WalletDetailSync.vue";
 import {useClipboard} from "../../../composables/useClipboard.ts";
 import WalletDetailBalanceCard from "./WalletDetailBalanceCard.vue";
+import WalletDetailKeysCard from "./WalletDetailKeysCard.vue";
 
 const toast = useToast();
 const route = useRoute();
@@ -145,39 +146,6 @@ function openTransferDialog() {
     showTransferDialog.value = true;
 }
 
-async function submitTransferDialog() {
-    if (!transferPublicKey.value) {
-        toast.add({
-            severity: 'error',
-            summary: 'Validation error',
-            detail: 'Public key is required',
-            life: 3000,
-        });
-        return;
-    }
-    if (!transferAmount.value || Number(transferAmount.value) <= 0) {
-        toast.add({
-            severity: 'error',
-            summary: 'Validation error',
-            detail: 'Valid amount is required',
-            life: 3000,
-        });
-        return;
-    }
-
-    try {
-        const amount = CMTSToken.createCMTS(Number(transferAmount.value));
-        await onChainStore.transferTokens({
-            walletId: walletId.value,
-            recipientPublicKey: transferPublicKey.value,
-            amount: amount,
-        });
-        showTransferDialog.value = false;
-        refetchBreakdown();
-    } catch (e) {
-        console.error('Transfer failed:', e);
-    }
-}
 
 // organization management
 const showOrgDialog = ref(false);
@@ -261,28 +229,6 @@ function visitOrganization(orgId: number) {
     router.push(`/wallet/${walletId.value}/organization/${orgId}`);
 }
 
-// Copy menu items
-const copyMenuItems = ref([
-    {
-        label: 'Copy Public Key',
-        icon: 'pi pi-copy',
-        command: () => clipboard.copyToClipboard(pk.value, 'Public key'),
-    },
-    {
-        label: 'Copy Private Key',
-        icon: 'pi pi-copy',
-        command: () => clipboard.copyToClipboard(sk.value, 'Private key'),
-    },
-    {
-        label: 'Copy Seed',
-        icon: 'pi pi-copy',
-        command: async () => {
-            if (!wallet.value) return;
-            const seed = await sessionStore.getWalletSeed(wallet.value.id);
-            clipboard.copyToClipboard(seed, 'Seed');
-        },
-    },
-]);
 
 
 const accountIdQuery = useAccountIdQuery(walletId.value);
@@ -294,44 +240,8 @@ watch(walletId, () => {
     breakdownQuery.refetch()
 })
 
-async function refetchWallet() {
-    await accountStateQuery.refetch();
-    await breakdownQuery.refetch();
-}
-
-function refetchBreakdown() {
-    refetchWallet();
-}
 
 const menuItems = computed<MenuItem[]>(() => [
-    {
-        label: 'Copy',
-        icon: 'pi pi-copy',
-        items: [
-            {
-                label: 'Copy public key',
-                icon: 'pi pi-copy',
-                command: () => clipboard.copyToClipboard(pk.value, 'Public key'),
-            },
-            {
-                separator: true,
-            },
-            {
-                label: 'Copy private key',
-                icon: 'pi pi-copy',
-                command: () => clipboard.copyToClipboard(sk.value, 'Private key'),
-            },
-            {
-                label: 'Copy seed',
-                icon: 'pi pi-copy',
-                command: async () => {
-                    if (!wallet.value) return;
-                    const seed = await sessionStore.getWalletSeed(wallet.value.id);
-                    clipboard.copyToClipboard(seed, 'Seed');
-                },
-            },
-        ],
-    },
     {
         label: 'Credentials',
         icon: 'pi pi-id-card',
@@ -360,60 +270,7 @@ const menuItems = computed<MenuItem[]>(() => [
 
                 <!-- Wallet Keys and Balance Cards Side-by-Side -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Wallet Keys Card -->
-                    <Card>
-                        <template #title>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <i class="pi pi-key text-xl"></i>
-                                    <span>Wallet Keys</span>
-                                </div>
-                                <SplitButton
-                                    label="Copy"
-                                    icon="pi pi-copy"
-                                    :model="copyMenuItems"
-                                    size="small"
-                                    @click="clipboard.copyToClipboard(walletKeyPair?.pk, 'Public key')"
-                                />
-                            </div>
-                        </template>
-                        <template #subtitle>
-                            <p class="text-sm text-surface-500">
-                                Your cryptographic key pair and seed. Keep the private key and seed strictly
-                                confidential — anyone with access to them can control this wallet.
-                            </p>
-                        </template>
-                        <template #content>
-                            <div class="space-y-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Public Key</label>
-                                    <InputText v-model="pk" :disabled="true" class="w-full" />
-                                </div>
-                                <div class="w-full">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Private Key</label>
-                                    <Password
-                                        v-model="sk"
-                                        :feedback="false"
-                                        toggleMask
-                                        class="w-full"
-                                        input-class="w-full"
-                                    />
-                                </div>
-                                <div class="w-full">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Private seed</label>
-                                    <Password
-                                        v-model="walletSeed"
-                                        :feedback="false"
-                                        toggleMask
-                                        class="w-full"
-                                        width="100%"
-                                        input-class="w-full"
-                                    />
-                                </div>
-                            </div>
-                        </template>
-                    </Card>
-
+                    <WalletDetailKeysCard/>
                     <WalletDetailBalanceCard/>
                 </div>
 
