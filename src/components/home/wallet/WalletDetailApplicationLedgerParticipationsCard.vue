@@ -53,4 +53,9 @@ const { state: wallet } = useAsyncState(
             </div>
         </template>
     </Card>
+
+    <div v-else class="flex items-center w-6/12">
+        You will see here the usage of application ledgers this wallet has interacted with through the anchoring protocol.
+        Since you have not interacted with any application ledgers yet, this section will be empty.
+    </div>
 </template>
