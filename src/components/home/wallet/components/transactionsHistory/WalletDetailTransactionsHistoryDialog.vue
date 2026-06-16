@@ -65,34 +65,36 @@ const transactions = computed(() => {
 
             <!-- Transaction History DataTable -->
         <div v-else-if="accountHistoryQuery.data.value">
-            <div class="grid grid-cols-3 gap-4 mb-4">
-                <div class="flex flex-col items-start gap-3 w-auto">
-                    <label for="limit" class="text-sm font-normal">Limit:</label>
+            <div class="flex flex-wrap items-end gap-4 mb-4">
+                <div class="flex flex-col gap-2">
+                    <label for="limit" class="text-sm font-medium text-gray-600">Limit</label>
                     <InputNumber
                         id="limit"
                         v-model="limit"
-                        @update:modelValue="(newLimit) => (limit = newLimit)"
                         :min="1"
                         :max="20"
                         showButtons
                         buttonLayout="horizontal"
+                        inputClass="w-16 text-center"
                     />
                 </div>
-                <div class="flex flex-col items-start gap-3 w-auto">
-                    <label for="limit" class="text-sm font-normal">From height:</label>
+                <div class="flex flex-col gap-2">
+                    <label for="higher_than_height" class="text-sm font-medium text-gray-600">From height</label>
                     <InputNumber
-                        id="heigher_than_height"
+                        id="higher_than_height"
                         v-model="higherThanHeight"
-                        @update:modelValue="(hth) => (higherThanHeight = hth)"
                         :min="0"
                         showButtons
                         buttonLayout="horizontal"
+                        inputClass="w-20 text-center"
                     />
                 </div>
-                <div class="flex flex-col items-start gap-3 w-auto">
-
-                    <Button @click="() => accountHistoryQuery.refetch()">Refetch</Button>
-                </div>
+                <Button
+                    icon="pi pi-refresh"
+                    label="Refetch"
+                    :loading="accountHistoryQuery.isFetching.value"
+                    @click="() => accountHistoryQuery.refetch()"
+                />
             </div>
             <DataTable :value="transactions" stripedRows scroll-direction="vertical" scroll-height="400px" class="text-sm">
                 <Column field="height" header="Height" sortable></Column>
