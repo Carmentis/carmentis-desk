@@ -51,29 +51,6 @@ const goBack = () => {
     router.push(`/wallet/${walletId.value}/organization/${orgId.value}`);
 };
 
-// Breadcrumb
-const breadcrumbHome = ref({
-    icon: 'pi pi-home',
-    command: () => router.push('/'),
-});
-
-const breadcrumbItems = computed(() => {
-    if (!wallet.value || !organization.value || !application.value) return [];
-    return [
-        {
-            label: wallet.value.name,
-            command: () => router.push(`/wallet/${walletId.value}`),
-        },
-        {
-            label: organization.value.name,
-            command: () => router.push(`/wallet/${walletId.value}/organization/${orgId.value}`),
-        },
-        {
-            label: application.value.name,
-        },
-    ];
-});
-
 // Application Details Form
 const appName = ref('');
 const appDescription = ref('');
