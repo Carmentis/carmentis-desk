@@ -8,7 +8,7 @@ import InputText from 'primevue/inputtext';
 import SplitButton from 'primevue/splitbutton';
 import { useStorageStore, type OrganizationEntity as OrgEntity, type ApplicationParticipation } from '../../../stores/storage';
 import { useSessionStore } from '../../../stores/sessionStore.ts';
-import { useAsyncState, computedAsync } from '@vueuse/core';
+import {useAsyncState, computedAsync} from '@vueuse/core';
 import * as walletRepo from '../../../db/repositories/walletRepository';
 import * as orgRepo from '../../../db/repositories/organizationRepository';
 import * as participationRepo from '../../../db/repositories/participationRepository';
@@ -39,6 +39,8 @@ import type { MenuItem } from 'primevue/menuitem';
 import {createIndexerClient} from "../../../api/indexer/client.ts";
 import {getAppControllerGetOrganizationsUrl} from "../../../api/indexer/indexer.ts";
 import WalletDetailSync from "./WalletDetailSync.vue";
+import {useClipboard} from "../../../composables/useClipboard.ts";
+import WalletDetailBalanceCard from "./WalletDetailBalanceCard.vue";
 
 const toast = useToast();
 const route = useRoute();
@@ -46,6 +48,7 @@ const router = useRouter();
 const storageStore = useStorageStore();
 const onChainStore = useOnChainStore();
 const sessionStore = useSessionStore();
+const clipboard = useClipboard();
 const confirm = useConfirm();
 
 const goBack = () => {
@@ -263,12 +266,12 @@ const copyMenuItems = ref([
     {
         label: 'Copy Public Key',
         icon: 'pi pi-copy',
-        command: () => copyToClipboard(pk.value, 'Public key'),
+        command: () => clipboard.copyToClipboard(pk.value, 'Public key'),
     },
     {
         label: 'Copy Private Key',
         icon: 'pi pi-copy',
-        command: () => copyToClipboard(sk.value, 'Private key'),
+        command: () => clipboard.copyToClipboard(sk.value, 'Private key'),
     },
     {
         label: 'Copy Seed',
@@ -276,39 +279,11 @@ const copyMenuItems = ref([
         command: async () => {
             if (!wallet.value) return;
             const seed = await sessionStore.getWalletSeed(wallet.value.id);
-            copyToClipboard(seed, 'Seed');
+            clipboard.copyToClipboard(seed, 'Seed');
         },
     },
 ]);
 
-async function copyToClipboard(text: string | undefined, label: string) {
-    if (!text) {
-        toast.add({
-            severity: 'error',
-            summary: 'Copy failed',
-            detail: `${label} not available`,
-            life: 3000,
-        });
-        return;
-    }
-    try {
-        await navigator.clipboard.writeText(text);
-        toast.add({
-            severity: 'success',
-            summary: 'Copied',
-            detail: `${label} copied to clipboard`,
-            life: 3000,
-        });
-    } catch (e) {
-        console.error('Failed to copy:', e);
-        toast.add({
-            severity: 'error',
-            summary: 'Copy failed',
-            detail: 'Failed to copy to clipboard',
-            life: 3000,
-        });
-    }
-}
 
 const accountIdQuery = useAccountIdQuery(walletId.value);
 const accountStateQuery = useAccountStateQuery(walletId.value);
@@ -336,7 +311,7 @@ const menuItems = computed<MenuItem[]>(() => [
             {
                 label: 'Copy public key',
                 icon: 'pi pi-copy',
-                command: () => copyToClipboard(pk.value, 'Public key'),
+                command: () => clipboard.copyToClipboard(pk.value, 'Public key'),
             },
             {
                 separator: true,
@@ -344,7 +319,7 @@ const menuItems = computed<MenuItem[]>(() => [
             {
                 label: 'Copy private key',
                 icon: 'pi pi-copy',
-                command: () => copyToClipboard(sk.value, 'Private key'),
+                command: () => clipboard.copyToClipboard(sk.value, 'Private key'),
             },
             {
                 label: 'Copy seed',
@@ -352,7 +327,7 @@ const menuItems = computed<MenuItem[]>(() => [
                 command: async () => {
                     if (!wallet.value) return;
                     const seed = await sessionStore.getWalletSeed(wallet.value.id);
-                    copyToClipboard(seed, 'Seed');
+                    clipboard.copyToClipboard(seed, 'Seed');
                 },
             },
         ],
@@ -398,7 +373,7 @@ const menuItems = computed<MenuItem[]>(() => [
                                     icon="pi pi-copy"
                                     :model="copyMenuItems"
                                     size="small"
-                                    @click="copyToClipboard(walletKeyPair?.pk, 'Public key')"
+                                    @click="clipboard.copyToClipboard(walletKeyPair?.pk, 'Public key')"
                                 />
                             </div>
                         </template>
@@ -439,126 +414,7 @@ const menuItems = computed<MenuItem[]>(() => [
                         </template>
                     </Card>
 
-                    <!-- No account found on chain Card -->
-                    <Card v-if="breakdownQuery.error.value || accountIdQuery.error.value">
-                        <template #title>
-                            <div class="flex items-center gap-2">
-                                <i class="pi pi-wallet text-xl"></i>
-                                <span>Balance</span>
-                            </div>
-                        </template>
-                        <template #subtitle>
-                            <p class="text-sm text-surface-500">
-                                Your on-chain token holdings broken down by spendable, vested, and staked amounts.
-                            </p>
-                        </template>
-                        <template #content>
-                            <div class="text-center py-12">
-                                <i class="pi pi-exclamation-circle text-3xl text-amber-500 mb-2"></i>
-                                <h1 class="text-2xl font-bold text-gray-900 mb-2">No account found</h1>
-                                <p class="text-gray-600 text-sm">Purchase tokens to see your balance.</p>
-                            </div>
-                        </template>
-                    </Card>
-
-                    <!-- Balance Card Loading -->
-                    <Card v-else-if="accountIdQuery.isLoading.value || breakdownQuery.isLoading.value">
-                        <template #title>
-                            <div class="flex items-center gap-2">
-                                <i class="pi pi-wallet text-xl"></i>
-                                <span>Balance</span>
-                            </div>
-                        </template>
-                        <template #subtitle>
-                            <p class="text-sm text-surface-500">
-                                Your on-chain token holdings broken down by spendable, vested, and staked amounts.
-                            </p>
-                        </template>
-                        <template #content>
-                            <div class="grid grid-cols-1 gap-4">
-                                <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
-                                    <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-                                    <div class="h-8 bg-gray-200 rounded w-24"></div>
-                                </div>
-                                <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
-                                    <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-                                    <div class="h-8 bg-gray-200 rounded w-24"></div>
-                                </div>
-                                <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
-                                    <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-                                    <div class="h-8 bg-gray-200 rounded w-24"></div>
-                                </div>
-                            </div>
-                        </template>
-                    </Card>
-
-                    <!-- Balance Card -->
-                    <Card v-else-if="breakdownQuery.data.value">
-                        <template #title>
-                            <div class="flex flex-wrap items-center justify-between gap-2">
-                                <div class="flex items-center gap-2">
-                                    <i class="pi pi-wallet text-xl"></i>
-                                    <span>Balance</span>
-                                </div>
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <span v-if="breakdownQuery.dataUpdatedAt.value" class="text-xs text-gray-500">
-                                        {{ new Date(breakdownQuery.dataUpdatedAt.value).toLocaleString() }}
-                                    </span>
-                                    <Button
-                                        @click="openTransferDialog"
-                                        label="Transfer"
-                                        icon="pi pi-send"
-                                        size="small"
-                                    />
-                                    <Button
-                                        @click="refetchBreakdown"
-                                        label="Refresh"
-                                        icon="pi pi-cycle"
-                                        size="small"
-                                    />
-                                    <Button
-                                        v-if="!!accountIdQuery.data && !!accountIdQuery.data.value"
-                                        label="Copy Account ID"
-                                        icon="pi pi-copy"
-                                        size="small"
-                                        @click="copyToClipboard(
-                                            EncoderFactory.bytesToHexEncoder()
-                                            .encode(accountIdQuery.data.value)
-                                            .toUpperCase(),
-                                            'Account ID'
-                                            )"
-                                    />
-                                </div>
-                            </div>
-                        </template>
-                        <template #subtitle>
-                            <p class="text-sm text-surface-500">
-                                Your on-chain token holdings broken down by spendable, vested, and staked amounts.
-                            </p>
-                        </template>
-                        <template #content>
-                            <div class="flex flex-col grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div class="bg-gray-50 rounded-lg p-4">
-                                    <div class="text-sm text-gray-600 font-medium mb-1">Spendable</div>
-                                    <div class="text-2xl font-bold text-gray-900">
-                                        {{ breakdownQuery.data.value.getSpendable() }}
-                                    </div>
-                                </div>
-                                <div class="bg-gray-50 rounded-lg p-4">
-                                    <div class="text-sm text-gray-600 font-medium mb-1">Vested</div>
-                                    <div class="text-2xl font-bold text-gray-900">
-                                        {{ breakdownQuery.data.value.getVested() }}
-                                    </div>
-                                </div>
-                                <div class="bg-gray-50 rounded-lg p-4">
-                                    <div class="text-sm text-gray-600 font-medium mb-1">Staked</div>
-                                    <div class="text-2xl font-bold text-gray-900">
-                                        {{ breakdownQuery.data.value.getStaked() }}
-                                    </div>
-                                </div>
-                            </div>
-                        </template>
-                    </Card>
+                    <WalletDetailBalanceCard/>
                 </div>
 
                 <!-- Organizations Card -->
@@ -678,48 +534,7 @@ const menuItems = computed<MenuItem[]>(() => [
 
                 <WalletDetailTransactionsHistory />
             </div>
-            <!-- Transfer Dialog -->
-            <Dialog v-model:visible="showTransferDialog" header="Transfer Tokens" modal class="w-full max-w-md">
-                <div class="space-y-4">
-                    <div v-if="isCreatingNewAccount === true">
-                        <Message>You are creating a new account</Message>
-                    </div>
-                    <div v-if="isCreatingNewAccount === false">
-                        <Message>The account has been found online.</Message>
-                    </div>
-                    <div>
-                        <label for="transfer-public-key" class="block text-sm font-medium text-gray-700 mb-2">
-                            Recipient Public Key
-                            <span class="text-red-500">*</span>
-                        </label>
-                        <InputText
-                            id="transfer-public-key"
-                            v-model="transferPublicKey"
-                            placeholder="Enter recipient public key"
-                            class="w-full"
-                        />
-                    </div>
-                    <div>
-                        <label for="transfer-amount" class="block text-sm font-medium text-gray-700 mb-2">
-                            Amount
-                            <span class="text-red-500">*</span>
-                        </label>
-                        <InputText
-                            id="transfer-amount"
-                            v-model="transferAmount"
-                            type="number"
-                            placeholder="Enter amount"
-                            class="w-full"
-                        />
-                    </div>
-                </div>
-                <template #footer>
-                    <div class="flex justify-end gap-2">
-                        <Button label="Cancel" @click="showTransferDialog = false" severity="secondary" outlined />
-                        <Button label="Transfer" @click="submitTransferDialog" icon="pi pi-send" />
-                    </div>
-                </template>
-            </Dialog>
+
 
             <!-- Organization Dialog -->
             <Dialog
