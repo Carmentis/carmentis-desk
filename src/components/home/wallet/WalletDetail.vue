@@ -80,7 +80,7 @@ const deleteWallet = () => {
 
 const walletId = computed(() => Number(route.params.walletId));
 
-const { state: wallet, execute: fetchWallet } = useAsyncState(
+const { state: wallet } = useAsyncState(
     () => walletRepo.getWalletById(walletId.value),
     null,
     { immediate: true },
@@ -92,59 +92,12 @@ const { state: organizations, execute: fetchOrgs } = useAsyncState(
     { immediate: true },
 );
 
-const { state: participations, execute: fetchParticipations } = useAsyncState(
+const { state: participations } = useAsyncState(
     () => participationRepo.getAppParticipationsByWalletId(walletId.value),
     [] as ApplicationParticipation[],
     { immediate: true },
 );
 
-// wallet key pair
-const walletKeyPair = computedAsync(async () => {
-    if (!wallet.value) return undefined;
-    const seedEncoder = new SeedEncoder();
-    const rawSeed = await sessionStore.getWalletSeed(wallet.value.id);
-    const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(rawSeed));
-    const accountCrypto = walletSeed.getDefaultAccountCrypto();
-    const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
-    const pk = await sk.getPublicKey();
-    const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
-    return {
-        sk: await sigEncoder.encodePrivateKey(sk),
-        pk: await sigEncoder.encodePublicKey(pk),
-    };
-});
-const sk = computed(() => walletKeyPair.value?.sk);
-const pk = computed(() => walletKeyPair.value?.pk);
-
-const walletSeed = computedAsync(async () => {
-    if (!wallet.value) return '';
-    return sessionStore.getWalletSeed(wallet.value.id);
-}, '');
-
-// wallet account publication status
-
-// transfer dialog
-const walletStore = useWalletStore();
-const isCreatingNewAccount = ref<boolean | undefined>(undefined);
-const showTransferDialog = ref(false);
-const transferPublicKey = ref('');
-const transferAmount = ref('');
-watch(transferPublicKey, async () => {
-    try {
-        // attempt to parse the public key
-        const encoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
-        const pk = await encoder.decodePublicKey(transferPublicKey.value);
-        isCreatingNewAccount.value = !(await walletStore.isAccountFoundByPublicKey(walletId.value, pk));
-    } catch (e) {
-        isCreatingNewAccount.value = undefined;
-    }
-});
-
-function openTransferDialog() {
-    transferPublicKey.value = '';
-    transferAmount.value = '';
-    showTransferDialog.value = true;
-}
 
 
 // organization management
@@ -245,11 +198,6 @@ const menuItems = computed<MenuItem[]>(() => [
         label: 'Credentials',
         icon: 'pi pi-id-card',
         command: () => router.push(`/wallet/${walletId.value}/credentials`),
-    },
-    {
-        label: 'Transfer',
-        icon: 'pi pi-send',
-        command: openTransferDialog,
     },
     {
         label: 'Delete Wallet',
@@ -387,8 +335,6 @@ const menuItems = computed<MenuItem[]>(() => [
                         </div>
                     </template>
                 </Card>
-
-
             </div>
 
 
