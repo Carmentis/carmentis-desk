@@ -10,9 +10,13 @@ import InputNumber from 'primevue/inputnumber';
 import Button from 'primevue/button';
 import {computedAsync} from "@vueuse/core";
 import {Transaction} from "./Transaction.ts";
+import Dialog from 'primevue/dialog';
+
 
 const route = useRoute();
 const walletId = computed(() => Number(route.params.walletId));
+
+const isOpen = defineModel<boolean>('isOpen');
 
 // define the limit to use
 const limit = ref(5);
@@ -44,42 +48,25 @@ const transactions = computed(() => {
 </script>
 
 <template>
-    <!-- No Account State -->
-    <Card v-if="!hasAccount">
-        <template #content>
-            <div class="flex flex-col items-center justify-center p-6 text-center">
-                <i class="pi pi-wallet text-4xl text-gray-400 mb-3"></i>
-                <h3 class="text-lg font-semibold mb-2">No Account Yet</h3>
-                <p class="text-gray-600">This wallet does not have an account on the blockchain yet.</p>
-            </div>
-        </template>
-    </Card>
+    <Dialog v-model:visible="isOpen" header="Transactions History" class="min-w-10/12">
+            <!-- No Account State -->
+        <div v-if="!hasAccount" class="flex flex-col items-center justify-center p-6 text-center">
+            <i class="pi pi-wallet text-4xl text-gray-400 mb-3"></i>
+            <h3 class="text-lg font-semibold mb-2">No Account Yet</h3>
+            <p class="text-gray-600">This wallet does not have an account on the blockchain yet.</p>
+        </div>
 
-    <!-- Loading State -->
-    <Card v-else-if="accountHistoryQuery.isLoading.value">
-        <template #content>
-            <div class="flex flex-col items-center justify-center p-6">
-                <ProgressSpinner style="width: 50px; height: 50px" strokeWidth="4" />
-                <p class="mt-4 text-gray-600">Loading transaction history...</p>
-            </div>
-        </template>
-    </Card>
+            <!-- Loading State -->
+        <div v-else-if="accountHistoryQuery.isLoading.value" class="flex flex-col items-center justify-center p-6">
+            <ProgressSpinner style="width: 50px; height: 50px" strokeWidth="4" />
+            <p class="mt-4 text-gray-600">Loading transaction history...</p>
+        </div>
 
-    <!-- Transaction History DataTable -->
-    <Card v-else-if="accountHistoryQuery.data.value">
-        <template #title>
-            <div class="flex justify-between items-center">
-                <div class="space-x-2">
-                    <i class="pi pi-calendar" />
-                    <span>Transaction History</span>
-                </div>
 
-                <Button @click="() => accountHistoryQuery.refetch()">Refetch</Button>
-            </div>
-        </template>
-        <template #content>
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div class="flex flex-col items-start gap-2 w-auto">
+            <!-- Transaction History DataTable -->
+        <div v-else-if="accountHistoryQuery.data.value">
+            <div class="grid grid-cols-3 gap-4 mb-4">
+                <div class="flex flex-col items-start gap-3 w-auto">
                     <label for="limit" class="text-sm font-normal">Limit:</label>
                     <InputNumber
                         id="limit"
@@ -91,7 +78,7 @@ const transactions = computed(() => {
                         buttonLayout="horizontal"
                     />
                 </div>
-                <div class="flex flex-col items-start gap-2 w-auto">
+                <div class="flex flex-col items-start gap-3 w-auto">
                     <label for="limit" class="text-sm font-normal">From height:</label>
                     <InputNumber
                         id="heigher_than_height"
@@ -102,8 +89,12 @@ const transactions = computed(() => {
                         buttonLayout="horizontal"
                     />
                 </div>
+                <div class="flex flex-col items-start gap-3 w-auto">
+
+                    <Button @click="() => accountHistoryQuery.refetch()">Refetch</Button>
+                </div>
             </div>
-            <DataTable :value="transactions" stripedRows>
+            <DataTable :value="transactions" stripedRows scroll-direction="vertical" scroll-height="400px" class="text-sm">
                 <Column field="height" header="Height" sortable></Column>
                 <Column field="amount" header="Amount" sortable>
                     <template #body="slotProps">
@@ -119,6 +110,6 @@ const transactions = computed(() => {
                 <Column field="type" header="Type" sortable></Column>
                 <Column field="linkedAccount" header="Linked Account"></Column>
             </DataTable>
-        </template>
-    </Card>
+        </div>
+    </Dialog>
 </template>

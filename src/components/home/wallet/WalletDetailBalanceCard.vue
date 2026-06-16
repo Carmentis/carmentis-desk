@@ -29,6 +29,8 @@ import {useClipboard} from "../../../composables/useClipboard.ts";
 import * as walletRepo from "../../../db/repositories/walletRepository.ts";
 import Message from "primevue/message";
 import Dialog from "primevue/dialog";
+import WalletDetailTransactionsHistoryDialog
+    from "./components/transactionsHistory/WalletDetailTransactionsHistoryDialog.vue";
 
 const toast = useToast();
 const route = useRoute();
@@ -103,6 +105,8 @@ async function submitTransferDialog() {
         console.error('Transfer failed:', e);
     }
 }
+
+const showAccountTransactionsHistory = ref(false);
 </script>
 <template>
 
@@ -179,9 +183,9 @@ async function submitTransferDialog() {
                         size="small"
                     />
                     <Button
-                        @click="() => accountStateQuery.refetch()"
-                        label="Refresh"
-                        icon="pi pi-cycle"
+                        @click="() => showAccountTransactionsHistory = true"
+                        label="History"
+                        icon="pi pi-clock"
                         size="small"
                     />
                     <Button
@@ -271,4 +275,8 @@ async function submitTransferDialog() {
             </div>
         </template>
     </Dialog>
+
+
+    <!-- dialogs -->
+    <WalletDetailTransactionsHistoryDialog v-model:is-open="showAccountTransactionsHistory" />
 </template>

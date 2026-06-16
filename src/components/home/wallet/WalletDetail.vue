@@ -30,7 +30,7 @@ import {
     useAccountStateQuery,
     useAccountTransactionsHistory,
 } from '../../../composables/useAccountBreakdown.ts';
-import WalletDetailTransactionsHistory from './components/transactionsHistory/WalletDetailTransactionsHistory.vue';
+import WalletDetailTransactionsHistoryDialog from './components/transactionsHistory/WalletDetailTransactionsHistoryDialog.vue';
 import WalletDetailAppParticipationCard from './WalletDetailAppParticipationCard.vue';
 import { useWalletStore } from '../../../stores/walletStore.ts';
 import Message from 'primevue/message';
@@ -231,7 +231,6 @@ function visitOrganization(orgId: number) {
 
 
 
-const accountIdQuery = useAccountIdQuery(walletId.value);
 const accountStateQuery = useAccountStateQuery(walletId.value);
 const breakdownQuery = useAccountBreakdownQuery(walletId.value);
 
@@ -389,7 +388,7 @@ const menuItems = computed<MenuItem[]>(() => [
                     </template>
                 </Card>
 
-                <WalletDetailTransactionsHistory />
+
             </div>
 
 
