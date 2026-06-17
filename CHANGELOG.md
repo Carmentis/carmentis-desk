@@ -1,3 +1,13 @@
+# [1.21.0](https://github.com/Carmentis/carmentis-desk/compare/v1.20.0...v1.21.0) (2026-06-17)
+
+
+### Features
+
+* add developer tools support and debug menu option ([2c5487e](https://github.com/Carmentis/carmentis-desk/commit/2c5487eae48bc6e149e8cf54dcd7b34639b46d1e))
+* carmentis icon as app logo ([063f4da](https://github.com/Carmentis/carmentis-desk/commit/063f4daf01c0a5d62238d543d97edef59bd56ed5))
+* hide navbar while session is locked ([afb2da0](https://github.com/Carmentis/carmentis-desk/commit/afb2da0ab33b38b8cb561ed1085edfd5f601399c))
+* replace icons with Carmentis logo and add logo asset ([2a500ed](https://github.com/Carmentis/carmentis-desk/commit/2a500ed218fee91e46d9f1899a1af61aec3408bc))
+
 # [1.20.0](https://github.com/Carmentis/carmentis-desk/compare/v1.19.0...v1.20.0) (2026-06-17)
 
 
