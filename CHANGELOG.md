@@ -1,3 +1,11 @@
+# [1.23.0](https://github.com/Carmentis/carmentis-desk/compare/v1.22.0...v1.23.0) (2026-06-17)
+
+
+### Features
+
+* add account proof, microblock proof, stats, and node status API integration ([64b8a57](https://github.com/Carmentis/carmentis-desk/commit/64b8a574281c0d409040ec822cc7ea4a8d579cdd))
+* utilize `Hash` for account ID conversion in wallet and transaction queries ([ccaafd9](https://github.com/Carmentis/carmentis-desk/commit/ccaafd92ffb14036dd96806ea040ab4ed5bd917e))
+
 # [1.22.0](https://github.com/Carmentis/carmentis-desk/compare/v1.21.0...v1.22.0) (2026-06-17)
 
 
