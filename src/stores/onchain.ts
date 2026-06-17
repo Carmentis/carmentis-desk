@@ -323,7 +323,7 @@ export const useOnChainStore = defineStore('onchain', () => {
 
             if (!wallet.indexer) throw new Error('Indexer not configured for this wallet');
             const nodeResult = await createIndexerClient(wallet.indexer).getValidatorNodes({ public_key: cometbftPublicKey });
-            if (nodeResult.items.length === 0) throw new Error('The node must be declared before staking');
+            if (nodeResult.items.length === 0) throw new Error(`The node must be declared before staking: No node found with public key ${cometbftPublicKey}`);
             const nodeAddress = Hash.from(nodeResult.items[0].virtualBlockchainId).toBytes();
 
             // Create the staking request

@@ -109,11 +109,26 @@ const menuItems = computed<MenuItem[]>(() => [
 
                 <Tabs value="0">
                     <TabList>
-                        <Tab value="-1">Keys</Tab>
-                        <Tab value="-2">Balance</Tab>
-                        <Tab value="0">Organizations</Tab>
-                        <Tab value="1">Application ledgers</Tab>
-                        <Tab value="2">Connectivity</Tab>
+                        <Tab value="-1">
+                            <i class="pi pi-key mr-2"></i>
+                            Keys
+                        </Tab>
+                        <Tab value="-2">
+                            <i class="pi pi-wallet mr-2"></i>
+                            Balance
+                        </Tab>
+                        <Tab value="0">
+                            <i class="pi pi-building mr-2"></i>
+                            Organizations
+                        </Tab>
+                        <Tab value="1">
+                            <i class="pi pi-box mr-2"></i>
+                            Application ledgers
+                        </Tab>
+                        <Tab value="2">
+                            <i class="pi pi-server mr-2"></i>
+                            Connectivity
+                        </Tab>
                     </TabList>
                     <TabPanels>
                         <TabPanel value="-1">
