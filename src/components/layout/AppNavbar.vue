@@ -233,7 +233,7 @@ const menuItems = computed<MenuItem[]>(() => [
       <Menubar :model="menuItems">
         <template #start>
           <div class="flex items-center gap-2 cursor-pointer" @click="router.push('/')">
-            <i class="pi pi-home text-2xl text-primary"></i>
+            <img src="/carmentis-logo.png" alt="Carmentis" class="h-8 w-auto" />
             <span class="text-xl font-bold text-gray-900">Carmentis Desk</span>
           </div>
         </template>

@@ -41,7 +41,7 @@ async function handleSubmit() {
         <Card class="w-full max-w-sm">
             <template #header>
                 <div class="px-6 pt-6 text-center">
-                    <i class="pi pi-lock-open text-4xl text-primary mb-3"></i>
+                    <img src="/carmentis-logo.png" alt="Carmentis" class="h-12 w-auto mx-auto mb-3" />
                     <h1 class="text-2xl font-bold text-gray-900">Unlock vault</h1>
                     <p v-if="pseudo" class="text-sm text-gray-500 mt-1">Welcome back, {{ pseudo }}</p>
                 </div>
