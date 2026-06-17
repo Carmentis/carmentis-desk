@@ -30,6 +30,7 @@ import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import WalletDetailOrganizationsCard from "./WalletDetailOrganizationsCard.vue";
 import WalletDetailApplicationLedgerParticipationsCard from "./WalletDetailApplicationLedgerParticipationsCard.vue";
+import WalletDetailConnectivity from "./WalletDetailConnectivity.vue";
 
 
 const toast = useToast();
@@ -112,6 +113,7 @@ const menuItems = computed<MenuItem[]>(() => [
                         <Tab value="-2">Balance</Tab>
                         <Tab value="0">Organizations</Tab>
                         <Tab value="1">Application ledgers</Tab>
+                        <Tab value="2">Connectivity</Tab>
                     </TabList>
                     <TabPanels>
                         <TabPanel value="-1">
@@ -125,6 +127,9 @@ const menuItems = computed<MenuItem[]>(() => [
                         </TabPanel>
                         <TabPanel value="1">
                             <WalletDetailApplicationLedgerParticipationsCard/>
+                        </TabPanel>
+                        <TabPanel value="2">
+                            <WalletDetailConnectivity/>
                         </TabPanel>
                     </TabPanels>
                 </Tabs>
