@@ -77,9 +77,13 @@ export const useWalletStore = defineStore('wallet', () => {
 
     async function getAccountIdFromPublicKey(walletId: number, pk: PublicSignatureKey) {
         // access the wallet to obtain the indexer endpoint
+        const storageStore = useStorageStore();
+        const wallet = await storageStore.getWalletById(walletId);
+        if (!wallet?.indexer) throw new Error('Indexer not configured for this wallet');
+        const indexerEndpoint = wallet.indexer;
 
         // access the account id from pk through indexer
-        const indexer = createIndexerClient('https://indexer.server4.devnet.carmentis.io')
+        const indexer = createIndexerClient(indexerEndpoint)
         const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
         const accountsResponse = await indexer.getAccounts({
             public_key: await sigEncoder.encodePublicKey(pk)
