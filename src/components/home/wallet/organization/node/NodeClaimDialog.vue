@@ -8,7 +8,7 @@ import type { Hash } from '@cmts-dev/carmentis-sdk-core';
 import { useOnChainStore } from '../../../../../stores/onchain';
 
 const props = defineProps<{
-    nodeVbId?: Hash;
+    nodeVbId?: string;
     organizationName?: string;
 }>();
 
@@ -53,7 +53,7 @@ async function submitClaim() {
             <div v-if="nodeVbId" class="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Node VB ID</label>
                 <code class="text-xs block overflow-x-auto">
-                    {{ nodeVbId.encode() }}
+                    {{ nodeVbId }}
                 </code>
             </div>
             <p class="text-sm text-gray-500">

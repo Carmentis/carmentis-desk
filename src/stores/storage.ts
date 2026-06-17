@@ -69,7 +69,7 @@ export interface WalletEntity {
     name: string;
     seed: string;
     nodeEndpoint: string;
-    indexer?: string;
+    indexer: string;
     organizations: OrganizationEntity[];
     participations: ApplicationParticipation[];
     credentials?: CredentialEntity[];

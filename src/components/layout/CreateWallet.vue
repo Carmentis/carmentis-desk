@@ -108,7 +108,7 @@ const createOrganization = async () => {
         name: organizationName.value,
         seed: finalSeed,
         nodeEndpoint: nodeEndpoint.value,
-        indexer: indexer.value || undefined,
+        indexer: indexer.value,
     });
     await router.push('/');
 };

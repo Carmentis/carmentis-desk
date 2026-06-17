@@ -7,6 +7,7 @@ import { useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { CMTSToken } from '@cmts-dev/carmentis-sdk-core';
 import { useOnChainStore } from '../../../../../stores/onchain';
+import {useNode} from "../../../../../composables/useNode.ts";
 
 const isOpen = defineModel<boolean>('isOpen');
 
@@ -17,6 +18,8 @@ const { isStakingOnNode } = storeToRefs(onChainStore);
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 const nodeId = computed(() => Number(route.params.nodeId));
+
+const { currentStakedAmount } = useNode(walletId, orgId, nodeId);
 
 const MAX_STAKE = 10_000_000;
 
@@ -63,7 +66,7 @@ async function submitStake() {
             <div>
                 <p class="text-gray-700 text-sm block mb-4">
                     Enter the amount of CMTS tokens you want to stake, which will be added to your
-                    current stake (if any).
+                    current stake (if any). You have currently {{currentStakedAmount}} tokens.
                 </p>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Amount (CMTS)</label>
                 <InputNumber
