@@ -4,16 +4,21 @@ import ConfirmDialog from 'primevue/confirmdialog';
 
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { storeToRefs } from 'pinia';
 import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import OpenIdDeepLinkHandler from './components/openid/OpenIdDeepLinkHandler.vue';
 import OpenIdCredentialOfferDeepLinkHandler from './components/openid/OpenIdCredentialOfferDeepLinkHandler.vue';
 import AppNavbar from './components/layout/AppNavbar.vue';
 import AppBreadcrumb from './components/layout/AppBreadcrumb.vue';
+import { useSessionStore } from './stores/sessionStore';
 
 
 const appWindow = getCurrentWindow();
 const router = useRouter();
+const sessionStore = useSessionStore();
+// Hide the navbar while the session is locked (e.g. on the unlock screen).
+const { isUnlocked } = storeToRefs(sessionStore);
 const openidQuery = ref<string>('');
 const openidCredentialOfferQuery = ref<string>('');
 
@@ -72,7 +77,7 @@ onMounted(async () => {
         <ConfirmDialog />
         <Toast position="top-center" />
 
-        <AppNavbar />
+        <AppNavbar v-if="isUnlocked" />
         <AppBreadcrumb />
 
         <!-- Main Content -->
