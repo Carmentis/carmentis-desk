@@ -1,3 +1,12 @@
+# [1.22.0](https://github.com/Carmentis/carmentis-desk/compare/v1.21.0...v1.22.0) (2026-06-17)
+
+
+### Features
+
+* improve node handling and add indexer client integration ([a8d0782](https://github.com/Carmentis/carmentis-desk/commit/a8d0782361f023a964c61e4132c67c857dc72967))
+* make `indexer` mandatory and improve node staking UI ([3c8a016](https://github.com/Carmentis/carmentis-desk/commit/3c8a0166b8eaf564e1fc0c74d8a250cfeac8f067))
+* mark indexer endpoint as required in wallet connectivity UI ([a9d8ef8](https://github.com/Carmentis/carmentis-desk/commit/a9d8ef8b17609d474779ce57a6457b2ce571b9ff))
+
 # [1.21.0](https://github.com/Carmentis/carmentis-desk/compare/v1.20.0...v1.21.0) (2026-06-17)
 
 
