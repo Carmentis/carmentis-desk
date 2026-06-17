@@ -1,3 +1,10 @@
+## [1.23.1](https://github.com/Carmentis/carmentis-desk/compare/v1.23.0...v1.23.1) (2026-06-17)
+
+
+### Bug Fixes
+
+* make indexer endpoint configurable in `getAccountIdFromPublicKey` ([5f35d2c](https://github.com/Carmentis/carmentis-desk/commit/5f35d2caace2417dcb23262fd39d4f7883bfcfa6))
+
 # [1.23.0](https://github.com/Carmentis/carmentis-desk/compare/v1.22.0...v1.23.0) (2026-06-17)
 
 
