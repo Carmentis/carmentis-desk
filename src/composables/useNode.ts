@@ -12,6 +12,7 @@ import {
 import * as walletRepo from '../db/repositories/walletRepository';
 import * as orgRepo from '../db/repositories/organizationRepository';
 import * as nodeRepo from '../db/repositories/nodeRepository';
+import {createIndexerClient} from "../api/indexer/client.ts";
 
 /**
  * Encapsulates the on-chain derived state of a node (publication, ownership,
@@ -36,18 +37,23 @@ export function useNode(
         { immediate: true },
     );
 
-    const { state: node } = useAsyncState(
+    const { state: locallyStoredNode } = useAsyncState(
         () => nodeRepo.getNodeById(toValue(nodeId)),
         null,
         { immediate: true },
     );
 
+    const indexer = computedAsync(async () => {
+        if (!wallet.value) return undefined;
+        return createIndexerClient(wallet.value.indexer)
+    });
+
     // node chain status (the chain on which the node is running)
     const chainNameOnWhichNodeIsConnected = computedAsync(async () => {
-        if (!node.value) {
+        if (!locallyStoredNode.value) {
             return undefined;
         }
-        const endpoint = node.value.rpcEndpoint;
+        const endpoint = locallyStoredNode.value.rpcEndpoint;
         const client = await Tendermint37Client.connect(endpoint);
         const status = await client.status();
         return status.nodeInfo.network;
@@ -55,10 +61,10 @@ export function useNode(
 
     // Node publication status
     const nodePublicKey = computedAsync(async () => {
-        if (!node.value) {
+        if (!locallyStoredNode.value) {
             return undefined;
         }
-        const endpoint = node.value.rpcEndpoint;
+        const endpoint = locallyStoredNode.value.rpcEndpoint;
         const client = await Tendermint37Client.connect(endpoint);
         const status = await client.status();
         const pk = status.validatorInfo.pubkey;
@@ -69,56 +75,61 @@ export function useNode(
     });
 
     const nodeVbId = computedAsync(async () => {
-        if (!node.value || !node.value.vbId) return undefined;
-        if (!wallet.value) return undefined;
-        if (!nodePublicKey.value) return undefined;
-
-        if (node.value.vbId) {
-            return Hash.from(node.value.vbId);
-        } else {
-            const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
-            const vbId = await provider.getValidatorNodeIdByCometbftPublicKey(nodePublicKey.value.pk);
-            return Hash.from(vbId);
-        }
+        if (!locallyStoredNode.value || !locallyStoredNode.value.vbId) return undefined;
+        console.log(`Node id: ${locallyStoredNode.value.vbId}`)
+        return locallyStoredNode.value.vbId;
     });
 
     const isNodePublished = computed(() => {
         return nodeVbId.value !== undefined;
     });
 
+    const validatorNode = computedAsync(async () => {
+        if (!nodeVbId.value || !indexer.value) return undefined;
+        const validatorNodesResponse = await indexer.value.getValidatorNodes({ vb_id: nodeVbId.value });
+        const validatorNodes = validatorNodesResponse.items;
+        if (validatorNodes.length === 0) return undefined;
+        return validatorNodes[0];
+    })
+
+    const nodeOwnerOrganizationId = computedAsync(async () => {
+        if (!locallyStoredNode.value || !locallyStoredNode.value.vbId || !indexer.value) return undefined;
+        const nodeVbId = locallyStoredNode.value.vbId;
+        const validatorNodesResponse = await indexer.value.getValidatorNodes({ vb_id: nodeVbId });
+        const validatorNodes = validatorNodesResponse.items;
+        if (validatorNodes.length === 0) return undefined;
+        return validatorNodes[0].organizationId;
+    })
+
+    const nodeOwnerOrganization = computedAsync(async () => {
+        if (!nodeOwnerOrganizationId.value || !indexer.value) return undefined;
+        const organizationId = nodeOwnerOrganizationId.value;
+        const organization = await indexer.value.getOrganizations({ vb_id: organizationId });
+        return organization.items[0];
+    })
+
     // Check if node is claimed and by whom
     const nodeOwnerAccountId = computedAsync(async () => {
-        if (!nodeVbId.value) return undefined;
-        if (!wallet.value) return undefined;
-        if (!node.value?.vbId) return undefined;
+        if (!nodeOwnerOrganization.value) return undefined;
+        const accountId = nodeOwnerOrganization.value.accountId;
+        return accountId;
+    });
 
-        try {
-            const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
-            const nodeVb = await provider.loadValidatorNodeVirtualBlockchain(Hash.from(node.value.vbId));
-            const orgId = await nodeVb.getOrganizationId();
-            return orgId;
-        } catch (e) {
-            console.error('Error loading node owner:', e);
-            return undefined;
-        }
+
+    const nodeOwnerAccount = computedAsync(async () => {
+        if (!nodeOwnerAccountId.value || !indexer.value) return undefined;
+        const accounts =  await indexer.value.getAccounts({ id: nodeOwnerAccountId.value });
+        return accounts.items.length === 1 ? accounts.items[0] : undefined;
     });
 
     const nodeOwnerName = computedAsync(async () => {
-        if (!nodeOwnerAccountId.value) return undefined;
-        if (!wallet.value) return undefined;
-        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
-        const orgVb = await provider.loadOrganizationVirtualBlockchain(nodeOwnerAccountId.value);
-        const orgDesc = await orgVb.getDescription();
-        return orgDesc.name;
+        if (!nodeOwnerOrganization.value) return undefined;
+        return nodeOwnerOrganization.value.name;
     });
 
     const isNodeValidator = computedAsync(async () => {
-        if (!nodeVbId.value) return undefined;
-        if (!wallet.value) return undefined;
-        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
-        const validatorNodeVb = await provider.loadValidatorNodeVirtualBlockchain(nodeVbId.value);
-        const validatorNodeState = await validatorNodeVb.getVirtualBlockchainState();
-        return validatorNodeState.internalState.lastKnownApprovalStatus;
+        if (!validatorNode.value) return undefined;
+        return validatorNode.value.currentVotingPower !== 0;
     });
 
     const isNodeClaimed = computed(() => {
@@ -128,37 +139,46 @@ export function useNode(
     // Check if the wallet owns this node
     const walletOrgId = computedAsync(async () => {
         if (!organization.value?.vbId) return undefined;
-        return Hash.from(organization.value.vbId);
+        return organization.value.vbId;
     });
 
     const isOwnedByWallet = computedAsync(async () => {
-        if (!nodeOwnerAccountId.value || !walletOrgId.value) return false;
-        const ownerHash = await nodeOwnerAccountId.value;
-        const walletHash = await walletOrgId.value;
-        return ownerHash.encode() === walletHash.encode();
+        if (!nodeOwnerOrganizationId.value || !walletOrgId.value) return undefined;
+        return nodeOwnerOrganizationId.value === walletOrgId.value;
     });
 
     // staking information
     const nodeStakeInformation = computedAsync(async () => {
+        if (!nodeOwnerAccount.value || !nodeVbId.value) return undefined;
+        const stakingLocks = nodeOwnerAccount.value.stakingLocks;
+        const stakingLocksForThisNode = stakingLocks.filter(
+            (lock) => lock.validatorNodeId === nodeVbId.value
+        );
+        return stakingLocksForThisNode
+
+        /*
         const pk = nodePublicKey.value?.pk;
         if (pk === undefined) {
             return undefined;
         }
 
         if (wallet.value === null) return undefined;
-        if (node.value === null) return undefined;
-        if (node.value.vbId === undefined) return undefined;
+        if (locallyStoredNode.value === null) return undefined;
+        if (locallyStoredNode.value.vbId === undefined) return undefined;
 
         const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
 
+        console.log(`Searching for validator node id from node public key ${pk}`);
         const validatorNodeVbId = await provider.getValidatorNodeIdByCometbftPublicKey(pk);
+
+        console.log(`Searching for validator node with id ${validatorNodeVbId}`);
         const validatorNodeVb = await provider.loadValidatorNodeVirtualBlockchain(Hash.from(validatorNodeVbId));
         const orgVbId = await validatorNodeVb.getOrganizationId();
         const orgVb = await provider.loadOrganizationVirtualBlockchain(orgVbId);
         const nodeOwnerAccountVbId = orgVb.getAccountId();
         const accountId = nodeOwnerAccountVbId.toBytes();
         const accountState = await provider.getAccountState(accountId);
-        const nodeVbId = Hash.from(node.value.vbId);
+        const nodeVbId = Hash.from(locallyStoredNode.value.vbId);
         const stakingForThisNode = accountState.locks.filter(
             (lock) =>
                 lock.type === LockType.NodeStaking &&
@@ -169,16 +189,19 @@ export function useNode(
         if (stake.type !== LockType.NodeStaking)
             throw new Error(`Expected lock type to be NodeStaking, got ${LockType[stake.type]}`);
         return stake;
+
+         */
     });
 
     const currentStakedAmount = computed(() => {
-        if (nodeStakeInformation.value === undefined) return undefined;
-        return CMTSToken.createAtomic(nodeStakeInformation.value.lockedAmountInAtomics);
+        if (!nodeStakeInformation.value) return undefined;
+        const sumOfStaked = nodeStakeInformation.value.reduce((acc, l) => acc + l.amount, 0)
+        return CMTSToken.createAtomic(sumOfStaked);
     });
 
     const unstakingAmountInProgress = computed(() => {
         if (nodeStakeInformation.value === undefined) return undefined;
-        const { plannedUnlockAmountInAtomics } = nodeStakeInformation.value.parameters;
+        const { plannedUnlockAmountInAtomics } = nodeStakeInformation.value[0];
         if (plannedUnlockAmountInAtomics === undefined) return undefined;
         return CMTSToken.createAtomic(plannedUnlockAmountInAtomics);
     });
@@ -192,7 +215,7 @@ export function useNode(
 
     const unstakingAtTimestamp = computed(() => {
         if (nodeStakeInformation.value === undefined) return undefined;
-        const { plannedUnlockTimestamp } = nodeStakeInformation.value.parameters;
+        const { plannedUnlockTimestamp } = nodeStakeInformation.value[0];
         if (plannedUnlockTimestamp === undefined) return undefined;
         return plannedUnlockTimestamp;
     });
@@ -200,7 +223,7 @@ export function useNode(
     return {
         wallet,
         organization,
-        node,
+        node: locallyStoredNode,
         chainNameOnWhichNodeIsConnected,
         nodePublicKey,
         nodeVbId,

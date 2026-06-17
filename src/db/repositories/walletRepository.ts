@@ -4,14 +4,14 @@ export interface WalletRow {
     id: number;
     name: string;
     nodeEndpoint: string;
-    indexer?: string;
+    indexer: string;
 }
 
 interface DbRow {
     id: number;
     name: string;
     node_endpoint: string;
-    indexer: string | null;
+    indexer: string;
 }
 
 function rowToEntity(row: DbRow): WalletRow {
@@ -19,7 +19,7 @@ function rowToEntity(row: DbRow): WalletRow {
         id: row.id,
         name: row.name,
         nodeEndpoint: row.node_endpoint,
-        indexer: row.indexer ?? undefined,
+        indexer: row.indexer,
     };
 }
 

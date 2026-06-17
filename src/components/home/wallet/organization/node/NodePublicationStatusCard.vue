@@ -9,7 +9,7 @@ defineProps<{
     isNodeValidator?: unknown;
     isNodeClaimed?: boolean;
     nodeOwnerName?: string;
-    nodeOwnerAccountId?: Hash;
+    nodeOwnerAccountId?: string;
     isOwnedByWallet?: boolean;
 }>();
 </script>
@@ -76,7 +76,7 @@ defineProps<{
                     <label class="block text-sm font-medium text-gray-700 mb-2">Owner</label>
                     <div class="space-y-2">
                         <code class="bg-gray-100 px-3 py-2 rounded text-xs block overflow-x-auto">
-                            {{ nodeOwnerAccountId.encode() }}
+                            {{ nodeOwnerAccountId }}
                         </code>
                         <div v-if="isOwnedByWallet" class="flex items-center gap-2 text-sm text-green-700">
                             <i class="pi pi-check-circle"></i>
