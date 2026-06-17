@@ -5,7 +5,7 @@ import * as walletRepo from "../../../db/repositories/walletRepository.ts";
 import * as orgRepo from "../../../db/repositories/organizationRepository.ts";
 import * as appRepo from "../../../db/repositories/applicationRepository.ts";
 import * as nodeRepo from "../../../db/repositories/nodeRepository.ts";
-import {Utils} from "@cmts-dev/carmentis-sdk-core";
+import {Hash, Utils} from "@cmts-dev/carmentis-sdk-core";
 import {createIndexerClient} from "../../../api/indexer/client.ts";
 import {useToast} from "primevue/usetoast";
 import {useRoute, useRouter} from "vue-router";
@@ -76,7 +76,8 @@ const fetchedOrganizationsFromChain = computedAsync(async () => {
         const result: WalletSyncOrganizationState[] = [];
 
         // we start by fetching the organizations from the chain
-        const accountId = Utils.binaryToHexa(await walletStore.getAccountId(walletId.value));
+        const test = await walletStore.getAccountId(walletId.value)
+        const accountId = Utils.binaryToHexa(Hash.from(test as string).toBytes());
         if (!wallet.value.indexer) return undefined;
         const client = createIndexerClient(wallet.value.indexer);
         const orgs = await client.getOrganizations({

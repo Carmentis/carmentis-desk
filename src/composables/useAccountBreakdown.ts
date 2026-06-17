@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/vue-query';
 import { useWalletStore } from '../stores/walletStore.ts';
 import {type MaybeRefOrGetter, computed, ref, toValue, Ref} from 'vue';
-import {BalanceAvailability, CMTSToken, LockType, TokenUnit, Utils, Lock} from "@cmts-dev/carmentis-sdk-core";
+import {BalanceAvailability, CMTSToken, LockType, TokenUnit, Utils, Lock, Hash} from "@cmts-dev/carmentis-sdk-core";
 import {AccountDto, AppControllerGetAccountHistoryParams} from "../api/indexer/model";
 
 function formatCmts(milliCmts: number): string {
@@ -73,7 +73,7 @@ export function useAccountTransactionsHistory(walletId: MaybeRefOrGetter<number>
         queryFn: async () => {
             const accountId = accountIdQuery.data.value;
             if (accountId) {
-                return await store.fetchAccountTransactionsHistory(toValue(walletId), accountId, {
+                return await store.fetchAccountTransactionsHistory(toValue(walletId), Hash.from(accountId).toBytes(), {
                     height_gte: fromHeight.value,
                     limit: nbLimit.value,
                 });
