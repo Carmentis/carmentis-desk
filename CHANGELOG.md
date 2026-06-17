@@ -1,3 +1,19 @@
+# [1.20.0](https://github.com/Carmentis/carmentis-desk/compare/v1.19.0...v1.20.0) (2026-06-17)
+
+
+### Features
+
+* add connectivity tab to wallet details ([a53ba0b](https://github.com/Carmentis/carmentis-desk/commit/a53ba0b96d13b9a3b1870b8600d7ea0345e217bc))
+* add editing and saving functionality to wallet connectivity settings ([3f44d4e](https://github.com/Carmentis/carmentis-desk/commit/3f44d4e810fdc3614d2cbd988902ab2c074887e3))
+* extract organization state functionality into `OrganizationStateCard` component ([0e3f8cd](https://github.com/Carmentis/carmentis-desk/commit/0e3f8cd0495c6b88d65cd0a195a24e25c77314b0))
+* extract publish organization logic into `OrganizationPublicationDialog` component ([7b4096e](https://github.com/Carmentis/carmentis-desk/commit/7b4096e64f9cfbb30e131a74cb575543a558ebb4))
+* modularize app ledger explorer into dedicated components ([80d00b9](https://github.com/Carmentis/carmentis-desk/commit/80d00b9fcefb169abbeaf0445fced661e5188dd1))
+* modularize application management into `OrganizationApplications` component ([80fadc7](https://github.com/Carmentis/carmentis-desk/commit/80fadc71e0b2a60065db34f86dfd671337f7fac9))
+* modularize node management into dedicated components ([91043d6](https://github.com/Carmentis/carmentis-desk/commit/91043d62112d01d7b3517283d02c0f3a82ab9943))
+* modularize organization dialogs for creation and deletion ([fa2942e](https://github.com/Carmentis/carmentis-desk/commit/fa2942e8577b6c38382b2f22d98805d4a28b9195))
+* modularize organization nodes and custom data management ([ba66c62](https://github.com/Carmentis/carmentis-desk/commit/ba66c62711c011aace0ff5e28392af0ee11b7cab))
+* replace organizations list with DataTable in WalletDetailOrganizationsCard ([d40a621](https://github.com/Carmentis/carmentis-desk/commit/d40a621d7a2539b045581e716e65bd3f0523e473))
+
 # [1.19.0](https://github.com/Carmentis/carmentis-desk/compare/v1.18.0...v1.19.0) (2026-06-16)
 
 
