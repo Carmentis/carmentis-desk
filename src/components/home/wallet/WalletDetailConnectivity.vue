@@ -137,6 +137,7 @@ function resetForm() {
                 <div>
                     <label for="indexer-endpoint" class="block text-sm font-medium text-gray-700 mb-2">
                         Indexer Endpoint
+                        <span class="text-red-500">*</span>
                     </label>
                     <div class="flex items-center gap-2">
                         <InputText
@@ -144,6 +145,7 @@ function resetForm() {
                             v-model="indexerEndpoint"
                             placeholder="https://..."
                             class="w-full"
+                            required
                         />
                         <Button
                             icon="pi pi-copy"
