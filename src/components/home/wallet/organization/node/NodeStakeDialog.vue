@@ -18,16 +18,12 @@ const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 const nodeId = computed(() => Number(route.params.nodeId));
 
-const MIN_STAKE = 1_000_000;
 const MAX_STAKE = 10_000_000;
 
 const stakeAmount = ref<number | null>(null);
 
 const stakeAmountError = computed(() => {
     if (stakeAmount.value === null) return null;
-    if (stakeAmount.value < MIN_STAKE) {
-        return `Minimum stake amount is ${MIN_STAKE.toLocaleString()} CMTS`;
-    }
     if (stakeAmount.value > MAX_STAKE) {
         return `Maximum stake amount is ${MAX_STAKE.toLocaleString()} CMTS`;
     }
@@ -65,10 +61,14 @@ async function submitStake() {
     <Dialog v-model:visible="isOpen" modal header="Stake Tokens" :style="{ width: '30rem' }">
         <div class="space-y-4">
             <div>
+                <p class="text-gray-700 text-sm block mb-4">
+                    Enter the amount of CMTS tokens you want to stake, which will be added to your
+                    current stake (if any).
+                </p>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Amount (CMTS)</label>
                 <InputNumber
                     v-model="stakeAmount"
-                    :min="MIN_STAKE"
+                    :min="0"
                     :max="MAX_STAKE"
                     :minFractionDigits="0"
                     :maxFractionDigits="2"
@@ -77,7 +77,7 @@ async function submitStake() {
                     placeholder="Enter amount to stake"
                 />
                 <small class="text-gray-500 mt-1 block">
-                    Min: {{ MIN_STAKE.toLocaleString() }} CMTS | Max: {{ MAX_STAKE.toLocaleString() }} CMTS
+                    Max: {{ MAX_STAKE.toLocaleString() }} CMTS
                 </small>
                 <small v-if="stakeAmountError" class="text-red-500 mt-1 block">
                     {{ stakeAmountError }}
