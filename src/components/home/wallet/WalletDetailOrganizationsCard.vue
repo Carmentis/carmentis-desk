@@ -8,7 +8,7 @@ import {useRoute, useRouter} from "vue-router";
 import {useToast} from "primevue/usetoast";
 import InputText from "primevue/inputtext";
 import Dialog from "primevue/dialog";
-import DataTable from "primevue/datatable";
+import DataTable, {DataTableRowClickEvent} from "primevue/datatable";
 import Column from "primevue/column";
 
 const toast = useToast();
@@ -171,7 +171,7 @@ function visitOrganization(orgId: number) {
                     :rowsPerPageOptions="[5, 10, 20, 50]"
                     responsiveLayout="scroll"
                     class="text-sm hover:cursor-pointer"
-                    @rowClick="(row: { data: { id: number; }; }) => visitOrganization(row.data.id)"
+                    @rowClick=" (event: DataTableRowClickEvent<any>) => visitOrganization(event.data.id)"
                 >
                     <Column field="name" header="name" sortable style="min-width: 150px"></Column>
                     <Column field="vbId" header="ID" sortable style="min-width: 150px"/>
