@@ -19,6 +19,13 @@ fn save_file(app: tauri::AppHandle, filename: String, content: String) -> Result
     Ok(file_path.to_string_lossy().to_string())
 }
 
+/// Opens the webview developer tools for the calling window.
+/// Available because the `tauri` dependency is built with the `devtools` feature.
+#[tauri::command]
+fn open_devtools(window: tauri::WebviewWindow) {
+    window.open_devtools();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default();
@@ -79,7 +86,7 @@ pub fn run() {
         )
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![greet, save_file])
+        .invoke_handler(tauri::generate_handler![greet, save_file, open_devtools])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

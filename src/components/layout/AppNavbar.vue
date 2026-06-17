@@ -8,6 +8,7 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
+import { invoke } from '@tauri-apps/api/core';
 import { useStorageStore } from '../../stores/storage.ts';
 import { useNavbarData, buildExportData } from '../../composables/useNavbarData';
 
@@ -26,6 +27,15 @@ const fileInputRef = ref<HTMLInputElement | null>(null);
 
 function triggerImport() {
     fileInputRef.value?.click();
+}
+
+async function openDebug() {
+    try {
+        await invoke('open_devtools');
+    } catch (e) {
+        console.error('Failed to open devtools:', e);
+        toast.add({ severity: 'error', summary: 'Debug', detail: 'Could not open the developer tools.', life: 4000 });
+    }
 }
 
 async function handleImportFile(event: Event) {
@@ -211,6 +221,7 @@ const menuItems = computed<MenuItem[]>(() => [
             { separator: true },
             { label: 'Export Data', icon: 'pi pi-download', command: () => exportData() },
             { label: 'Import Data', icon: 'pi pi-upload', command: () => triggerImport() },
+            { label: 'Open debug', icon: 'pi pi-code', command: () => openDebug() },
         ],
     },
     { label: 'Help', icon: 'pi pi-question-circle', command: () => router.push('/help') },
