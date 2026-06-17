@@ -32,4 +32,8 @@ public_key?: string;
  * Node address
  */
 address?: string;
+/**
+ * Flag to include only validator nodes
+ */
+is_validator?: boolean;
 };

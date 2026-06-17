@@ -22,6 +22,10 @@ limit?: number;
  */
 sort?: AppControllerGetAccountsSort;
 /**
+ * Public key of the account
+ */
+public_key?: string;
+/**
  * Account ID
  */
 id?: string;

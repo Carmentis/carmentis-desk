@@ -27,12 +27,17 @@ import type {
 import type {
   AccountHistoryListResponseDto,
   AccountListResponseDto,
+  AccountProofResponseDto,
   AppControllerGetAccountHistoryParams,
+  AppControllerGetAccountProofParams,
   AppControllerGetAccountsParams,
   AppControllerGetApplicationsParams,
   AppControllerGetBlocksParams,
   AppControllerGetGasPriceParams,
+  AppControllerGetMicroblockProofParams,
+  AppControllerGetMicroblockStatsParams,
   AppControllerGetMicroblocksParams,
+  AppControllerGetNodeStatusParams,
   AppControllerGetOrganizationsParams,
   AppControllerGetValidatorNodesParams,
   AppControllerGetVirtualBlockchainsParams,
@@ -43,6 +48,9 @@ import type {
   ChainResponseDto,
   GasPriceResponseDto,
   MicroblockListResponseDto,
+  MicroblockProofResponseDto,
+  MicroblockStatsResponseDto,
+  NodeStatusResponseDto,
   OrganizationListResponseDto,
   SearchListResponseDto,
   ValidatorNodeListResponseDto,
@@ -630,6 +638,204 @@ export function useAppControllerGetMicroblocks<TData = Awaited<ReturnType<typeof
 
 
 
+export type appControllerGetMicroblockProofResponse200 = {
+  data: MicroblockProofResponseDto
+  status: 200
+}
+
+export type appControllerGetMicroblockProofResponseSuccess = (appControllerGetMicroblockProofResponse200) & {
+  headers: Headers;
+};
+;
+
+export type appControllerGetMicroblockProofResponse = (appControllerGetMicroblockProofResponseSuccess)
+
+export const getAppControllerGetMicroblockProofUrl = (params: AppControllerGetMicroblockProofParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/microblock-proof?${stringifiedParams}` : `/api/v1/microblock-proof`
+}
+
+export const appControllerGetMicroblockProof = async (params: AppControllerGetMicroblockProofParams, options?: RequestInit): Promise<appControllerGetMicroblockProofResponse> => {
+
+  const res = await fetch(getAppControllerGetMicroblockProofUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: appControllerGetMicroblockProofResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as appControllerGetMicroblockProofResponse
+}
+
+
+
+
+
+export const getAppControllerGetMicroblockProofQueryKey = (params?: MaybeRef<AppControllerGetMicroblockProofParams>,) => {
+    return [
+    'api','v1','microblock-proof', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAppControllerGetMicroblockProofQueryOptions = <TData = Awaited<ReturnType<typeof appControllerGetMicroblockProof>>, TError = unknown>(params: MaybeRef<AppControllerGetMicroblockProofParams>, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof appControllerGetMicroblockProof>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  getAppControllerGetMicroblockProofQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof appControllerGetMicroblockProof>>> = ({ signal }) => appControllerGetMicroblockProof(unref(params), { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof appControllerGetMicroblockProof>>, TError, TData>
+}
+
+export type AppControllerGetMicroblockProofQueryResult = NonNullable<Awaited<ReturnType<typeof appControllerGetMicroblockProof>>>
+export type AppControllerGetMicroblockProofQueryError = unknown
+
+
+
+export function useAppControllerGetMicroblockProof<TData = Awaited<ReturnType<typeof appControllerGetMicroblockProof>>, TError = unknown>(
+ params: MaybeRef<AppControllerGetMicroblockProofParams>, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof appControllerGetMicroblockProof>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ): UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAppControllerGetMicroblockProofQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = unref(queryOptions).queryKey as DataTag<QueryKey, TData, TError>;
+
+  return query;
+}
+
+
+
+
+
+
+
+export type appControllerGetMicroblockStatsResponse200 = {
+  data: MicroblockStatsResponseDto
+  status: 200
+}
+
+export type appControllerGetMicroblockStatsResponseSuccess = (appControllerGetMicroblockStatsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type appControllerGetMicroblockStatsResponse = (appControllerGetMicroblockStatsResponseSuccess)
+
+export const getAppControllerGetMicroblockStatsUrl = (params?: AppControllerGetMicroblockStatsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/microblock-stats?${stringifiedParams}` : `/api/v1/microblock-stats`
+}
+
+export const appControllerGetMicroblockStats = async (params?: AppControllerGetMicroblockStatsParams, options?: RequestInit): Promise<appControllerGetMicroblockStatsResponse> => {
+
+  const res = await fetch(getAppControllerGetMicroblockStatsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: appControllerGetMicroblockStatsResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as appControllerGetMicroblockStatsResponse
+}
+
+
+
+
+
+export const getAppControllerGetMicroblockStatsQueryKey = (params?: MaybeRef<AppControllerGetMicroblockStatsParams>,) => {
+    return [
+    'api','v1','microblock-stats', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAppControllerGetMicroblockStatsQueryOptions = <TData = Awaited<ReturnType<typeof appControllerGetMicroblockStats>>, TError = unknown>(params?: MaybeRef<AppControllerGetMicroblockStatsParams>, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof appControllerGetMicroblockStats>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  getAppControllerGetMicroblockStatsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof appControllerGetMicroblockStats>>> = ({ signal }) => appControllerGetMicroblockStats(unref(params), { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof appControllerGetMicroblockStats>>, TError, TData>
+}
+
+export type AppControllerGetMicroblockStatsQueryResult = NonNullable<Awaited<ReturnType<typeof appControllerGetMicroblockStats>>>
+export type AppControllerGetMicroblockStatsQueryError = unknown
+
+
+
+export function useAppControllerGetMicroblockStats<TData = Awaited<ReturnType<typeof appControllerGetMicroblockStats>>, TError = unknown>(
+ params?: MaybeRef<AppControllerGetMicroblockStatsParams>, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof appControllerGetMicroblockStats>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ): UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAppControllerGetMicroblockStatsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = unref(queryOptions).queryKey as DataTag<QueryKey, TData, TError>;
+
+  return query;
+}
+
+
+
+
+
+
+
 export type appControllerGetAccountsResponse200 = {
   data: AccountListResponseDto
   status: 200
@@ -814,6 +1020,105 @@ export function useAppControllerGetAccountHistory<TData = Awaited<ReturnType<typ
  ): UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getAppControllerGetAccountHistoryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = unref(queryOptions).queryKey as DataTag<QueryKey, TData, TError>;
+
+  return query;
+}
+
+
+
+
+
+
+
+export type appControllerGetAccountProofResponse200 = {
+  data: AccountProofResponseDto
+  status: 200
+}
+
+export type appControllerGetAccountProofResponseSuccess = (appControllerGetAccountProofResponse200) & {
+  headers: Headers;
+};
+;
+
+export type appControllerGetAccountProofResponse = (appControllerGetAccountProofResponseSuccess)
+
+export const getAppControllerGetAccountProofUrl = (params: AppControllerGetAccountProofParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/account-proof?${stringifiedParams}` : `/api/v1/account-proof`
+}
+
+export const appControllerGetAccountProof = async (params: AppControllerGetAccountProofParams, options?: RequestInit): Promise<appControllerGetAccountProofResponse> => {
+
+  const res = await fetch(getAppControllerGetAccountProofUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: appControllerGetAccountProofResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as appControllerGetAccountProofResponse
+}
+
+
+
+
+
+export const getAppControllerGetAccountProofQueryKey = (params?: MaybeRef<AppControllerGetAccountProofParams>,) => {
+    return [
+    'api','v1','account-proof', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAppControllerGetAccountProofQueryOptions = <TData = Awaited<ReturnType<typeof appControllerGetAccountProof>>, TError = unknown>(params: MaybeRef<AppControllerGetAccountProofParams>, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof appControllerGetAccountProof>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  getAppControllerGetAccountProofQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof appControllerGetAccountProof>>> = ({ signal }) => appControllerGetAccountProof(unref(params), { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof appControllerGetAccountProof>>, TError, TData>
+}
+
+export type AppControllerGetAccountProofQueryResult = NonNullable<Awaited<ReturnType<typeof appControllerGetAccountProof>>>
+export type AppControllerGetAccountProofQueryError = unknown
+
+
+
+export function useAppControllerGetAccountProof<TData = Awaited<ReturnType<typeof appControllerGetAccountProof>>, TError = unknown>(
+ params: MaybeRef<AppControllerGetAccountProofParams>, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof appControllerGetAccountProof>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ): UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAppControllerGetAccountProofQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -1111,6 +1416,105 @@ export function useAppControllerGetValidatorNodes<TData = Awaited<ReturnType<typ
  ): UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getAppControllerGetValidatorNodesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = unref(queryOptions).queryKey as DataTag<QueryKey, TData, TError>;
+
+  return query;
+}
+
+
+
+
+
+
+
+export type appControllerGetNodeStatusResponse200 = {
+  data: NodeStatusResponseDto
+  status: 200
+}
+
+export type appControllerGetNodeStatusResponseSuccess = (appControllerGetNodeStatusResponse200) & {
+  headers: Headers;
+};
+;
+
+export type appControllerGetNodeStatusResponse = (appControllerGetNodeStatusResponseSuccess)
+
+export const getAppControllerGetNodeStatusUrl = (params: AppControllerGetNodeStatusParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/node-status?${stringifiedParams}` : `/api/v1/node-status`
+}
+
+export const appControllerGetNodeStatus = async (params: AppControllerGetNodeStatusParams, options?: RequestInit): Promise<appControllerGetNodeStatusResponse> => {
+
+  const res = await fetch(getAppControllerGetNodeStatusUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: appControllerGetNodeStatusResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as appControllerGetNodeStatusResponse
+}
+
+
+
+
+
+export const getAppControllerGetNodeStatusQueryKey = (params?: MaybeRef<AppControllerGetNodeStatusParams>,) => {
+    return [
+    'api','v1','node-status', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAppControllerGetNodeStatusQueryOptions = <TData = Awaited<ReturnType<typeof appControllerGetNodeStatus>>, TError = unknown>(params: MaybeRef<AppControllerGetNodeStatusParams>, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof appControllerGetNodeStatus>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  getAppControllerGetNodeStatusQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof appControllerGetNodeStatus>>> = ({ signal }) => appControllerGetNodeStatus(unref(params), { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof appControllerGetNodeStatus>>, TError, TData>
+}
+
+export type AppControllerGetNodeStatusQueryResult = NonNullable<Awaited<ReturnType<typeof appControllerGetNodeStatus>>>
+export type AppControllerGetNodeStatusQueryError = unknown
+
+
+
+export function useAppControllerGetNodeStatus<TData = Awaited<ReturnType<typeof appControllerGetNodeStatus>>, TError = unknown>(
+ params: MaybeRef<AppControllerGetNodeStatusParams>, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof appControllerGetNodeStatus>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ): UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAppControllerGetNodeStatusQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

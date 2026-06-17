@@ -5,6 +5,7 @@
  * Documentation for the Carmentis indexer API.
  * OpenAPI spec version: 1.0
  */
+import type { ValidatorNodeDtoStatus } from './validatorNodeDtoStatus.ts';
 
 export interface ValidatorNodeDto {
   virtualBlockchainId: string;
@@ -14,4 +15,7 @@ export interface ValidatorNodeDto {
   address: string;
   rpcEndpoint: string;
   currentVotingPower: number;
+  status: ValidatorNodeDtoStatus;
+  statusTimestamp: number;
+  moniker: string;
 }

@@ -22,6 +22,9 @@ export interface BlockDto {
   validatorsHash: string;
   nextValidatorsHash: string;
   consensusHash: string;
+  appVbRadixHash: string;
+  appTokenRadixHash: string;
+  appStorageHash: string;
   appHash: string;
   lastResultsHash: string;
   evidenceHash: string;

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { useStorageStore } from './storage.ts';
 import { useSessionStore } from './sessionStore.ts';
 import {
+    CryptoEncoderFactory,
     PrivateSignatureKey,
     ProviderFactory,
     PublicSignatureKey,
@@ -40,12 +41,11 @@ export const useWalletStore = defineStore('wallet', () => {
         return provider;
     }
 
-    async function fetchAccountStateByAccountId(walletId: number, accountId: Uint8Array) {
+    async function fetchAccountStateByAccountId(walletId: number, accountId: string) {
         const storageStore = useStorageStore();
         const wallet = await storageStore.getWalletById(walletId);
         if (!wallet?.indexer) throw new Error('Indexer not configured for this wallet');
-        const hexId = Utils.binaryToHexa(accountId);
-        const result = await createIndexerClient(wallet.indexer).getAccounts({ id: hexId });
+        const result = await createIndexerClient(wallet.indexer).getAccounts({ id: accountId });
         const account = result.items[0];
         if (!account) throw new Error('Account not found');
         return account;
@@ -69,15 +69,33 @@ export const useWalletStore = defineStore('wallet', () => {
         return JwkSignatureKeyExporter.computeDidJwkFromSeed(rawSeed);
     }
 
-    async function getAccountId(walletId: number): Promise<Uint8Array> {
-        const provider = await getProvider(walletId);
+    async function getAccountId(walletId: number): Promise<string | undefined> {
+        // access the wallet to obtain the indexer endpoint
         const { pk } = await getKeyPair(walletId);
-        return await provider.getAccountIdByPublicKey(pk);
+        return getAccountIdFromPublicKey(walletId, pk);
     }
 
     async function getAccountIdFromPublicKey(walletId: number, pk: PublicSignatureKey) {
-        const provider = await getProvider(walletId);
+        // access the wallet to obtain the indexer endpoint
+
+        // access the account id from pk through indexer
+        const indexer = createIndexerClient('https://indexer.server4.devnet.carmentis.io')
+        const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
+        const accountsResponse = await indexer.getAccounts({
+            public_key: await sigEncoder.encodePublicKey(pk)
+        })
+        console.log("Found client:", accountsResponse);
+        const accounts = accountsResponse.items;
+        if (accounts.length !== 1) return undefined
+        const account = accounts[0];
+        return account.id;
+
+        /*
+        const session = useSessionStore();
+        const { pk } = await getKeyPair(walletId);
         return await provider.getAccountIdByPublicKey(pk);
+
+         */
     }
 
     async function fetchAccountTransactionsHistory(walletId: number, accountId: Uint8Array, params: AppControllerGetAccountHistoryParams) {

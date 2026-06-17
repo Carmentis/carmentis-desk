@@ -32,6 +32,7 @@ import Dialog from "primevue/dialog";
 import WalletDetailTransactionsHistoryDialog
     from "./components/transactionsHistory/WalletDetailTransactionsHistoryDialog.vue";
 import WalletDetailTokenTransferDialog from "./WalletDetailTokenTransferDialog.vue";
+import ProgressSpinner from "primevue/progressspinner";
 
 const route = useRoute();
 const clipboard = useClipboard();
@@ -42,15 +43,18 @@ const breakdownQuery = useAccountBreakdownQuery(walletId.value);
 
 const showTokenTransferDialog = ref(false);
 const showAccountTransactionsHistory = ref(false);
+const hasError = computed(() => breakdownQuery.error.value || accountIdQuery.error.value)
+const isLoading = computed(() => accountIdQuery.isLoading.value || breakdownQuery.isLoading.value)
 </script>
 <template>
 
 
     <!-- No account found on chain Card -->
-    <Card v-if="breakdownQuery.error.value || accountIdQuery.error.value">
+    <Card v-if="isLoading || hasError">
         <template #title>
             <div class="flex items-center gap-2">
-                <i class="pi pi-wallet text-xl"></i>
+                <i class="pi pi-wallet text-xl" v-if="!isLoading"></i>
+                <i class="pi pi-sync text-xl" v-if="isLoading"></i>
                 <span>Balance</span>
             </div>
         </template>
@@ -64,37 +68,6 @@ const showAccountTransactionsHistory = ref(false);
                 <i class="pi pi-exclamation-circle text-3xl text-amber-500 mb-2"></i>
                 <h1 class="text-2xl font-bold text-gray-900 mb-2">No account found</h1>
                 <p class="text-gray-600 text-sm">Purchase tokens to see your balance.</p>
-            </div>
-        </template>
-    </Card>
-
-    <!-- Balance Card Loading -->
-    <Card v-else-if="accountIdQuery.isLoading.value || breakdownQuery.isLoading.value">
-        <template #title>
-            <div class="flex items-center gap-2">
-                <i class="pi pi-wallet text-xl"></i>
-                <span>Balance</span>
-            </div>
-        </template>
-        <template #subtitle>
-            <p class="text-sm text-surface-500">
-                Your on-chain token holdings broken down by spendable, vested, and staked amounts.
-            </p>
-        </template>
-        <template #content>
-            <div class="grid grid-cols-1 gap-4">
-                <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
-                    <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-                    <div class="h-8 bg-gray-200 rounded w-24"></div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
-                    <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-                    <div class="h-8 bg-gray-200 rounded w-24"></div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4 animate-pulse">
-                    <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-                    <div class="h-8 bg-gray-200 rounded w-24"></div>
-                </div>
             </div>
         </template>
     </Card>
@@ -129,9 +102,7 @@ const showAccountTransactionsHistory = ref(false);
                         icon="pi pi-copy"
                         size="small"
                         @click="clipboard.copyToClipboard(
-                                            EncoderFactory.bytesToHexEncoder()
-                                            .encode(accountIdQuery.data.value)
-                                            .toUpperCase(),
+                                            accountIdQuery.data.value,
                                             'Account ID'
                                             )"
                     />

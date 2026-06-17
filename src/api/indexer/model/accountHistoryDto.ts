@@ -13,6 +13,7 @@ export interface AccountHistoryDto {
   timestamp: number;
   linkedAccountId: string;
   amount: number;
+  /** Base64 representation of the CBOR-encoded chain reference. */
   chainReference: string;
   publicReference: string;
   privateReference: string;
