@@ -1,3 +1,10 @@
+## [1.23.2](https://github.com/Carmentis/carmentis-desk/compare/v1.23.1...v1.23.2) (2026-06-19)
+
+
+### Bug Fixes
+
+* update of the broken sdk ([342d4d2](https://github.com/Carmentis/carmentis-desk/commit/342d4d204e302adffdb72858357abbf90f0842d4))
+
 ## [1.23.1](https://github.com/Carmentis/carmentis-desk/compare/v1.23.0...v1.23.1) (2026-06-17)
 
 
