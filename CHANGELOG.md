@@ -1,3 +1,10 @@
+# [1.24.0](https://github.com/Carmentis/carmentis-desk/compare/v1.23.3...v1.24.0) (2026-06-23)
+
+
+### Features
+
+* add signature scheme selection and key pair validation to wallet ([df89b91](https://github.com/Carmentis/carmentis-desk/commit/df89b91ec18818555dfd2380fba18658b26b4c59))
+
 ## [1.23.3](https://github.com/Carmentis/carmentis-desk/compare/v1.23.2...v1.23.3) (2026-06-23)
 
 
