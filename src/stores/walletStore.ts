@@ -31,6 +31,10 @@ export const useWalletStore = defineStore('wallet', () => {
         signatureSchemaType: SignatureSchemeId.SECP256K1,
     });
 
+    const setSignatureSchemaType = (signatureSchemaType: SignatureSchemeId) => {
+        state.value.signatureSchemaType = signatureSchemaType;
+    }
+
     async function getProvider(walletId: number) {
         const storageStore = useStorageStore();
         const wallet = await storageStore.getWalletById(walletId);
@@ -51,14 +55,16 @@ export const useWalletStore = defineStore('wallet', () => {
         return account;
     }
 
-    async function getKeyPair(walletId: number) {
+    async function getKeyPair(walletId: number, signatureScheme?: SignatureSchemeId) {
         const session = useSessionStore();
         const rawSeed = await session.getWalletSeed(walletId);
         const encoder = new SeedEncoder();
         const seed = encoder.decode(rawSeed);
         const walletCrypto = WalletCrypto.fromSeed(seed);
         const accountCrypto = walletCrypto.getDefaultAccountCrypto();
-        const sk = await accountCrypto.getPrivateSignatureKey(state.value.signatureSchemaType);
+        const sk = await accountCrypto.getPrivateSignatureKey(
+            signatureScheme ?? state.value.signatureSchemaType
+        );
         const pk = await sk.getPublicKey();
         return { sk, pk };
     }
@@ -121,6 +127,7 @@ export const useWalletStore = defineStore('wallet', () => {
 
     return {
         state,
+        setSignatureSchemaType,
         fetchAccountStateByAccountId,
         getAccountId,
         getAccountIdFromPublicKey,

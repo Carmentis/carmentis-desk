@@ -8,12 +8,14 @@ import {useClipboard} from "../../../composables/useClipboard.ts";
 import {computedAsync, useAsyncState} from "@vueuse/core";
 import * as walletRepo from "../../../db/repositories/walletRepository.ts";
 import * as orgRepo from "../../../db/repositories/organizationRepository.ts";
-import * as participationRepo from "../../../db/repositories/participationRepository.ts";
-import type {ApplicationParticipation} from "../../../stores/storage.ts";
-import {CryptoEncoderFactory, SeedEncoder, SignatureSchemeId, WalletCrypto} from "@cmts-dev/carmentis-sdk-core";
+import {CryptoEncoderFactory, SignatureSchemeId} from "@cmts-dev/carmentis-sdk-core";
 import {useRoute} from "vue-router";
 import {useSessionStore} from "../../../stores/sessionStore.ts";
-
+import Select from "primevue/select";
+import {useWalletStore} from "../../../stores/walletStore.ts";
+import {useToast} from "primevue/usetoast";
+import Button from "primevue/button";
+const walletStore = useWalletStore();
 const clipboard = useClipboard();
 const sessionStore = useSessionStore();
 const route = useRoute();
@@ -33,16 +35,61 @@ const { state: organizations, execute: fetchOrgs } = useAsyncState(
     { immediate: true },
 );
 
+const toast = useToast();
+const {execute: checkKeyPair} = useAsyncState(
+    async () => {
+        if (!wallet.value) return undefined;
+        let verified = false;
+        const message = "Hello world!"
+        try {
+            const walletId = wallet.value.id;
+            const {sk, pk} = await walletStore.getKeyPair(walletId, signatureScheme.value);
+            const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
+
+            const textEncoder = new TextEncoder();
+            const rawMessage = textEncoder.encode(message);
+            const sign = await sk.sign(rawMessage);
+            verified = await pk.verify(rawMessage, sign);
+        } catch (e) {
+            console.error('Failed to verify key pair:', e);
+        } finally {
+            if (verified) {
+                toast.add({
+                    severity: 'success',
+                    summary: `Key pair is valid`,
+                    detail: `Message ${message} has signed and verified successfully (type ${signatureScheme.value.toString()})`,
+                    life: 3000,
+                })
+            } else {
+                toast.add({
+                    severity: 'error',
+                    summary: 'Key pair check failed',
+                    detail: 'The key pair is invalid',
+                    life: 3000,
+                });
+            }
+        }
+    },
+    undefined,
+)
 
 // wallet key pair
+const walletState = walletStore.state;
+const signatureScheme = ref(walletState.signatureSchemaType);
+const schemeOptions = [
+    {
+        label: "Secp256k1",
+        value: SignatureSchemeId.SECP256K1
+    },
+    {
+        label: "MLDSA65",
+        value: SignatureSchemeId.ML_DSA_65
+    }
+]
 const walletKeyPair = computedAsync(async () => {
     if (!wallet.value) return undefined;
-    const seedEncoder = new SeedEncoder();
-    const rawSeed = await sessionStore.getWalletSeed(wallet.value.id);
-    const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(rawSeed));
-    const accountCrypto = walletSeed.getDefaultAccountCrypto();
-    const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
-    const pk = await sk.getPublicKey();
+    const walletId = wallet.value.id;
+    const {sk, pk} = await walletStore.getKeyPair(walletId, signatureScheme.value);
     const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
     return {
         sk: await sigEncoder.encodePrivateKey(sk),
@@ -80,7 +127,6 @@ const copyMenuItems = ref([
         },
     },
 ]);
-
 </script>
 <template>
     <!-- Wallet Keys Card -->
@@ -91,13 +137,32 @@ const copyMenuItems = ref([
                     <i class="pi pi-key text-xl"></i>
                     <span>Wallet Keys</span>
                 </div>
-                <SplitButton
-                    label="Copy"
-                    icon="pi pi-copy"
-                    :model="copyMenuItems"
-                    size="small"
-                    @click="clipboard.copyToClipboard(walletKeyPair?.pk, 'Public key')"
-                />
+                <div class="flex gap-2">
+                    <Select
+                        size="small"
+                        v-model="signatureScheme"
+                        :options="schemeOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        class="w-10rem"
+                        @change="(event) => { walletStore.setSignatureSchemaType(event.value) }"
+                    />
+                    <Button
+                        label="Check"
+                        icon="pi pi-check"
+                        size="small"
+                        aria-placeholder="Perform a self-test of keys"
+                        @click="() => checkKeyPair()"
+                    />
+                    <SplitButton
+                        label="Copy"
+                        icon="pi pi-copy"
+                        :model="copyMenuItems"
+                        size="small"
+                        @click="clipboard.copyToClipboard(walletKeyPair?.pk, 'Public key')"
+                    />
+
+                </div>
             </div>
         </template>
         <template #subtitle>
@@ -108,6 +173,7 @@ const copyMenuItems = ref([
         </template>
         <template #content>
             <div class="space-y-4">
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Public Key</label>
                     <InputText v-model="pk" :disabled="true" class="w-full" />
