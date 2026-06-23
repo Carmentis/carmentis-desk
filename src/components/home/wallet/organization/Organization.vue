@@ -103,9 +103,6 @@ const isFormDirty = computed(
 // Publish confirmation dialog
 const showPublishConfirmDialog = ref(false);
 
-// Delete confirmation dialog
-const showDeleteConfirmDialog = ref(false);
-
 
 // Initialize form values when organization loads
 function initializeForm() {
@@ -175,6 +172,7 @@ const { data: isOrganizationFoundOnChain, isLoading: isFetchingOrganizationFromC
     enabled: computed(() => !!organizationVbId.value && !!walletIndexer.value),
     queryKey: ['organization-on-chain', organizationVbId, walletIndexer],
     refetchInterval: 2000,
+    refetchIntervalInBackground: true,
     queryFn: async () => {
         const vbId = organizationVbId.value;
         const indexer = walletIndexer.value;
@@ -198,7 +196,7 @@ const items = [
         label: 'Delete',
         icon: 'pi pi-trash',
         severity: 'danger',
-        command: () => (showDeleteConfirmDialog.value = true),
+        command: () => (showDeletionDialog.value = true),
         outlined: true,
     },
 ];
