@@ -1,3 +1,10 @@
+## [1.23.3](https://github.com/Carmentis/carmentis-desk/compare/v1.23.2...v1.23.3) (2026-06-23)
+
+
+### Bug Fixes
+
+* invalid dialog opening state used, blocking the deletion of organization ([98fb2af](https://github.com/Carmentis/carmentis-desk/commit/98fb2aff72c3849d62be764397ad3ae059fd234a))
+
 ## [1.23.2](https://github.com/Carmentis/carmentis-desk/compare/v1.23.1...v1.23.2) (2026-06-19)
 
 
