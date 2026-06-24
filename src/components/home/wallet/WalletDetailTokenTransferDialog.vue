@@ -20,9 +20,9 @@ const walletId = computed(() => Number(route.params.walletId));
 const isOpen = defineModel<boolean>('isOpen');
 const walletStore = useWalletStore();
 const isCreatingNewAccount = ref<boolean | undefined>(undefined);
-const showTransferDialog = ref(false);
 const transferPublicKey = ref('');
 const transferAmount = ref('');
+const isTransferring = ref(false);
 watch(transferPublicKey, async () => {
     try {
         // attempt to parse the public key
@@ -55,6 +55,8 @@ async function submitTransferDialog() {
         return;
     }
 
+    // initiate the transfer
+    isTransferring.value = true;
     try {
         const amount = CMTSToken.createCMTS(Number(transferAmount.value));
         await onChainStore.transferTokens({
@@ -62,9 +64,11 @@ async function submitTransferDialog() {
             recipientPublicKey: transferPublicKey.value,
             amount: amount,
         });
-        showTransferDialog.value = false;
+        isOpen.value = false;
     } catch (e) {
         console.error('Transfer failed:', e);
+    } finally {
+        isTransferring.value = false;
     }
 }
 </script>
@@ -106,8 +110,8 @@ async function submitTransferDialog() {
         </div>
         <template #footer>
             <div class="flex justify-end gap-2">
-                <Button label="Cancel" @click="showTransferDialog = false" severity="secondary" outlined />
-                <Button label="Transfer" @click="submitTransferDialog" icon="pi pi-send" />
+                <Button label="Cancel" @click="isOpen = false" severity="secondary" outlined :disabled="isTransferring" />
+                <Button label="Transfer" @click="submitTransferDialog" icon="pi pi-send" :loading="isTransferring" />
             </div>
         </template>
     </Dialog>
