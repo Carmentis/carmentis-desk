@@ -150,7 +150,7 @@ const copyMenuItems = ref([
                         @change="(event) => { walletStore.setSignatureSchemaType(event.value) }"
                     />
                     <Button
-                        label="Check"
+                        label="Check keys"
                         icon="pi pi-check"
                         size="small"
                         aria-placeholder="Perform a self-test of keys"
