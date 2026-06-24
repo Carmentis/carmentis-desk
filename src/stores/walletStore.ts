@@ -35,21 +35,16 @@ export const useWalletStore = defineStore('wallet', () => {
         state.value.signatureSchemaType = signatureSchemaType;
     }
 
-    async function getProvider(walletId: number) {
-        const storageStore = useStorageStore();
-        const wallet = await storageStore.getWalletById(walletId);
-        if (!wallet) {
-            throw new Error(`Wallet with id ${walletId} not found`);
-        }
-        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
-        return provider;
-    }
-
-    async function fetchAccountStateByAccountId(walletId: number, accountId: string) {
+    async function getIndexerFromWalletId(walletId: number) {
         const storageStore = useStorageStore();
         const wallet = await storageStore.getWalletById(walletId);
         if (!wallet?.indexer) throw new Error('Indexer not configured for this wallet');
-        const result = await createIndexerClient(wallet.indexer).getAccounts({ id: accountId });
+        return createIndexerClient(wallet.indexer);
+    }
+
+    async function fetchAccountStateByAccountId(walletId: number, accountId: string) {
+        const indexer = await getIndexerFromWalletId(walletId);
+        const result = await indexer.getAccounts({ id: accountId });
         const account = result.items[0];
         if (!account) throw new Error('Account not found');
         return account;
@@ -82,14 +77,8 @@ export const useWalletStore = defineStore('wallet', () => {
     }
 
     async function getAccountIdFromPublicKey(walletId: number, pk: PublicSignatureKey) {
-        // access the wallet to obtain the indexer endpoint
-        const storageStore = useStorageStore();
-        const wallet = await storageStore.getWalletById(walletId);
-        if (!wallet?.indexer) throw new Error('Indexer not configured for this wallet');
-        const indexerEndpoint = wallet.indexer;
-
         // access the account id from pk through indexer
-        const indexer = createIndexerClient(indexerEndpoint)
+        const indexer = await getIndexerFromWalletId(walletId);
         const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
         const accountsResponse = await indexer.getAccounts({
             public_key: await sigEncoder.encodePublicKey(pk)
@@ -109,11 +98,9 @@ export const useWalletStore = defineStore('wallet', () => {
     }
 
     async function fetchAccountTransactionsHistory(walletId: number, accountId: Uint8Array, params: AppControllerGetAccountHistoryParams) {
-        const storageStore = useStorageStore();
-        const wallet = await storageStore.getWalletById(walletId);
-        if (!wallet?.indexer) throw new Error('Indexer not configured for this wallet');
+        const indexer = await getIndexerFromWalletId(walletId);
         const hexId = Utils.binaryToHexa(accountId);
-        return createIndexerClient(wallet.indexer).getAccountHistory({ account_id: hexId, order: 'DESC', sort: 'height', ...params });
+        return indexer.getAccountHistory({ account_id: hexId, order: 'DESC', sort: 'height', ...params });
     }
 
     async function isAccountFoundByPublicKey(walletId: number, pk: PublicSignatureKey) {
@@ -135,5 +122,6 @@ export const useWalletStore = defineStore('wallet', () => {
         getDidJwk,
         fetchAccountTransactionsHistory,
         isAccountFoundByPublicKey,
+        getIndexerFromWalletId
     };
 });
