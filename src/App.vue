@@ -85,7 +85,7 @@ onMounted(async () => {
             <OpenIdDeepLinkHandler :uri="openidQuery" />
             <OpenIdCredentialOfferDeepLinkHandler :uri="openidCredentialOfferQuery" />
             <Suspense>
-                <router-view />
+                <router-view  :key="$route.fullPath"/>
                 <template #fallback>
                     <div class="w-full h-full flex items-center justify-center">
                         <ProgressSpinner />

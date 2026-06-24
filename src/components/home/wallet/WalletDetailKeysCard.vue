@@ -21,7 +21,9 @@ const sessionStore = useSessionStore();
 const route = useRoute();
 
 
-const walletId = computed(() => Number(route.params.walletId));
+const walletIdString = ref(route.params.walletId);
+const walletId = computed(() => Number(walletIdString.value));
+console.log(`Loading keys for wallet with id ${walletIdString.value}`)
 
 const { state: wallet, execute: fetchWallet } = useAsyncState(
     () => walletRepo.getWalletById(walletId.value),

@@ -107,7 +107,7 @@ const menuItems = computed<MenuItem[]>(() => [
                 <MenuBar :model="menuItems"></MenuBar>
                 <WalletDetailSync/>
 
-                <Tabs value="0">
+                <Tabs value="-1">
                     <TabList>
                         <Tab value="-1">
                             <i class="pi pi-key mr-2"></i>
