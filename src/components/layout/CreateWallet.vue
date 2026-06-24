@@ -90,12 +90,12 @@ const isFormValid = computed(() => {
         return !!passphrase.value;
     }
 });
-
-const createOrganization = async () => {
+const isCreatingWallet = ref(false);
+const createWallet = async () => {
     if (!organizationName.value) return;
 
     let finalSeed = '';
-
+    isCreatingWallet.value = true;
     if (creationMethod.value === 'seed') {
         if (!seed.value) return;
         finalSeed = seed.value;
@@ -105,13 +105,14 @@ const createOrganization = async () => {
         finalSeed = deriveSeedFromPassphrase(passphrase.value);
     }
 
-    await storageStore.addOrganization({
+    const createdWalletId = await storageStore.addOrganization({
         name: organizationName.value,
         seed: finalSeed,
         nodeEndpoint: nodeEndpoint.value,
         indexer: indexer.value,
     });
-    await router.push('/');
+    isCreatingWallet.value = false;
+    await router.push(`/wallet/${createdWalletId}`);
 };
 
 const goBack = () => {
@@ -267,10 +268,11 @@ const goBack = () => {
                 <div class="flex justify-end gap-3">
                     <Button @click="goBack" label="Cancel" icon="pi pi-times" severity="secondary" outlined />
                     <Button
-                        @click="createOrganization"
+                        @click="createWallet"
                         label="Create Wallet"
                         icon="pi pi-check"
                         :disabled="!isFormValid"
+                        :loading="isCreatingWallet"
                     />
                 </div>
             </template>

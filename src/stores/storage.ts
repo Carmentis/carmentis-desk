@@ -98,7 +98,7 @@ export const useStorageStore = defineStore('storage', () => {
 
     async function addOrganization(
         data: Omit<WalletEntity, 'id' | 'organizations' | 'participations' | 'credentials'>,
-    ): Promise<void> {
+    ): Promise<number> {
         const session = useSessionStore();
         const walletId = await walletRepo.insertWallet({
             name: data.name,
@@ -107,6 +107,7 @@ export const useStorageStore = defineStore('storage', () => {
         });
         await session.storeWalletSeed(walletId, data.seed);
         organizations.value = await walletRepo.getAllWallets();
+        return walletId
     }
 
     async function removeOrganizationById(walletId: number): Promise<void> {
