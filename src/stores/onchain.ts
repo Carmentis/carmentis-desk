@@ -176,9 +176,10 @@ export const useOnChainStore = defineStore('onchain', () => {
                 life: 3000,
             });
         } catch (e) {
+            console.error(e);
             toast.add({
                 severity: 'error',
-                summary: 'Error publishing organization',
+                summary: `Error publishing organization: ${e}`,
                 life: 3000,
             });
         } finally {
