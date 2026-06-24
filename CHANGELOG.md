@@ -1,3 +1,20 @@
+# [1.26.0](https://github.com/Carmentis/carmentis-desk/compare/v1.25.1...v1.26.0) (2026-06-24)
+
+
+### Bug Fixes
+
+* add loading state for token transfer and resolve dialog closing issues ([979f83e](https://github.com/Carmentis/carmentis-desk/commit/979f83eb5e9191b514c7033149a4f8c140d76d06))
+* improve key handling, tab initialization, and route view updates ([cb41ed4](https://github.com/Carmentis/carmentis-desk/commit/cb41ed4e0e000a0b21e345dc15b92ccf5bcca9a1))
+* typo in key pair self-check ([54e69a5](https://github.com/Carmentis/carmentis-desk/commit/54e69a525a08ed1dfb9804e8e63a350c57038c36))
+
+
+### Features
+
+* add breakdown details dialog for wallet balance ([c0a534b](https://github.com/Carmentis/carmentis-desk/commit/c0a534bdab79db7627d1cf3dc588234c05d30b19))
+* display wallet indexer and node endpoint in breadcrumb messages ([1cfeeb7](https://github.com/Carmentis/carmentis-desk/commit/1cfeeb7330d689ea327257ee5bcd62df2937da4a))
+* enhance breadcrumb with `primevue` Message component and adjust layout ([915c689](https://github.com/Carmentis/carmentis-desk/commit/915c689210bf9c2de2526cef4a93d1ecb55ea4b8))
+* improve wallet creation flow with loading state and navigation updates ([cfa35a4](https://github.com/Carmentis/carmentis-desk/commit/cfa35a422bb54fe963ce1f90d63b97f251afb407))
+
 ## [1.25.1](https://github.com/Carmentis/carmentis-desk/compare/v1.25.0...v1.25.1) (2026-06-24)
 
 
