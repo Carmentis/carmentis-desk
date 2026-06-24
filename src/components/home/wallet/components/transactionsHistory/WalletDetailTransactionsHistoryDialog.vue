@@ -48,7 +48,7 @@ const transactions = computed(() => {
 </script>
 
 <template>
-    <Dialog v-model:visible="isOpen" header="Transactions History" class="min-w-10/12">
+    <Dialog v-model:visible="isOpen" modal header="Transactions History" class="w-[95vw] h-[95vh]">
             <!-- No Account State -->
         <div v-if="!hasAccount" class="flex flex-col items-center justify-center p-6 text-center">
             <i class="pi pi-wallet text-4xl text-gray-400 mb-3"></i>
