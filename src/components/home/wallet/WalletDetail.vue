@@ -111,11 +111,7 @@ const menuItems = computed<MenuItem[]>(() => [
                     <TabList>
                         <Tab value="-1">
                             <i class="pi pi-key mr-2"></i>
-                            Keys
-                        </Tab>
-                        <Tab value="-2">
-                            <i class="pi pi-wallet mr-2"></i>
-                            Balance
+                            Overview
                         </Tab>
                         <Tab value="0">
                             <i class="pi pi-building mr-2"></i>
@@ -132,10 +128,10 @@ const menuItems = computed<MenuItem[]>(() => [
                     </TabList>
                     <TabPanels>
                         <TabPanel value="-1">
-                            <WalletDetailKeysCard/>
-                        </TabPanel>
-                        <TabPanel value="-2">
-                            <WalletDetailBalanceCard/>
+                            <div class="flex gap-4">
+                                <WalletDetailKeysCard/>
+                                <WalletDetailBalanceCard/>
+                            </div>
                         </TabPanel>
                         <TabPanel value="0">
                             <WalletDetailOrganizationsCard/>

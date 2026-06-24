@@ -132,7 +132,7 @@ const copyMenuItems = ref([
 </script>
 <template>
     <!-- Wallet Keys Card -->
-    <Card>
+    <Card class="w-full">
         <template #title>
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">

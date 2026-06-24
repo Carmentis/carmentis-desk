@@ -50,7 +50,7 @@ const isLoading = computed(() => accountIdQuery.isLoading.value || breakdownQuer
 
 
     <!-- No account found on chain Card -->
-    <Card v-if="isLoading || hasError">
+    <Card v-if="isLoading || hasError" class="w-full">
         <template #title>
             <div class="flex items-center gap-2">
                 <i class="pi pi-wallet text-xl" v-if="!isLoading"></i>
@@ -73,7 +73,7 @@ const isLoading = computed(() => accountIdQuery.isLoading.value || breakdownQuer
     </Card>
 
     <!-- Balance Card -->
-    <Card v-else-if="breakdownQuery.data.value">
+    <Card v-else-if="breakdownQuery.data.value" class="w-full">
         <template #title>
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-2">
