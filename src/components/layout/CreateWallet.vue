@@ -14,8 +14,9 @@ const router = useRouter();
 const storageStore = useStorageStore();
 
 // Networks selection (for quick network setup)
-const networkMethod = ref<'testnet' | 'devnet' | 'custom'>('devnet');
+const networkMethod = ref<'mainnet' | 'testnet' | 'devnet' | 'custom'>('mainnet');
 const networkOptions = ref([
+    { label: 'Mainnet', value: "mainnet", node: 'https://carmenta.carmentis.io', indexer: 'https://indexer.carmentis.io' },
     { label: 'Testnet', value: 'testnet', node: 'https://ares.testnet.carmentis.io', indexer: 'https://indexer.testnet.carmentis.io' },
     { label: 'Devnet', value: "devnet", node: 'https://node1.server1.devnet.carmentis.io', indexer: 'https://indexer.server4.devnet.carmentis.io' },
     { label: 'Custom', value: "custom", node: '', indexer: '' }
@@ -37,7 +38,7 @@ watch(networkMethod, (newMethod) => {
         nodeEndpoint.value = '';
         indexer.value = '';
     }
-})
+}, { immediate: true })
 
 // Method selection: 'seed' or 'passphrase'
 const creationMethod = ref<'seed' | 'passphrase'>('seed');
