@@ -1,3 +1,11 @@
+# [1.25.0](https://github.com/Carmentis/carmentis-desk/compare/v1.24.0...v1.25.0) (2026-06-24)
+
+
+### Features
+
+* add Mainnet support and improve network initialization ([b1ad5e4](https://github.com/Carmentis/carmentis-desk/commit/b1ad5e4daaa8debcc856e37f53f360bff610a295))
+* integrate `walletStore` into `onchain` store and streamline key retrieval for token transfer ([6c5960f](https://github.com/Carmentis/carmentis-desk/commit/6c5960f225970044197eea27aa17a2b772d42cda))
+
 # [1.24.0](https://github.com/Carmentis/carmentis-desk/compare/v1.23.3...v1.24.0) (2026-06-23)
 
 
