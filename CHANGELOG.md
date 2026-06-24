@@ -1,3 +1,10 @@
+## [1.25.1](https://github.com/Carmentis/carmentis-desk/compare/v1.25.0...v1.25.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* add error logging and improve error messages in organization publishing ([5b62de6](https://github.com/Carmentis/carmentis-desk/commit/5b62de6966c1d0484197cf5a52ee2c6e682ec5b4))
+
 # [1.25.0](https://github.com/Carmentis/carmentis-desk/compare/v1.24.0...v1.25.0) (2026-06-24)
 
 
