@@ -30,6 +30,7 @@ import * as orgRepo from '../db/repositories/organizationRepository';
 import * as nodeRepo from '../db/repositories/nodeRepository';
 import * as appRepo from '../db/repositories/applicationRepository';
 import { useToast } from 'primevue/usetoast';
+import {useWalletStore} from "./walletStore.ts";
 
 const MAXIMAL_ALLOWED_TOKEN_TRANSFER = 1000000000;
 
@@ -84,6 +85,7 @@ export interface PublishCustomJsonParams {
 }
 
 export const useOnChainStore = defineStore('onchain', () => {
+    const walletStore = useWalletStore();
     const storageStore = useStorageStore();
     const sessionStore = useSessionStore();
     const toast = useToast();
@@ -599,9 +601,12 @@ export const useOnChainStore = defineStore('onchain', () => {
                 throw new Error(`Wallet with id ${walletId} not found`);
             }
 
-            const accountCrypto = await _walletCrypto(walletId);
+
+            const {sk} = await walletStore.getKeyPair(walletId);
+            console.log(`Transfer performed using key ${sk.getSignatureSchemeId()}`)
+            //const accountCrypto = await _walletCrypto(walletId);
             const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.nodeEndpoint);
-            const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
+            //const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
             const encoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
             const recipientPk = await encoder.decodePublicKey(recipientPublicKey);
 
