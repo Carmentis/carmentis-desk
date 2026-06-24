@@ -118,6 +118,12 @@ const breakdownQuery = useAccountBreakdownQuery(computed(() => walletId.value ??
         <Message severity="secondary" size="small" v-if="walletId && breakdownQuery.data.value">
             {{ breakdownQuery.data.value.getSpendable() }}
         </Message>
+        <Message v-if="wallet" severity="secondary" size="small">
+            <span class="font-bold">Indexer:</span> {{wallet.indexer}}
+        </Message>
+        <Message v-if="wallet" severity="secondary" size="small">
+            <span class="font-bold">Node:</span> {{wallet.nodeEndpoint}}
+        </Message>
         <Message severity="secondary" size="small" v-if="walletId && breakdownQuery.data.value"class="compact-message">
 
         <Breadcrumb :home="breadcrumbHome" :model="items" class="compact-breadcrumb" />
