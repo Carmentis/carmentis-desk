@@ -59,7 +59,7 @@ const {execute: checkKeyPair} = useAsyncState(
                 toast.add({
                     severity: 'success',
                     summary: `Key pair is valid`,
-                    detail: `Message ${message} has signed and verified successfully (type ${signatureScheme.value.toString()})`,
+                    detail: `Message "${message}" has been signed and verified successfully (type ${signatureScheme.value.toString()})`,
                     life: 3000,
                 })
             } else {
