@@ -9,7 +9,7 @@ import * as orgRepo from '../../db/repositories/organizationRepository';
 import * as appRepo from '../../db/repositories/applicationRepository';
 import * as nodeRepo from '../../db/repositories/nodeRepository';
 import * as operatorRepo from '../../db/repositories/operatorRepository';
-
+import Message from 'primevue/message';
 const route = useRoute();
 const router = useRouter();
 
@@ -114,11 +114,11 @@ const breakdownQuery = useAccountBreakdownQuery(computed(() => walletId.value ??
 </script>
 
 <template>
-    <div v-if="show" class="bg-surface-0 px-4 flex items-center justify-between">
+    <div v-if="show" class="bg-surface-0 flex items-center mb-2">
+        <Message severity="secondary" size="small" v-if="walletId && breakdownQuery.data.value">
+            {{ breakdownQuery.data.value.getSpendable() }}
+        </Message>
         <Breadcrumb :home="breadcrumbHome" :model="items" class="border-none p-0 bg-transparent text-sm" />
-        <div v-if="walletId && breakdownQuery.data.value" class="flex items-center gap-1 text-sm text-gray-600">
-            <i class="pi pi-wallet text-sm"></i>
-            <span class="font-medium">{{ breakdownQuery.data.value.getSpendable() }}</span>
-        </div>
+
     </div>
 </template>

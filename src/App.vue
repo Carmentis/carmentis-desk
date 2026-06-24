@@ -78,10 +78,11 @@ onMounted(async () => {
         <Toast position="top-center" />
 
         <AppNavbar v-if="isUnlocked" />
-        <AppBreadcrumb />
+
 
         <!-- Main Content -->
-        <main class="mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        <main class="mx-auto sm:px-6 lg:px-8 pb-8">
+            <AppBreadcrumb />
             <OpenIdDeepLinkHandler :uri="openidQuery" />
             <OpenIdCredentialOfferDeepLinkHandler :uri="openidCredentialOfferQuery" />
             <Suspense>
