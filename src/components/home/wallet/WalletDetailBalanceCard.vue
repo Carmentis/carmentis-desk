@@ -33,6 +33,7 @@ import WalletDetailTransactionsHistoryDialog
     from "./components/transactionsHistory/WalletDetailTransactionsHistoryDialog.vue";
 import WalletDetailTokenTransferDialog from "./WalletDetailTokenTransferDialog.vue";
 import ProgressSpinner from "primevue/progressspinner";
+import WalletDetailBreakdownDetailsDialog from "./WalletDetailBreakdownDetailsDialog.vue";
 
 const route = useRoute();
 const clipboard = useClipboard();
@@ -41,6 +42,7 @@ const walletId = computed(() => Number(route.params.walletId));
 const accountIdQuery = useAccountIdQuery(walletId.value);
 const breakdownQuery = useAccountBreakdownQuery(walletId.value);
 
+const showBreakdownDetailsDialog = ref(false);
 const showTokenTransferDialog = ref(false);
 const showAccountTransactionsHistory = ref(false);
 const hasError = computed(() => breakdownQuery.error.value || accountIdQuery.error.value)
@@ -106,6 +108,12 @@ const isLoading = computed(() => accountIdQuery.isLoading.value || breakdownQuer
                                             'Account ID'
                                             )"
                     />
+                    <Button
+                        @click="() => showBreakdownDetailsDialog = true"
+                        label="See Details"
+                        icon="pi pi-eye"
+                        size="small"
+                    />
                 </div>
             </div>
         </template>
@@ -152,4 +160,5 @@ const isLoading = computed(() => accountIdQuery.isLoading.value || breakdownQuer
     <!-- dialogs -->
     <WalletDetailTokenTransferDialog v-model:isOpen="showTokenTransferDialog" />
     <WalletDetailTransactionsHistoryDialog v-model:is-open="showAccountTransactionsHistory" />
+    <WalletDetailBreakdownDetailsDialog v-model:isOpen="showBreakdownDetailsDialog" />
 </template>
