@@ -77,7 +77,11 @@ function visitOperator(operatorId: number) {
                         <div class="space-y-2.5 text-sm border-t border-surface-100 pt-4">
                             <div class="flex items-center gap-2.5 text-surface-600">
                                 <i class="pi pi-server text-surface-400 text-xs"></i>
-                                <span class="truncate text-xs">{{ org.nodeEndpoint }}</span>
+                                <span class="truncate text-xs">Node: {{ org.nodeEndpoint }}</span>
+                            </div>
+                            <div class="flex items-center gap-2.5 text-surface-600">
+                                <i class="pi pi-server text-surface-400 text-xs"></i>
+                                <span class="truncate text-xs">Indexer: {{ org.indexer }}</span>
                             </div>
                         </div>
                         <div class="pt-2 flex items-center justify-between text-surface-500 hover:text-primary-600 transition-colors text-sm font-medium">
