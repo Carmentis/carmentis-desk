@@ -18,6 +18,7 @@ import { createIndexerClient } from '../../../../../api/indexer/client.ts';
 import { useQuery } from '@tanstack/vue-query';
 import { useHasAccountOnChainQuery } from '../../../../../composables/useAccountBreakdown.ts';
 import Message from "primevue/message";
+import {useAsyncFn} from "../../../../../composables/useAsyncFn.ts";
 
 const toast = useToast();
 const route = useRoute();
@@ -48,6 +49,9 @@ const { data: application } = useQuery({
     queryFn: () => appRepo.getApplicationById(appId.value),
     enabled: !!appId.value,
 })
+const storedApplicationName = computed(() => application.value?.name ?? '');
+const storedApplicationDescription = computed(() => application.value?.description ?? '');
+const storedApplicationWebsite = computed(() => application.value?.website ?? '');
 
 const goBack = () => {
     router.push(`/wallet/${walletId.value}/organization/${orgId.value}`);
@@ -57,6 +61,24 @@ const goBack = () => {
 const appName = ref('');
 const appDescription = ref('');
 const appWebsite = ref('');
+const isFormDirty = computed(() =>
+    !!application.value && (
+        appName.value !== storedApplicationName.value ||
+        appDescription.value !== storedApplicationDescription.value ||
+        appWebsite.value !== storedApplicationWebsite.value
+    )
+);
+
+
+// Initialize form values when application loads
+function initializeForm() {
+    if (application.value) {
+        appName.value = application.value.name;
+        appDescription.value = application.value.description || '';
+        appWebsite.value = application.value.website || '';
+    }
+}
+
 
 // Publish confirmation dialog
 const showPublishConfirmDialog = ref(false);
@@ -76,14 +98,7 @@ async function confirmDeleteApplication() {
     goBack();
 }
 
-// Initialize form values when application loads
-function initializeForm() {
-    if (application.value) {
-        appName.value = application.value.name;
-        appDescription.value = application.value.description || '';
-        appWebsite.value = application.value.website || '';
-    }
-}
+
 
 // Watch for application changes to initialize form
 watch(
@@ -96,7 +111,7 @@ watch(
     { immediate: true },
 );
 
-async function updateApplicationDetails() {
+const {execute: updateApplicationDetails, isLoading: isUpdating} = useAsyncFn(async () => {
     if (!appName.value.trim()) {
         toast.add({
             severity: 'error',
@@ -119,7 +134,8 @@ async function updateApplicationDetails() {
         detail: 'Application details updated successfully',
         life: 3000,
     });
-}
+})
+
 
 async function confirmPublishApplication() {
     showPublishConfirmDialog.value = false;
@@ -343,8 +359,9 @@ onMounted(() => {
                                     :disabled="isPublishingApplication || !hasAccountOnChain"
                                     severity="secondary"
                                     :hidden="!hasAccountOnChain"
+                                    v-if="!isFormDirty"
                                 />
-                                <Button type="submit" label="Update Details" icon="pi pi-check" />
+                                <Button type="submit" label="Update Details" icon="pi pi-check" v-if="isFormDirty" :disabled="isUpdating" :loading="isUpdating" />
                             </div>
                         </form>
                     </template>
