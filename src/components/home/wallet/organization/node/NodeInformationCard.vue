@@ -2,17 +2,40 @@
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import type { NodeEntity } from '../../../../../stores/storage';
+import NodeClaimDialog from "./NodeClaimDialog.vue";
+import {computed, inject, ref} from "vue";
+import {useRoute, useRouter} from "vue-router";
+import {useNode} from "../../../../../composables/useNode.ts";
 
 defineProps<{
     node: NodeEntity;
     chainName?: string;
-    nodePublicKey?: { pk: string; pkType: string };
-    isNodePublished?: boolean;
+    nodePublicKey?: { pk: string; pkType: string } | null;
+    isNodePublished?: boolean | null;
     isNodeClaimed?: boolean;
     hasAccountOnChain?: boolean;
 }>();
+const route = useRoute();
 
-const emit = defineEmits<{ (e: 'claim'): void }>();
+const walletId = computed(() => Number(route.params.walletId));
+const orgId = computed(() => Number(route.params.orgId));
+const nodeId = computed(() => Number(route.params.nodeId));
+
+const {
+    nodeVbId,
+    organization,
+    /*
+    organization,
+    node,
+    nodePublicKey,
+    ,
+    isNodePublished,
+
+     */
+    isNodeClaimed,
+} = useNode(walletId, orgId, nodeId);
+
+const showClaimDialog = ref(false);
 </script>
 
 <template>
@@ -24,8 +47,8 @@ const emit = defineEmits<{ (e: 'claim'): void }>();
                     <span>Node Information</span>
                 </div>
                 <Button
-                    v-if="!node.vbId && !isNodePublished && !isNodeClaimed"
-                    @click="emit('claim')"
+                    v-if="node && !node.vbId && !isNodePublished && !isNodeClaimed"
+                    @click="() => showClaimDialog = true"
                     label="Claim Node"
                     icon="pi pi-lock"
                     size="small"
@@ -82,4 +105,10 @@ const emit = defineEmits<{ (e: 'claim'): void }>();
             </div>
         </template>
     </Card>
+
+    <NodeClaimDialog
+        v-model:is-open="showClaimDialog"
+        :node-vb-id="nodeVbId"
+        :organization-name="organization?.name"
+    />
 </template>

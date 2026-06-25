@@ -13,6 +13,7 @@ import * as walletRepo from '../db/repositories/walletRepository';
 import * as orgRepo from '../db/repositories/organizationRepository';
 import * as nodeRepo from '../db/repositories/nodeRepository';
 import {createIndexerClient} from "../api/indexer/client.ts";
+import {useQuery} from "@tanstack/vue-query";
 
 /**
  * Encapsulates the on-chain derived state of a node (publication, ownership,
@@ -25,23 +26,20 @@ export function useNode(
     orgId: MaybeRefOrGetter<number>,
     nodeId: MaybeRefOrGetter<number>,
 ) {
-    const { state: wallet } = useAsyncState(
-        () => walletRepo.getWalletById(toValue(walletId)),
-        null,
-        { immediate: true },
-    );
+    const { data: wallet } = useQuery({
+        queryKey: ['wallet', walletId],
+        queryFn: () => walletRepo.getWalletById(toValue(walletId)),
+    })
 
-    const { state: organization } = useAsyncState(
-        () => orgRepo.getOrganizationById(toValue(orgId)),
-        null,
-        { immediate: true },
-    );
+    const { data: organization } = useQuery({
+        queryKey: ['organization', orgId],
+        queryFn: () => orgRepo.getOrganizationById(toValue(orgId)),
+    })
 
-    const { state: locallyStoredNode } = useAsyncState(
-        () => nodeRepo.getNodeById(toValue(nodeId)),
-        null,
-        { immediate: true },
-    );
+    const { data: locallyStoredNode } = useQuery({
+        queryKey: ['node', nodeId],
+        queryFn: () => nodeRepo.getNodeById(toValue(nodeId)),
+    })
 
     const indexer = computedAsync(async () => {
         if (!wallet.value) return undefined;
@@ -60,52 +58,83 @@ export function useNode(
     });
 
     // Node publication status
-    const nodePublicKey = computedAsync(async () => {
-        if (!locallyStoredNode.value) {
-            return undefined;
+    const {data: nodePublicKey} = useQuery({
+        queryKey: ['node-public-key', locallyStoredNode],
+        refetchInterval: 10000,
+        queryFn: async () =>  {
+            if (!locallyStoredNode.value) {
+                return null;
+            }
+            const endpoint = locallyStoredNode.value.rpcEndpoint;
+            const client = await Tendermint37Client.connect(endpoint);
+            const status = await client.status();
+            const pk = status.validatorInfo.pubkey;
+            if (!pk) {
+                console.warn("Public key not found on node")
+                return null;
+            }
+            const { data, algorithm } = pk;
+            const base64 = EncoderFactory.bytesToBase64Encoder();
+            return { pk: base64.encode(data), pkType: algorithm };
         }
-        const endpoint = locallyStoredNode.value.rpcEndpoint;
-        const client = await Tendermint37Client.connect(endpoint);
-        const status = await client.status();
-        const pk = status.validatorInfo.pubkey;
-        if (!pk) return undefined;
-        const { data, algorithm } = pk;
-        const base64 = EncoderFactory.bytesToBase64Encoder();
-        return { pk: base64.encode(data), pkType: algorithm };
     });
 
-    const nodeVbId = computedAsync(async () => {
-        if (!locallyStoredNode.value || !locallyStoredNode.value.vbId) return undefined;
-        console.log(`Node id: ${locallyStoredNode.value.vbId}`)
-        return locallyStoredNode.value.vbId;
-    });
+    const { data: nodeVbId } = useQuery({
+        queryKey: ['node-vbid', locallyStoredNode],
+        queryFn: () => {
+            if (!locallyStoredNode.value) return null;
+            return locallyStoredNode.value.vbId;
+        },
+    })
 
     const isNodePublished = computed(() => {
         return nodeVbId.value !== undefined;
     });
 
-    const validatorNode = computedAsync(async () => {
-        if (!nodeVbId.value || !indexer.value) return undefined;
-        const validatorNodesResponse = await indexer.value.getValidatorNodes({ vb_id: nodeVbId.value });
-        const validatorNodes = validatorNodesResponse.items;
-        if (validatorNodes.length === 0) return undefined;
-        return validatorNodes[0];
+    const {data: validatorNode} = useQuery({
+        enabled: computed(() => !!nodeVbId.value),
+        queryKey: ['node', nodeVbId],
+        queryFn: async () => {
+            if (!nodeVbId.value || !indexer.value) {
+                console.warn("Cannot fetch validator node: node vb id or indexer undefined")
+                return null
+            };
+            const validatorNodesResponse = await indexer.value.getValidatorNodes({ vb_id: nodeVbId.value });
+            const validatorNodes = validatorNodesResponse.items;
+            if (validatorNodes.length === 0) return null;
+            return validatorNodes[0];
+        }
     })
 
-    const nodeOwnerOrganizationId = computedAsync(async () => {
-        if (!locallyStoredNode.value || !locallyStoredNode.value.vbId || !indexer.value) return undefined;
-        const nodeVbId = locallyStoredNode.value.vbId;
-        const validatorNodesResponse = await indexer.value.getValidatorNodes({ vb_id: nodeVbId });
-        const validatorNodes = validatorNodesResponse.items;
-        if (validatorNodes.length === 0) return undefined;
-        return validatorNodes[0].organizationId;
+    const {data: nodeOwnerOrganizationId} = useQuery({
+        enabled: computed(() => !!locallyStoredNode.value),
+        queryKey: ['node-owner-organization-id', nodeVbId],
+        queryFn: async () => {
+
+            if (!locallyStoredNode.value || !locallyStoredNode.value.vbId || !indexer.value) {
+                console.warn(`Cannot fetch node owner organization id: node vb id or indexer undefined: ${locallyStoredNode.value}`)
+                return null;
+            };
+
+            const nodeVbId = locallyStoredNode.value.vbId;
+            const validatorNodesResponse = await indexer.value.getValidatorNodes({ vb_id: nodeVbId });
+            const validatorNodes = validatorNodesResponse.items;
+            if (validatorNodes.length === 0) {
+                console.warn(`Cannot fetch node owner organization id: no validator nodes found for node vb id: ${nodeVbId}`)
+                return null;
+            };
+            return validatorNodes[0].organizationId;
+        }
     })
 
-    const nodeOwnerOrganization = computedAsync(async () => {
-        if (!nodeOwnerOrganizationId.value || !indexer.value) return undefined;
-        const organizationId = nodeOwnerOrganizationId.value;
-        const organization = await indexer.value.getOrganizations({ vb_id: organizationId });
-        return organization.items[0];
+    const {data: nodeOwnerOrganization} = useQuery({
+        queryKey: ['node-owner-organization', nodeVbId],
+        queryFn: async () => {
+            if (!nodeOwnerOrganizationId.value || !indexer.value) return null;
+            const organizationId = nodeOwnerOrganizationId.value;
+            const organization = await indexer.value.getOrganizations({ vb_id: organizationId });
+            return organization.items[0];
+        }
     })
 
     // Check if node is claimed and by whom
@@ -116,18 +145,24 @@ export function useNode(
     });
 
 
-    const nodeOwnerAccount = computedAsync(async () => {
-        if (!nodeOwnerAccountId.value || !indexer.value) return undefined;
-        const accounts =  await indexer.value.getAccounts({ id: nodeOwnerAccountId.value });
-        return accounts.items.length === 1 ? accounts.items[0] : undefined;
-    });
+    const { data: nodeOwnerAccount } = useQuery({
+        queryKey: ['nodeOwnerAccount', nodeOwnerAccountId],
+        queryFn: async () => {
+            if (!nodeOwnerAccountId.value || !indexer.value) {
+                console.warn("Cannot fetch node owner account: node owner account id or indexer undefined")
+                return null
+            };
+            const accounts =  await indexer.value.getAccounts({ id: nodeOwnerAccountId.value });
+            return accounts.items.length === 1 ? accounts.items[0] : null;
+        }
+    })
 
-    const nodeOwnerName = computedAsync(async () => {
+    const nodeOwnerName = computed(() => {
         if (!nodeOwnerOrganization.value) return undefined;
         return nodeOwnerOrganization.value.name;
     });
 
-    const isNodeValidator = computedAsync(async () => {
+    const isNodeValidator = computed(() => {
         if (!validatorNode.value) return undefined;
         return validatorNode.value.currentVotingPower !== 0;
     });
@@ -137,70 +172,37 @@ export function useNode(
     });
 
     // Check if the wallet owns this node
-    const walletOrgId = computedAsync(async () => {
+    const walletOrgId = computed( () => {
         if (!organization.value?.vbId) return undefined;
         return organization.value.vbId;
     });
 
-    const isOwnedByWallet = computedAsync(async () => {
+    const isOwnedByWallet = computed( () => {
         if (!nodeOwnerOrganizationId.value || !walletOrgId.value) return undefined;
         return nodeOwnerOrganizationId.value === walletOrgId.value;
     });
 
     // staking information
-    const nodeStakeInformation = computedAsync(async () => {
-        if (!nodeOwnerAccount.value || !nodeVbId.value) return undefined;
+    const nodeStakeInformation = computed( () => {
+        if (!nodeOwnerAccount.value || !nodeVbId.value) return [];
         const stakingLocks = nodeOwnerAccount.value.stakingLocks;
         const stakingLocksForThisNode = stakingLocks.filter(
             (lock) => lock.validatorNodeId === nodeVbId.value
         );
         return stakingLocksForThisNode
-
-        /*
-        const pk = nodePublicKey.value?.pk;
-        if (pk === undefined) {
-            return undefined;
-        }
-
-        if (wallet.value === null) return undefined;
-        if (locallyStoredNode.value === null) return undefined;
-        if (locallyStoredNode.value.vbId === undefined) return undefined;
-
-        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
-
-        console.log(`Searching for validator node id from node public key ${pk}`);
-        const validatorNodeVbId = await provider.getValidatorNodeIdByCometbftPublicKey(pk);
-
-        console.log(`Searching for validator node with id ${validatorNodeVbId}`);
-        const validatorNodeVb = await provider.loadValidatorNodeVirtualBlockchain(Hash.from(validatorNodeVbId));
-        const orgVbId = await validatorNodeVb.getOrganizationId();
-        const orgVb = await provider.loadOrganizationVirtualBlockchain(orgVbId);
-        const nodeOwnerAccountVbId = orgVb.getAccountId();
-        const accountId = nodeOwnerAccountVbId.toBytes();
-        const accountState = await provider.getAccountState(accountId);
-        const nodeVbId = Hash.from(locallyStoredNode.value.vbId);
-        const stakingForThisNode = accountState.locks.filter(
-            (lock) =>
-                lock.type === LockType.NodeStaking &&
-                Utils.binaryIsEqual(lock.parameters.validatorNodeId, nodeVbId.toBytes()),
-        );
-        if (stakingForThisNode.length === 0) return undefined;
-        const stake = stakingForThisNode[0];
-        if (stake.type !== LockType.NodeStaking)
-            throw new Error(`Expected lock type to be NodeStaking, got ${LockType[stake.type]}`);
-        return stake;
-
-         */
     });
 
+    const hasNodeStakeInformation = computed(() => nodeStakeInformation.value.length > 0);
+
     const currentStakedAmount = computed(() => {
-        if (!nodeStakeInformation.value) return undefined;
+        if (!hasNodeStakeInformation.value) return undefined;
         const sumOfStaked = nodeStakeInformation.value.reduce((acc, l) => acc + l.amount, 0)
         return CMTSToken.createAtomic(sumOfStaked);
     });
 
     const unstakingAmountInProgress = computed(() => {
-        if (nodeStakeInformation.value === undefined) return undefined;
+        if (!hasNodeStakeInformation.value) return undefined;
+        if (nodeStakeInformation.value.length === 0) return undefined;
         const { plannedUnlockAmountInAtomics } = nodeStakeInformation.value[0];
         if (plannedUnlockAmountInAtomics === undefined) return undefined;
         return CMTSToken.createAtomic(plannedUnlockAmountInAtomics);
@@ -214,9 +216,10 @@ export function useNode(
     );
 
     const unstakingAtTimestamp = computed(() => {
-        if (nodeStakeInformation.value === undefined) return undefined;
+        if (!nodeStakeInformation.value) return undefined;
+        if (nodeStakeInformation.value.length === 0) return undefined;
         const { plannedUnlockTimestamp } = nodeStakeInformation.value[0];
-        if (plannedUnlockTimestamp === undefined) return undefined;
+        if (!plannedUnlockTimestamp) return undefined;
         return plannedUnlockTimestamp;
     });
 
@@ -239,5 +242,6 @@ export function useNode(
         unstakingAmountInProgress,
         hasUnstakingOperationInProgress,
         unstakingAtTimestamp,
+        hasNodeStakeInformation,
     };
 }

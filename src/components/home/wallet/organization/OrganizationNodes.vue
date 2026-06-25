@@ -132,7 +132,9 @@ async function deleteNode(nodeId: number) {
 }
 
 function visitNode(nodeId: number) {
-    router.push(`/wallet/${walletId.value}/organization/${orgId.value}/node/${nodeId}`);
+    const endpoint = `/wallet/${walletId.value}/organization/${orgId.value}/node/${nodeId}`
+    console.log(`Routing to ${endpoint}`)
+    router.push(endpoint);
 }
 
 // organization nodes to claim
@@ -305,7 +307,7 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
                 v-for="node of nodes"
                 :key="node.id"
                 class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                @click="visitNode(node.id)"
+                @click="() => visitNode(node.id)"
             >
                 <div class="flex items-start justify-between">
                     <div class="space-y-2 flex-1">

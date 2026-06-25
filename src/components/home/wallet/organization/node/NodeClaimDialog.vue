@@ -8,7 +8,7 @@ import type { Hash } from '@cmts-dev/carmentis-sdk-core';
 import { useOnChainStore } from '../../../../../stores/onchain';
 
 const props = defineProps<{
-    nodeVbId?: string;
+    nodeVbId?: string | null;
     organizationName?: string;
 }>();
 

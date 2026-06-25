@@ -83,7 +83,6 @@ export const useWalletStore = defineStore('wallet', () => {
         const accountsResponse = await indexer.getAccounts({
             public_key: await sigEncoder.encodePublicKey(pk)
         })
-        console.log("Found client:", accountsResponse);
         const accounts = accountsResponse.items;
         if (accounts.length !== 1) return undefined
         const account = accounts[0];

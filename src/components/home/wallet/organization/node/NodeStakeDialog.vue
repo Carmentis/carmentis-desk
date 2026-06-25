@@ -8,6 +8,7 @@ import { storeToRefs } from 'pinia';
 import { CMTSToken } from '@cmts-dev/carmentis-sdk-core';
 import { useOnChainStore } from '../../../../../stores/onchain';
 import {useNode} from "../../../../../composables/useNode.ts";
+import FieldNameAndDescription from "../../../../utils/FieldNameAndDescription.vue";
 
 const isOpen = defineModel<boolean>('isOpen');
 
@@ -66,9 +67,9 @@ async function submitStake() {
             <div>
                 <p class="text-gray-700 text-sm block mb-4">
                     Enter the amount of CMTS tokens you want to stake, which will be added to your
-                    current stake (if any). You have currently {{currentStakedAmount}} tokens.
+                    current stake (if any). You have currently {{currentStakedAmount}} staked tokens.
                 </p>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Amount (CMTS)</label>
+                <FieldNameAndDescription name="Amount (CMTS)" description="Amount of tokens to stake" required/>
                 <InputNumber
                     v-model="stakeAmount"
                     :min="0"
@@ -94,7 +95,7 @@ async function submitStake() {
                 <Button
                     label="Stake"
                     @click="submitStake"
-                    :disabled="!canStake"
+                    :disabled="!canStake || isStakingOnNode"
                     :loading="isStakingOnNode"
                     icon="pi pi-check"
                 />

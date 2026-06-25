@@ -13,7 +13,6 @@ import NodeClaimDialog from './NodeClaimDialog.vue';
 
 const route = useRoute();
 const router = useRouter();
-const registerNavbarActions = inject<(actions: any[]) => void>('registerNavbarActions');
 
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
@@ -41,20 +40,8 @@ const {
 
 const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
 
-// Dialog visibility
-const showStakeDialog = ref(false);
-const showUnstakeDialog = ref(false);
-const showClaimDialog = ref(false);
 
-const openStakeDialog = () => (showStakeDialog.value = true);
-const openUnstakeDialog = () => (showUnstakeDialog.value = true);
-const openClaimDialog = () => (showClaimDialog.value = true);
-
-const maxUnstakeAmount = computed(() => {
-    if (currentStakedAmount.value === undefined) return 0;
-    return currentStakedAmount.value.getAmountAsAtomic();
-});
-
+/*
 // Register navbar actions - needs to be reactive to node state changes
 watch(
     [isNodePublished, isNodeClaimed, isOwnedByWallet, nodeStakeInformation, hasUnstakingOperationInProgress],
@@ -71,22 +58,24 @@ watch(
                 });
             }
 
-            if (isOwnedByWallet.value && nodeStakeInformation.value === undefined) {
+            if (isOwnedByWallet.value && !nodeStakeInformation.value) {
                 actions.push({
                     label: 'Stake Tokens',
                     icon: 'pi pi-wallet',
-                    command: openStakeDialog,
+                    command: () => showStakeDialog.value = true,
                     outlined: true,
                 });
             }
+            console.log("Node stake infos:", nodeStakeInformation)
+            if (isOwnedByWallet.value && nodeStakeInformation.value) {
 
-            if (isOwnedByWallet.value && nodeStakeInformation.value !== undefined) {
                 actions.push({
                     label: 'Stake More',
                     icon: 'pi pi-plus',
                     command: openStakeDialog,
                     outlined: true,
                 });
+
 
                 if (!hasUnstakingOperationInProgress.value) {
                     actions.push({
@@ -104,6 +93,8 @@ watch(
     },
     { immediate: true },
 );
+
+ */
 </script>
 
 <template>
@@ -118,7 +109,6 @@ watch(
                     :is-node-published="isNodePublished"
                     :is-node-claimed="isNodeClaimed"
                     :has-account-on-chain="hasAccountOnChain"
-                    @claim="openClaimDialog"
                 />
 
                 <NodePublicationStatusCard
@@ -139,8 +129,6 @@ watch(
                     :unstaking-amount-in-progress="unstakingAmountInProgress"
                     :unstaking-at-timestamp="unstakingAtTimestamp"
                     :is-owned-by-wallet="isOwnedByWallet"
-                    @stake="openStakeDialog"
-                    @unstake="openUnstakeDialog"
                 />
             </div>
         </div>
@@ -156,12 +144,8 @@ watch(
         </div>
 
         <!-- Dialogs -->
-        <NodeStakeDialog v-model:is-open="showStakeDialog" />
-        <NodeUnstakeDialog v-model:is-open="showUnstakeDialog" :max-unstake-amount="maxUnstakeAmount" />
-        <NodeClaimDialog
-            v-model:is-open="showClaimDialog"
-            :node-vb-id="nodeVbId"
-            :organization-name="organization?.name"
-        />
+
+
+
     </div>
 </template>

@@ -2,9 +2,13 @@
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import type { CMTSToken } from '@cmts-dev/carmentis-sdk-core';
+import NodeStakeDialog from "./NodeStakeDialog.vue";
+import {computed, ref, watch} from "vue";
+import NodeUnstakeDialog from "./NodeUnstakeDialog.vue";
+import {useNode} from "../../../../../composables/useNode.ts";
+import {useRoute} from "vue-router";
 
 defineProps<{
-    nodeStakeInformation?: unknown;
     currentStakedAmount?: CMTSToken;
     hasUnstakingOperationInProgress?: boolean;
     unstakingAmountInProgress?: CMTSToken;
@@ -12,7 +16,25 @@ defineProps<{
     isOwnedByWallet?: boolean;
 }>();
 
-const emit = defineEmits<{ (e: 'stake'): void; (e: 'unstake'): void }>();
+const route = useRoute();
+const walletId = computed(() => Number(route.params.walletId));
+const orgId = computed(() => Number(route.params.orgId));
+const nodeId = computed(() => Number(route.params.nodeId));
+
+const {currentStakedAmount, nodeStakeInformation, hasNodeStakeInformation} = useNode(walletId, orgId, nodeId);
+const showStakeDialog = ref(false);
+const showUnstakeDialog = ref(false);
+
+
+const noStakingInfoFound = computed(() => !hasNodeStakeInformation.value);
+const maxUnstakeAmount = computed(() => {
+    if (currentStakedAmount.value === undefined) return 0;
+    return currentStakedAmount.value.getAmountAsAtomic();
+});
+
+watch(nodeStakeInformation, (newInfo) => {
+    console.log("NodeStakeInformation in node staking card", nodeStakeInformation.value);
+})
 </script>
 
 <template>
@@ -25,7 +47,7 @@ const emit = defineEmits<{ (e: 'stake'): void; (e: 'unstake'): void }>();
         </template>
         <template #content>
             <!-- No Staking State -->
-            <div v-if="nodeStakeInformation === undefined" class="text-center py-8">
+            <div v-if="noStakingInfoFound" class="text-center py-8">
                 <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
                     <i class="pi pi-ban text-2xl text-gray-400"></i>
                 </div>
@@ -80,9 +102,9 @@ const emit = defineEmits<{ (e: 'stake'): void; (e: 'unstake'): void }>();
 
                 <!-- Action Buttons -->
                 <div class="flex gap-2 pt-2" v-if="isOwnedByWallet">
-                    <Button @click="emit('stake')" label="Stake More" icon="pi pi-plus" size="small" outlined />
+                    <Button @click="() => showStakeDialog = true" label="Stake More" icon="pi pi-plus" size="small" outlined />
                     <Button
-                        @click="emit('unstake')"
+                        @click="() => showUnstakeDialog = true"
                         label="Unstake"
                         icon="pi pi-minus"
                         size="small"
@@ -94,9 +116,14 @@ const emit = defineEmits<{ (e: 'stake'): void; (e: 'unstake'): void }>();
             </div>
 
             <!-- Action Buttons (No Staking) -->
-            <div v-if="nodeStakeInformation === undefined && isOwnedByWallet" class="mt-4">
-                <Button @click="emit('stake')" label="Stake Tokens" icon="pi pi-wallet" class="w-full" outlined />
+            <div v-if="noStakingInfoFound && isOwnedByWallet" class="mt-4">
+
+                <Button @click="() => showStakeDialog = true" label="Stake Tokens" icon="pi pi-wallet" class="w-full" outlined />
             </div>
         </template>
     </Card>
+
+
+    <NodeStakeDialog v-model:is-open="showStakeDialog" />
+    <NodeUnstakeDialog v-model:is-open="showUnstakeDialog" :max-unstake-amount="maxUnstakeAmount" />
 </template>
