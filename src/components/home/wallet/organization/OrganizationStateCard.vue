@@ -16,17 +16,16 @@ import {computed} from "vue";
 import {useAsyncState} from "@vueuse/core";
 import * as walletRepo from "../../../../db/repositories/walletRepository.ts";
 import * as orgRepo from "../../../../db/repositories/organizationRepository.ts";
+import {useQuery} from "@tanstack/vue-query";
 
 const route = useRoute();
 
 const orgId = computed(() => Number(route.params.orgId));
 
-
-const {state: organization} = useAsyncState(
-    () => orgRepo.getOrganizationById(orgId.value),
-    null,
-    {immediate: true},
-);
+const { data: organization } = useQuery({
+    queryKey: ['organization', orgId.value],
+    queryFn: () => orgRepo.getOrganizationById(orgId.value),
+})
 
 const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnChain');
 </script>

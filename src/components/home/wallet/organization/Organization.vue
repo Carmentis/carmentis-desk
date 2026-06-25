@@ -188,10 +188,10 @@ const fetchedOrganizationName = computed(() => organizationFetchedOnline.value?.
 const fetchedOrganizationCountryCode = computed(() => organizationFetchedOnline.value?.countryCode ?? organization.value?.countryCode ?? '');
 const fetchedOrganizationCity = computed(() => organizationFetchedOnline.value?.city ?? organization.value?.city ?? '');
 const fetchedOrganizationWebsite = computed(() => organizationFetchedOnline.value?.website ?? organization.value?.website ?? '');
-const isNameDifferent = computed(() => orgName.value.trim() !== fetchedOrganizationName.value);
-const isCountryCodeDifferent = computed(() => orgCountryCode.value.trim() !== fetchedOrganizationCountryCode.value);
-const isCityDifferent = computed(() => orgCity.value.trim() !== fetchedOrganizationCity.value);
-const isWebsiteDifferent = computed(() => orgWebsite.value.trim() !== fetchedOrganizationWebsite.value);
+const isNameDifferent = computed(() => isOrganizationFoundOnChain.value && orgName.value.trim() !== fetchedOrganizationName.value);
+const isCountryCodeDifferent = computed(() => isOrganizationFoundOnChain.value &&  orgCountryCode.value.trim() !== fetchedOrganizationCountryCode.value);
+const isCityDifferent = computed(() => isOrganizationFoundOnChain.value && orgCity.value.trim() !== fetchedOrganizationCity.value);
+const isWebsiteDifferent = computed(() => isOrganizationFoundOnChain.value && orgWebsite.value.trim() !== fetchedOrganizationWebsite.value);
 
 
 const showDeletionDialog = ref(false);
