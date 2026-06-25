@@ -286,11 +286,12 @@ const items = [
                                     icon="pi pi-cloud-upload"
                                     @click="showPublishConfirmDialog = true"
                                     :loading="isPublishingOrganization"
-                                    :disabled="isPublishingOrganization || !hasAccountOnChain"
+                                    v-if="hasAccountOnChain && !isFormDirty"
+                                    :disabled="isPublishingOrganization"
                                     severity="secondary"
                                     :hidden="!hasAccountOnChain"
                                 />
-                                <Button type="submit" label="Update Details" icon="pi pi-check" :disabled="!isFormDirty" />
+                                <Button type="submit" label="Update Details" icon="pi pi-check" v-if="isFormDirty" />
                             </div>
                         </form>
                     </template>
