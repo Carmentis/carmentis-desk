@@ -1,3 +1,10 @@
+# [1.27.0](https://github.com/Carmentis/carmentis-desk/compare/v1.26.0...v1.27.0) (2026-06-25)
+
+
+### Features
+
+* add microblock sealing and publishing utilities ([e7290a5](https://github.com/Carmentis/carmentis-desk/commit/e7290a5eddf51751051f6b528bf21a843592962e))
+
 # [1.26.0](https://github.com/Carmentis/carmentis-desk/compare/v1.25.1...v1.26.0) (2026-06-24)
 
 
