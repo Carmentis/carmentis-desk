@@ -17,6 +17,7 @@ import { useToast } from 'primevue/usetoast';
 import { createIndexerClient } from '../../../../../api/indexer/client.ts';
 import { useQuery } from '@tanstack/vue-query';
 import { useHasAccountOnChainQuery } from '../../../../../composables/useAccountBreakdown.ts';
+import Message from "primevue/message";
 
 const toast = useToast();
 const route = useRoute();
@@ -41,11 +42,12 @@ const { state: organization } = useAsyncState(
     { immediate: true },
 );
 
-const { state: application } = useAsyncState(
-    () => appRepo.getApplicationById(appId.value),
-    null,
-    { immediate: true },
-);
+// fetch the application
+const { data: application } = useQuery({
+    queryKey: ['application', appId.value],
+    queryFn: () => appRepo.getApplicationById(appId.value),
+    enabled: !!appId.value,
+})
 
 const goBack = () => {
     router.push(`/wallet/${walletId.value}/organization/${orgId.value}`);
@@ -152,23 +154,31 @@ const applicationVbId = computed(() =>
 );
 const walletIndexer = computed(() => wallet.value?.indexer);
 
-const { data: isApplicationFoundOnChain, isLoading: isFetchingApplicationFromChain } = useQuery({
+
+const { data: applicationFoundOnChain, isLoading: isFetchingApplicationFromChain } = useQuery({
     enabled: computed(() => !!applicationVbId.value && !!walletIndexer.value),
     queryKey: ['application-on-chain', applicationVbId, walletIndexer],
     queryFn: async () => {
         const vbId = applicationVbId.value;
         const indexer = walletIndexer.value;
-        if (!vbId || !indexer) return false;
+        if (!vbId || !indexer) return undefined;
         try {
-            const result = await createIndexerClient(indexer).getApplications({ vb_id: vbId });
-            return result.items.length > 0;
+            const foundApplicationsOnChain = await createIndexerClient(indexer).getApplications({ vb_id: vbId });
+            if (foundApplicationsOnChain.items.length !== 1) return undefined;
+            return foundApplicationsOnChain.items[0];
         } catch (e) {
             console.error(`Application not found online: ${e}`);
-            return false;
+            return undefined;
         }
     },
-});
-
+})
+const isApplicationFoundOnChain = computed(() => !!applicationFoundOnChain.value);
+const fetchedApplicationName = computed(() => applicationFoundOnChain.value?.name);
+const fetchedApplicationDescription = computed(() => applicationFoundOnChain.value?.description);
+const fetchedApplicationWebsite = computed(() => applicationFoundOnChain.value?.homepageUrl);
+const isNameDifferentFromForm = computed(() => isApplicationFoundOnChain.value && fetchedApplicationName.value !== appName.value);
+const isDescriptionDifferentFromForm = computed(() => isApplicationFoundOnChain.value && fetchedApplicationDescription.value !== appDescription.value);
+const isWebsiteDifferentFromForm = computed(() => isApplicationFoundOnChain.value && fetchedApplicationWebsite.value !== appWebsite.value);
 const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
 
 // Register navbar actions
@@ -294,6 +304,8 @@ onMounted(() => {
                                     class="w-full"
                                     required
                                 />
+                                <Message class="my-2" v-if="isNameDifferentFromForm"> This application has a different name online: {{ fetchedApplicationName }} </Message>
+
                             </div>
                             <div>
                                 <label for="app-description" class="block text-sm font-medium text-gray-700 mb-2">
@@ -306,6 +318,8 @@ onMounted(() => {
                                     class="w-full"
                                     rows="3"
                                 />
+                                <Message class="my-2" v-if="isDescriptionDifferentFromForm"> This application has a different description online. </Message>
+
                             </div>
                             <div>
                                 <label for="app-website" class="block text-sm font-medium text-gray-700 mb-2">
@@ -317,6 +331,7 @@ onMounted(() => {
                                     placeholder="https://..."
                                     class="w-full"
                                 />
+                                <Message class="my-2" v-if="isWebsiteDifferentFromForm"> This application has a different website online: {{ fetchedApplicationWebsite }} </Message>
                             </div>
                             <div class="flex justify-end gap-2">
                                 <Button

@@ -8,16 +8,38 @@ import PrimeVue from 'primevue/config';
 import Aura from '@primeuix/themes/aura';
 import ToastService from 'primevue/toastservice';
 import ConfirmationService from 'primevue/confirmationservice';
-import { VueQueryPlugin } from '@tanstack/vue-query';
+import {QueryClient, VueQueryPlugin} from '@tanstack/vue-query';
 import { getDb } from './db/database.ts';
 
 import './style.css';
+
+// create a query client
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 1000 * 60 * 5, // 5 minutes
+            gcTime: 1000 * 60 * 30,   // 30 minutes
+            refetchIntervalInBackground: true,
+            refetchInterval: 2000,
+            retry: 2,
+            refetchOnWindowFocus: false,
+            refetchOnMount: true,
+            refetchOnReconnect: true,
+        },
+        mutations: {
+            retry: 1,
+        },
+    },
+})
+
 
 const app = createApp(App);
 app.use(createPinia());
 app.use(ToastService);
 app.use(ConfirmationService);
-app.use(VueQueryPlugin);
+app.use(VueQueryPlugin, {
+    queryClient,
+})
 app.use(PrimeVue, {
     theme: {
         preset: Aura,
