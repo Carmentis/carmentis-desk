@@ -1,3 +1,10 @@
+# [1.28.0](https://github.com/Carmentis/carmentis-desk/compare/v1.27.0...v1.28.0) (2026-06-25)
+
+
+### Features
+
+* add `useAsyncFn` composable and improve application form handling ([fd4cf4f](https://github.com/Carmentis/carmentis-desk/commit/fd4cf4fdf393f5abc5441d9fed53fbf6be97133e))
+
 # [1.27.0](https://github.com/Carmentis/carmentis-desk/compare/v1.26.0...v1.27.0) (2026-06-25)
 
 
