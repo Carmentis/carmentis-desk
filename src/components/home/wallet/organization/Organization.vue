@@ -176,7 +176,10 @@ const { data: isOrganizationFoundOnChain, isLoading: isFetchingOrganizationFromC
     queryFn: async () => {
         const vbId = organizationVbId.value;
         const indexer = walletIndexer.value;
-        if (!vbId || !indexer) return false;
+        if (!vbId || !indexer) {
+            console.log('Organization not found online: vbId or indexer is undefined');
+            return false;
+        }
         try {
             const result = await createIndexerClient(indexer).getOrganizations({ vb_id: vbId });
             return result.items.length > 0;

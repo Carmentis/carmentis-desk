@@ -21,6 +21,7 @@ import {createIndexerClient} from "../../../../api/indexer/client.ts";
 import * as walletRepo from "../../../../db/repositories/walletRepository.ts";
 import InputText from "primevue/inputtext";
 import Dialog from "primevue/dialog";
+import FieldNameAndDescription from "../../../utils/FieldNameAndDescription.vue";
 
 const toast = useToast();
 const route = useRoute();
@@ -342,12 +343,13 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
 
     <!-- Add Node Dialog -->
     <Dialog v-model:visible="showManualImportForm" header="Add Node" modal class="w-full max-w-2xl">
+        <div class="mb-3">
+            Add a node to your organization. Note that your node should be already running
+            before adding it to the organization.
+        </div>
         <div class="space-y-4">
             <div>
-                <label for="manual-node-name" class="block text-sm font-medium text-gray-700 mb-2">
-                    Name
-                    <span class="text-red-500">*</span>
-                </label>
+                <FieldNameAndDescription name="Node name" description="Name of your node." required />
                 <InputText
                     id="manual-node-name"
                     v-model="manualNodeName"
@@ -356,23 +358,18 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
                 />
             </div>
             <div>
-                <label for="manual-node-vbid" class="block text-sm font-medium text-gray-700 mb-2">
-                    Virtual Blockchain ID
-                    <span class="text-gray-400">(optional)</span>
-                </label>
-                <InputText id="manual-node-vbid" v-model="manualNodeVbId" placeholder="VB ID" class="w-full" />
-            </div>
-            <div>
-                <label for="manual-node-rpc" class="block text-sm font-medium text-gray-700 mb-2">
-                    RPC Endpoint
-                    <span class="text-red-500">*</span>
-                </label>
+                <FieldNameAndDescription name="RPC Endpoint" description="URL pointing to the RPC page of the node." required />
                 <InputText
                     id="manual-node-rpc"
                     v-model="manualNodeRpcEndpoint"
-                    placeholder="https://..."
+                    placeholder="https://my-node.example.com"
                     class="w-full"
                 />
+            </div>
+            <div>
+                <FieldNameAndDescription name="Virtual Blockchain ID" description="Virtual Blockchain ID of your node, if already published on-chain."  />
+
+                <InputText id="manual-node-vbid" v-model="manualNodeVbId" placeholder="VB ID" class="w-full" />
             </div>
         </div>
         <template #footer>
