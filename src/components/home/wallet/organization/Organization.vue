@@ -19,22 +19,7 @@ import { NodeEntity, ApplicationEntity } from '../../../../stores/storage';
 import { useAsyncState } from '@vueuse/core';
 import * as walletRepo from '../../../../db/repositories/walletRepository';
 import * as orgRepo from '../../../../db/repositories/organizationRepository';
-import * as nodeRepo from '../../../../db/repositories/nodeRepository';
-import * as appRepo from '../../../../db/repositories/applicationRepository';
-import { computedAsync } from '@vueuse/core';
-import {
-    CarmentisError,
-    CryptoEncoderFactory,
-    EncoderFactory,
-    Hash,
-    LockType,
-    ProviderFactory,
-    SectionType,
-    SeedEncoder,
-    SignatureSchemeId,
-    Utils,
-    WalletCrypto,
-} from '@cmts-dev/carmentis-sdk-core';
+import Message from 'primevue/message';
 import { createIndexerClient } from '../../../../api/indexer/client.ts';
 import { useToast } from 'primevue/usetoast';
 import { useOnChainStore } from '../../../../stores/onchain.ts';
@@ -50,6 +35,7 @@ import OrganizationNodes from "./OrganizationNodes.vue";
 import OrganizationCustomData from "./OrganizationCustomData.vue";
 import OrganizationPublicationDialog from "./OrganizationPublicationDialog.vue";
 import OrganizationStateCard from "./OrganizationStateCard.vue";
+import FieldNameAndDescription from "../../../utils/FieldNameAndDescription.vue";
 
 const toast = useToast();
 const route = useRoute();
@@ -66,11 +52,20 @@ const { state: wallet } = useAsyncState(
     { immediate: true },
 );
 
-const { state: organization, execute: fetchOrg } = useAsyncState(
-    () => orgRepo.getOrganizationById(orgId.value),
-    null,
-    { immediate: true },
-);
+// we search for the organization
+const {data: organization, refetch: fetchOrg} = useQuery({
+    queryKey: ['organization', orgId],
+    queryFn: async () => {
+        const org = await orgRepo.getOrganizationById(orgId.value);
+        if (!org) {
+            throw new Error('Organization not found');
+        }
+        return org;
+    },
+    refetchIntervalInBackground: true,
+    refetchInterval: 500,
+    enabled: !!orgId.value,
+})
 
 
 const goBack = () => {
@@ -168,9 +163,10 @@ const organizationVbId = computed(() =>
 );
 const walletIndexer = computed(() => wallet.value?.indexer);
 
-const { data: isOrganizationFoundOnChain, isLoading: isFetchingOrganizationFromChain } = useQuery({
+// fetch the organization online using the indexer
+const { data: organizationFetchedOnline, isLoading: isFetchingOrganizationFromChain } = useQuery({
     enabled: computed(() => !!organizationVbId.value && !!walletIndexer.value),
-    queryKey: ['organization-on-chain', organizationVbId, walletIndexer],
+    queryKey: ['organization-online', organizationVbId, walletIndexer],
     refetchInterval: 2000,
     refetchIntervalInBackground: true,
     queryFn: async () => {
@@ -178,17 +174,25 @@ const { data: isOrganizationFoundOnChain, isLoading: isFetchingOrganizationFromC
         const indexer = walletIndexer.value;
         if (!vbId || !indexer) {
             console.log('Organization not found online: vbId or indexer is undefined');
-            return false;
+            return undefined;
         }
-        try {
-            const result = await createIndexerClient(indexer).getOrganizations({ vb_id: vbId });
-            return result.items.length > 0;
-        } catch (e) {
-            console.error(`Organization not found online: ${e}`);
-            return false;
-        }
-    },
-});
+        const foundsOrgs = await createIndexerClient(indexer).getOrganizations({ vb_id: vbId });
+        if (foundsOrgs.items.length !== 1) return undefined;
+        return foundsOrgs.items[0];
+    }
+})
+
+// define some computed properties based on the fetched organization
+const isOrganizationFoundOnChain = computed(() => !!organizationFetchedOnline.value);
+const fetchedOrganizationName = computed(() => organizationFetchedOnline.value?.name ?? organization.value?.name ?? '');
+const fetchedOrganizationCountryCode = computed(() => organizationFetchedOnline.value?.countryCode ?? organization.value?.countryCode ?? '');
+const fetchedOrganizationCity = computed(() => organizationFetchedOnline.value?.city ?? organization.value?.city ?? '');
+const fetchedOrganizationWebsite = computed(() => organizationFetchedOnline.value?.website ?? organization.value?.website ?? '');
+const isNameDifferent = computed(() => orgName.value.trim() !== fetchedOrganizationName.value);
+const isCountryCodeDifferent = computed(() => orgCountryCode.value.trim() !== fetchedOrganizationCountryCode.value);
+const isCityDifferent = computed(() => orgCity.value.trim() !== fetchedOrganizationCity.value);
+const isWebsiteDifferent = computed(() => orgWebsite.value.trim() !== fetchedOrganizationWebsite.value);
+
 
 const showDeletionDialog = ref(false);
 
@@ -238,10 +242,7 @@ const items = [
                         </p>
                         <form @submit.prevent="updateOrganizationDetails" class="space-y-4">
                             <div>
-                                <label for="org-name" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Name
-                                    <span class="text-red-500">*</span>
-                                </label>
+                                <FieldNameAndDescription name="Organization name" description="Name of your organization" required/>
                                 <InputText
                                     id="org-name"
                                     v-model="orgName"
@@ -249,32 +250,34 @@ const items = [
                                     class="w-full"
                                     required
                                 />
+                                <Message class="my-2" v-if="isNameDifferent"> This organization has a different name online: {{ fetchedOrganizationName }} </Message>
                             </div>
                             <div>
-                                <label for="org-country-code" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Country Code
-                                </label>
+                                <FieldNameAndDescription name="Country code" description="Coutry code where your organization is located" required/>
                                 <InputText
                                     id="org-country-code"
                                     v-model="orgCountryCode"
                                     placeholder="e.g., US, FR, DE"
                                     class="w-full"
+                                    required
                                 />
+                                <Message class="my-2" v-if="isCountryCodeDifferent"> This organization has a different country code online: {{ fetchedOrganizationCountryCode }} </Message>
                             </div>
                             <div>
-                                <label for="org-city" class="block text-sm font-medium text-gray-700 mb-2">City</label>
+                                <FieldNameAndDescription name="City" description="City where your organization is located"/>
                                 <InputText id="org-city" v-model="orgCity" placeholder="City name" class="w-full" />
+                                <Message class="my-2" v-if="isCityDifferent"> This organization has a city online: {{ fetchedOrganizationCity }} </Message>
+
                             </div>
                             <div>
-                                <label for="org-website" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Website
-                                </label>
+                                <FieldNameAndDescription name="Website" description="Website of your organization"/>
                                 <InputText
                                     id="org-website"
                                     v-model="orgWebsite"
                                     placeholder="https://..."
                                     class="w-full"
                                 />
+                                <Message class="my-2" v-if="isWebsiteDifferent"> This organization has a different website online: {{ fetchedOrganizationWebsite }} </Message>
                             </div>
                             <div class="flex justify-end gap-2">
                                 <Button
