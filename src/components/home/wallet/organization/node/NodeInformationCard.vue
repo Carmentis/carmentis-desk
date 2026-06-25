@@ -33,13 +33,16 @@ const {
 
      */
     isNodeClaimed,
+    isLoadingNode
 } = useNode(walletId, orgId, nodeId);
 
 const showClaimDialog = ref(false);
 </script>
 
 <template>
-    <Card>
+    <Skeleton class="w-full h-full bg-gray-100" v-if="isLoadingNode">
+    </Skeleton>
+    <Card v-else>
         <template #title>
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">

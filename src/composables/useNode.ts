@@ -41,7 +41,7 @@ export function useNode(
         queryFn: () => nodeRepo.getNodeById(toValue(nodeId)),
     })
 
-    const indexer = computedAsync(async () => {
+    const indexer = computed(() => {
         if (!wallet.value) return undefined;
         return createIndexerClient(wallet.value.indexer)
     });
@@ -58,7 +58,7 @@ export function useNode(
     });
 
     // Node publication status
-    const {data: nodePublicKey} = useQuery({
+    const {data: nodePublicKey, isLoading: isLoadingNodePublicKey} = useQuery({
         queryKey: ['node-public-key', locallyStoredNode],
         refetchInterval: 10000,
         queryFn: async () =>  {
@@ -91,7 +91,7 @@ export function useNode(
         return nodeVbId.value !== undefined;
     });
 
-    const {data: validatorNode} = useQuery({
+    const {data: validatorNode, isLoading: isLoadingValidatorNode} = useQuery({
         enabled: computed(() => !!nodeVbId.value),
         queryKey: ['node', nodeVbId],
         queryFn: async () => {
@@ -127,7 +127,7 @@ export function useNode(
         }
     })
 
-    const {data: nodeOwnerOrganization} = useQuery({
+    const {data: nodeOwnerOrganization, isLoading: isLoadingNodeOwnerOrganization} = useQuery({
         queryKey: ['node-owner-organization', nodeVbId],
         queryFn: async () => {
             if (!nodeOwnerOrganizationId.value || !indexer.value) return null;
@@ -145,7 +145,7 @@ export function useNode(
     });
 
 
-    const { data: nodeOwnerAccount } = useQuery({
+    const { data: nodeOwnerAccount, isLoading: isLoadingNodeOwnerAccount } = useQuery({
         queryKey: ['nodeOwnerAccount', nodeOwnerAccountId],
         queryFn: async () => {
             if (!nodeOwnerAccountId.value || !indexer.value) {
@@ -223,6 +223,13 @@ export function useNode(
         return plannedUnlockTimestamp;
     });
 
+    const isLoadingNode = computed(() => {
+        return isLoadingNodeOwnerAccount.value ||
+            isLoadingNodeOwnerOrganization.value ||
+            isLoadingValidatorNode.value ||
+            isLoadingNodePublicKey.value
+    })
+
     return {
         wallet,
         organization,
@@ -243,5 +250,12 @@ export function useNode(
         hasUnstakingOperationInProgress,
         unstakingAtTimestamp,
         hasNodeStakeInformation,
+
+        // loading states
+        isLoadingNode,
+        isLoadingNodeOwnerAccount,
+        isLoadingNodeOwnerOrganization,
+        isLoadingValidatorNode,
+        isLoadingNodePublicKey
     };
 }
