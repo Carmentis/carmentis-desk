@@ -9,6 +9,7 @@ import Button from "primevue/button";
 import Tag from "primevue/tag";
 import {useClipboard} from "../../../composables/useClipboard.ts";
 import * as walletRepo from "../../../db/repositories/walletRepository.ts";
+import FieldNameAndDescription from "../../utils/FieldNameAndDescription.vue";
 
 const route = useRoute();
 const toast = useToast();
@@ -111,10 +112,11 @@ function resetForm() {
         <template #content>
             <form @submit.prevent="saveConnectivity" class="space-y-4">
                 <div>
-                    <label for="node-endpoint" class="block text-sm font-medium text-gray-700 mb-2">
-                        Node Endpoint
-                        <span class="text-red-500">*</span>
-                    </label>
+                    <FieldNameAndDescription
+                        name="Node Endpoint"
+                        description="Indicates node endpoint in which transactions are published"
+                        required
+                    />
                     <div class="flex items-center gap-2">
                         <InputText
                             id="node-endpoint"
@@ -135,10 +137,11 @@ function resetForm() {
                     </div>
                 </div>
                 <div>
-                    <label for="indexer-endpoint" class="block text-sm font-medium text-gray-700 mb-2">
-                        Indexer Endpoint
-                        <span class="text-red-500">*</span>
-                    </label>
+                    <FieldNameAndDescription
+                        name="Indexer Endpoint"
+                        description="Indicates indexer endpoint used to fetch data from the blockchain."
+                        required
+                    />
                     <div class="flex items-center gap-2">
                         <InputText
                             id="indexer-endpoint"
