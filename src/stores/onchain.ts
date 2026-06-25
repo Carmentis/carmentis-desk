@@ -20,7 +20,7 @@ import {
     PrivateSignatureKey,
     ApplicationDescriptionSection,
     CryptoEncoderFactory,
-    AccountVb,
+    AccountVb, FeesCalculationFormulaFactory,
 } from '@cmts-dev/carmentis-sdk-core';
 import { createIndexerClient } from '../api/indexer/client.ts';
 import { useStorageStore } from './storage';
@@ -102,6 +102,42 @@ export const useOnChainStore = defineStore('onchain', () => {
     const isPublishingApplication = ref(false);
     const isTransferringTokens = ref(false);
     const isPublishingCustomJson = ref(false);
+
+
+
+    async function sealAndPublishMicroblock(walletId: number, mb: Microblock, gasPrice: CMTSToken = CMTSToken.createMilliToken(100)) {
+        const nodeEndpoint = await walletStore.getNodeEndpointFromWalletId(walletId);
+        const accountId = await walletStore.getAccountId(walletId);
+        if (!accountId) throw new Error("Account ID not found");
+        const {sk} = await walletStore.getKeyPair(walletId);
+        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(nodeEndpoint);
+        mb.setGasPrice(gasPrice);
+        await mb.setGasAndSeal(provider, sk, {
+            feesPayerAccount: Hash.fromHex(accountId).toBytes(),
+        });
+        await provider.publishMicroblock(mb);
+    }
+
+    async function getFeesToPublishMicroblock(walletId: number, mb: Microblock) {
+        const nodeEndpoint = await walletStore.getNodeEndpointFromWalletId(walletId);
+        const accountId = await walletStore.getAccountId(walletId);
+        if (!accountId) throw new Error("Account ID not found");
+        const {pk} = await walletStore.getKeyPair(walletId);
+        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(nodeEndpoint);
+        const protocolState = await provider.getProtocolState();
+        const feesVersion = protocolState.getFeesCalculationVersion();
+        const feesCalculation = await FeesCalculationFormulaFactory.getFeesCalculationFormulaByVersion(
+            provider,
+            feesVersion
+        );
+        return feesCalculation.computeFees(
+            pk.getSignatureSchemeId(),
+            mb,
+            0,
+            Utils.getTimestampInSeconds()
+        )
+
+    }
 
     /**
      * Publishes an organization on-chain

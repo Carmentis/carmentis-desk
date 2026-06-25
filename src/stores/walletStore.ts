@@ -31,6 +31,8 @@ export const useWalletStore = defineStore('wallet', () => {
         signatureSchemaType: SignatureSchemeId.SECP256K1,
     });
 
+    const storageStore = useStorageStore();
+
     const setSignatureSchemaType = (signatureSchemaType: SignatureSchemeId) => {
         state.value.signatureSchemaType = signatureSchemaType;
     }
@@ -96,6 +98,13 @@ export const useWalletStore = defineStore('wallet', () => {
          */
     }
 
+
+    async function getNodeEndpointFromWalletId(walletId: number) {
+        const wallet = await storageStore.getWalletById(walletId);
+        if (!wallet) throw new Error(`Wallet with id ${walletId} not found`);
+        return wallet.nodeEndpoint;
+    }
+
     async function fetchAccountTransactionsHistory(walletId: number, accountId: Uint8Array, params: AppControllerGetAccountHistoryParams) {
         const indexer = await getIndexerFromWalletId(walletId);
         const hexId = Utils.binaryToHexa(accountId);
@@ -121,6 +130,7 @@ export const useWalletStore = defineStore('wallet', () => {
         getDidJwk,
         fetchAccountTransactionsHistory,
         isAccountFoundByPublicKey,
-        getIndexerFromWalletId
+        getIndexerFromWalletId,
+        getNodeEndpointFromWalletId
     };
 });
