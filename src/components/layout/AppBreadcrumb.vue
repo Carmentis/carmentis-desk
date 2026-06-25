@@ -10,6 +10,7 @@ import * as appRepo from '../../db/repositories/applicationRepository';
 import * as nodeRepo from '../../db/repositories/nodeRepository';
 import * as operatorRepo from '../../db/repositories/operatorRepository';
 import Message from 'primevue/message';
+import {useQuery} from "@tanstack/vue-query";
 const route = useRoute();
 const router = useRouter();
 
@@ -19,11 +20,12 @@ const appId = computed(() => Number(route.params.appId) || null);
 const nodeId = computed(() => Number(route.params.nodeId) || null);
 const operatorId = computed(() => Number(route.params.operatorId) || null);
 
-const { state: wallet, execute: fetchWallet } = useAsyncState(
-    () => walletId.value ? walletRepo.getWalletById(walletId.value) : Promise.resolve(null),
-    null,
-    { immediate: true },
-);
+
+const { data: wallet, refetch: fetchWallet } = useQuery({
+    queryKey: ['wallet', walletId.value],
+    queryFn: () => walletId.value ? walletRepo.getWalletById(walletId.value) : Promise.resolve(null),
+})
+
 const { state: organization, execute: fetchOrg } = useAsyncState(
     () => orgId.value ? orgRepo.getOrganizationById(orgId.value) : Promise.resolve(null),
     null,
