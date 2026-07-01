@@ -1,29 +1,43 @@
 import { Secp256k1PrivateSignatureKey, Secp256k1PublicSignatureKey } from '@cmts-dev/carmentis-sdk-core';
 import { importJWK, JWK } from 'jose';
+import {IJsonWebKeyConverter} from "./IJsonWebKeyConverter.ts";
 
 // secp256k1 field prime
 const SECP256K1_P = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
 
-export class CarmentisKeyConverter {
-    static async convertSecp256k1PrivateKeyToJwk(privateKey: Secp256k1PrivateSignatureKey): Promise<CryptoKey> {
-        const privateKeyBytes = privateKey.getPrivateKeyAsBytes();
 
+export class Secp256k1JsonWebKeyConverter implements IJsonWebKeyConverter<Secp256k1PublicSignatureKey, Secp256k1PrivateSignatureKey> {
+    private static readonly SECP256K1_ALG = 'ES256K';
+    async convertPrivateKey(privateKey: Secp256k1PrivateSignatureKey): Promise<JWK> {
+        const privateKeyBytes = privateKey.getPrivateKeyAsBytes();
         const publicKey = (await privateKey.getPublicKey()) as Secp256k1PublicSignatureKey;
         const compressedPublicKey = await publicKey.getPublicKeyAsBytes();
-
         const { x, y } = decompressSecp256k1Point(compressedPublicKey);
 
-        const jwk: JWK = {
-            alg: 'ECDSA',
+        return {
+            alg: Secp256k1JsonWebKeyConverter.SECP256K1_ALG,
             kty: 'EC',
             crv: 'secp256k1',
             x: bytesToBase64Url(x),
             y: bytesToBase64Url(y),
             d: bytesToBase64Url(privateKeyBytes),
         };
-
-        return importJWK(jwk, 'ES256K') as Promise<CryptoKey>;
     }
+
+    async convertPublicKey(publicKey: Secp256k1PublicSignatureKey): Promise<JWK> {
+        const compressedPublicKey = await publicKey.getPublicKeyAsBytes();
+        const { x, y } = decompressSecp256k1Point(compressedPublicKey);
+
+        return {
+            alg: Secp256k1JsonWebKeyConverter.SECP256K1_ALG,
+            kty: 'EC',
+            crv: 'secp256k1',
+            x: bytesToBase64Url(x),
+            y: bytesToBase64Url(y),
+        };
+    }
+
+
 }
 
 /**

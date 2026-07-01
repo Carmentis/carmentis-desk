@@ -131,6 +131,9 @@ importers:
       primevue:
         specifier: ^4.5.4
         version: 4.5.4(vue@3.5.29(typescript@5.6.3))
+      ts-pattern:
+        specifier: ^5.9.0
+        version: 5.9.0
       valibot:
         specifier: ^1.2.0
         version: 1.2.0(typescript@5.6.3)
@@ -3314,6 +3317,9 @@ packages:
   traverse@0.6.8:
     resolution: {integrity: sha512-aXJDbk6SnumuaZSANd21XAo15ucCDE38H4fkqiGsc3MhCK+wOlZvLP9cB/TvpHT0mOyWgC4Z8EwRlzqYSUzdsA==}
     engines: {node: '>= 0.4'}
+
+  ts-pattern@5.9.0:
+    resolution: {integrity: sha512-6s5V71mX8qBUmlgbrfL33xDUwO0fq48rxAu2LBE11WBeGdpCPOsXksQbZJHvHwhrd3QjUusd3mAOM5Gg0mFBLg==}
 
   tunnel@0.0.6:
     resolution: {integrity: sha512-1h/Lnq9yajKY2PEbBadPXj3VxsDDu844OnaAo52UVmIzIvwwtBPIuNvkjuzBlTWpfJyUbG3ez0KSBibQkj4ojg==}
@@ -6814,6 +6820,8 @@ snapshots:
   tr46@0.0.3: {}
 
   traverse@0.6.8: {}
+
+  ts-pattern@5.9.0: {}
 
   tunnel@0.0.6: {}
 
