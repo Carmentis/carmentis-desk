@@ -4,13 +4,22 @@ import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
 import {useToast} from 'primevue/usetoast';
-import {Ed25519PrivateSignatureKey, Ed25519PublicSignatureKey, SeedEncoder,SignatureSchemeId, WalletCrypto} from '@cmts-dev/carmentis-sdk-core';
+import stringify from 'canonical-json'
+import {
+    CryptoEncoderFactory,
+    Ed25519PrivateSignatureKey, Ed25519PublicSignatureKey, EncoderFactory, SeedEncoder, SignatureSchemeId, WalletCrypto
+} from '@cmts-dev/carmentis-sdk-core';
 import {useStorageStore} from '../../../../stores/storage.ts';
 import { useSessionStore } from '../../../../stores/sessionStore.ts';
 import {storeToRefs} from 'pinia';
 import * as jose from 'jose';
 import {JwkSignatureKeyExporter} from '../../../../utils/jwk-signature-key-exporter.ts';
 import type {AuthByPublicKeyParams} from './AuthByPublicKeyRequestType.ts';
+import {useWalletStore} from "../../../../stores/walletStore.ts";
+import {JsonWebKeyFactory} from "../../../../utils/jwk/JsonWebKeyFactory.ts";
+import {match, P} from "ts-pattern";
+import {DidFactory} from "../../../../utils/did/DidFactory.ts";
+import {importJWK} from "jose";
 
 const props = defineProps<{ params: AuthByPublicKeyParams }>();
 
@@ -22,35 +31,80 @@ const emit = defineEmits<{
 const toast = useToast();
 const store = useStorageStore();
 const sessionStore = useSessionStore();
+const {state} = useWalletStore();
 const { wallets } = storeToRefs(store);
 const chosenWallet = ref(wallets.value[0]);
 const isProcessing = ref(false);
 
-type SupportedPkFormat = 'did' | 'jwk' | 'cmts';
-
-async function exportPublicKeyIntoFormat(publicSignatureKey: Ed25519PublicSignatureKey, format: SupportedPkFormat) {
-    const jwk = await JwkSignatureKeyExporter.exportPublicKey(publicSignatureKey);
-    if (format === 'jwk') {
-        return jwk;
-    }
-
-    if (format === 'did') {
-        return JwkSignatureKeyExporter.exportPublicKeyAsDidJwk(publicSignatureKey);
-    }
-
-    throw new Error(`Unsupported format: ${format}`);
-}
 
 async function approve() {
     isProcessing.value = true;
     try {
+        const schemeId = state.signatureSchemaType;
         const seed = await sessionStore.getWalletSeed(chosenWallet.value.id);
         const wc = WalletCrypto.fromSeed(new SeedEncoder().decode(seed));
-        const sk = await wc.getDefaultAccountCrypto().getPrivateSignatureKey(SignatureSchemeId.ED25519);
-        const pk = (await sk.getPublicKey()) as Ed25519PublicSignatureKey;
-        const skJwk = await JwkSignatureKeyExporter.exportPrivateKey(sk);
+        const sk = await wc.getDefaultAccountCrypto().getPrivateSignatureKey(schemeId);
+        const pk = await sk.getPublicKey();
+
+        // encode the public key into the desired format
+        const carmentisSignatureKeyEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
+        const encodedPk = await match({ pk, format: props.params.pkFormat })
+            .with({ format: 'cmts' }, async ({ pk }) => carmentisSignatureKeyEncoder.encodePublicKey(pk))
+            .exhaustive();
+
+        // compute the json-payload
+        const { challenge, origin } = props.params
+        const payload = {
+            sub: challenge,
+            iss: encodedPk,
+            aud: origin,
+            iat: Math.floor(Date.now() / 1000),
+            exp: Math.floor(Date.now() / 1000) + 60,
+        }
+
+
+        // encode the signature into the desired format
+        const { sigFormat } = props.params;
+        const rawSignature = await match(sigFormat)
+            .with('canonical-json', async () => {
+                // encode the payload into the desired format
+                const utf8Decoder = new TextEncoder();
+                const rawPayload = utf8Decoder.encode(stringify(payload));
+
+                // compute the signature
+                return await sk.sign(rawPayload);
+            })
+            .exhaustive()
+
+        // encode the signature in the desired format
+        const b64Decoder = EncoderFactory.bytesToBase64Encoder();
+        const hexDecoder = EncoderFactory.bytesToHexEncoder();
+        const sigEncoding = props.params.sigEncoding;
+        const signature = match(sigEncoding)
+            .with('base64', () => b64Decoder.encode(rawSignature))
+            .with('hex', () => hexDecoder.encode(rawSignature))
+            .exhaustive()
+
+
+
+        /*
+        const skJwk = await JsonWebKeyFactory.fromCarmentisPrivateSignatureKey(sk);
+        const signingKey = await importJWK(skJwk, skJwk.alg);
         const pkFormat = props.params.pkFormat ?? 'did';
-        const encoderPk: string | object = await exportPublicKeyIntoFormat(pk, pkFormat as SupportedPkFormat);
+        //const encoderPk = await exportPublicKeyIntoFormat(pk, pkFormat as SupportedPkFormat);
+
+        const encoderPk = await match({ pk, format: pkFormat })
+            .with({ format: 'cmts' }, async ({ pk }) => carmentisSignatureKeyEncoder.encodePublicKey(pk))
+            .with({ format: 'did' }, async ({ pk }) => DidFactory.fromJsonWebKey(
+                await JsonWebKeyFactory.fromCarmentisPublicSignatureKey(pk)
+            ))
+            .exhaustive();
+
+        const alg = match(schemeId)
+            .with(SignatureSchemeId.SECP256K1, () => 'ES256K')
+            .with(SignatureSchemeId.ED25519, () => 'EdDSA')
+            .otherwise(() => { throw new Error(`Unsupported signature scheme: ${schemeId}`); });
+
         const signature = await new jose.SignJWT({
             sub: props.params.b64Challenge,
             iss: pkFormat,
@@ -58,8 +112,10 @@ async function approve() {
             iat: Math.floor(Date.now() / 1000),
             exp: Math.floor(Date.now() / 1000) + 60,
         })
-            .setProtectedHeader({ alg: 'EdDSA' })
-            .sign(skJwk);
+            .setProtectedHeader({ alg })
+            .sign(signingKey);
+
+         */
 
         toast.add({
             severity: 'success',
@@ -67,7 +123,7 @@ async function approve() {
             detail: 'You are authenticated',
             life: 3000,
         });
-        emit('done', { pk: encoderPk, signature });
+        emit('done', { pk: encodedPk, signature, scheme: schemeId, payload });
     } catch (e) {
         console.error('Error approving authentication request:', e);
         throw e;
@@ -134,7 +190,7 @@ async function approve() {
                     <div>
                         <p class="text-xs text-gray-500 mb-1">Challenge to sign</p>
                         <p class="text-xs font-mono text-surface-600 break-all bg-surface-50 rounded p-2">
-                            {{ params.b64Challenge }}
+                            {{ params.challenge }}
                         </p>
                     </div>
 
