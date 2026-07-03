@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { useStorageStore } from './storage.ts';
 import { useSessionStore } from './sessionStore.ts';
 import {
+    HandlerBasedSignatureEncoder,
     CryptoEncoderFactory,
     PrivateSignatureKey,
     ProviderFactory,
@@ -10,11 +11,14 @@ import {
     SignatureSchemeId,
     Utils,
     WalletCrypto,
+    Secp256k1HCVSignatureEncoder,
+    Secp256k1HCVSignatureDecoder,
 } from '@cmts-dev/carmentis-sdk-core';
 import { ref } from 'vue';
 import { JwkSignatureKeyExporter } from '../utils/jwk-signature-key-exporter.ts';
 import { createIndexerClient } from '../api/indexer/client.ts';
 import {AppControllerGetAccountHistoryParams} from "../api/indexer/model";
+import {match, P} from "ts-pattern";
 
 interface WalletState {
     isLoadingAccount: boolean;
@@ -72,23 +76,40 @@ export const useWalletStore = defineStore('wallet', () => {
         return JwkSignatureKeyExporter.computeDidJwkFromSeed(rawSeed);
     }
 
-    async function getAccountId(walletId: number): Promise<string | undefined> {
-        // access the wallet to obtain the indexer endpoint
-        const { pk } = await getKeyPair(walletId);
-        return getAccountIdFromPublicKey(walletId, pk);
+    async function getAccountId(walletId: number): Promise<string | null> {
+        try {
+            console.log("Getting account id for wallet", walletId);
+            // access the wallet to obtain the indexer endpoint
+            const { pk } = await getKeyPair(walletId);
+            const res = await getAccountIdFromPublicKey(walletId, pk);
+            return match(res)
+                .with(P.nullish, () => null)
+                .otherwise((res) => res);
+        } catch (e) {
+            console.error("Error getting account id for wallet", walletId, e)
+            return null;
+        }
     }
 
     async function getAccountIdFromPublicKey(walletId: number, pk: PublicSignatureKey) {
-        // access the account id from pk through indexer
-        const indexer = await getIndexerFromWalletId(walletId);
-        const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
-        const accountsResponse = await indexer.getAccounts({
-            public_key: await sigEncoder.encodePublicKey(pk)
-        })
-        const accounts = accountsResponse.items;
-        if (accounts.length !== 1) return undefined
-        const account = accounts[0];
-        return account.id;
+        try {
+            // access the account id from pk through indexer
+            const indexer = await getIndexerFromWalletId(walletId);
+            const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();//createStringSignatureEncoder();
+            const encodedPk = await sigEncoder.encodePublicKey(pk);
+            console.log("Searching for account id for public key", encodedPk);
+            const accountsResponse = await indexer.getAccounts({
+                public_key: encodedPk
+            })
+            const accounts = accountsResponse.items;
+            console.log(`Found ${accounts.length} accounts for public key ${encodedPk}`);
+            if (accounts.length !== 1) return undefined
+            const account = accounts[0];
+            return account.id;
+        } catch (e) {
+            console.error("Error getting account id from public key:", e);
+            return null;
+        }
 
         /*
         const session = useSessionStore();
@@ -96,6 +117,14 @@ export const useWalletStore = defineStore('wallet', () => {
         return await provider.getAccountIdByPublicKey(pk);
 
          */
+    }
+
+    function createStringSignatureEncoder() {
+        const sigEncoder = new HandlerBasedSignatureEncoder();
+        sigEncoder.clear();
+        sigEncoder.registerEncoder(new Secp256k1HCVSignatureEncoder());
+        sigEncoder.registerDecoder(new Secp256k1HCVSignatureDecoder());
+        return sigEncoder;
     }
 
 

@@ -136,7 +136,6 @@ const showBalance = computed(() => {
                         icon="pi pi-refresh"
                         text
                         size="small"
-                        v-tooltip.bottom="'Refresh balance'"
                     />
                     <Message severity="info" :closable="false">
                         <span class="text-sm font-medium">

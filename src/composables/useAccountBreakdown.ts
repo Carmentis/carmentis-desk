@@ -3,6 +3,7 @@ import { useWalletStore } from '../stores/walletStore.ts';
 import {type MaybeRefOrGetter, computed, ref, toValue, Ref} from 'vue';
 import {BalanceAvailability, CMTSToken, LockType, TokenUnit, Utils, Lock, Hash} from "@cmts-dev/carmentis-sdk-core";
 import {AccountDto, AppControllerGetAccountHistoryParams} from "../api/indexer/model";
+import {match, P} from "ts-pattern";
 
 function formatCmts(milliCmts: number): string {
     return (milliCmts / 1000).toFixed(3) + ' CMTS';
@@ -20,6 +21,7 @@ export function useAccountIdQuery(walletId: MaybeRefOrGetter<number>) {
         refetchInterval: DEFAULT_REFETCH_INTERVAL,
         queryKey: computed(() => ['account-id', toValue(walletId)]),
         queryFn: async () => {
+            console.log(`Searching account id`)
             const id = toValue(walletId);
             return await store.getAccountId(id);
         },
@@ -31,6 +33,7 @@ export function useAccountStateQuery(walletId: MaybeRefOrGetter<number>) {
     const store = useWalletStore();
     const accountIdQuery = useAccountIdQuery(walletId);
     const enabled = computed(() => !!accountIdQuery.data.value);
+    console.log(`Searching account state`)
     return useQuery({
         enabled,
         queryKey: computed(() => ['account-state', toValue(walletId), accountIdQuery.data.value]),
@@ -72,14 +75,20 @@ export function useAccountTransactionsHistory(walletId: MaybeRefOrGetter<number>
         ]),
         queryFn: async () => {
             const accountId = accountIdQuery.data.value;
-            if (accountId) {
-                return await store.fetchAccountTransactionsHistory(toValue(walletId), Hash.from(accountId).toBytes(), {
-                    height_gte: fromHeight.value,
-                    limit: nbLimit.value,
-                });
-            } else {
-                throw new Error('Account ID is undefined');
-            }
+            console.log(`Searching account transactions for account id ${accountId}`)
+            return match(accountIdQuery.data.value)
+                .with(P.nullish, () => {
+                    throw new Error('Account ID is undefined')
+                })
+                .with(P.string, async (accountId) => await store.fetchAccountTransactionsHistory(
+                    toValue(walletId),
+                    Hash.from(accountId).toBytes(), {
+                        height_gte: fromHeight.value,
+                        limit: nbLimit.value,
+                    })
+                )
+                .otherwise(() => null);
+
         },
     });
 

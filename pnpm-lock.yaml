@@ -274,8 +274,8 @@ packages:
   '@cmts-dev/carmentis-relay-client@1.2.0':
     resolution: {integrity: sha512-Oq4ZDEFiNRaF3vU3ov0tTcSCshfOds64mEoICum21CHUV5D1b6+bXK5l3cfM6MYj3L6B/NettkGA6AJpPvOY4w==}
 
-  '@cmts-dev/carmentis-sdk-core@1.4.2':
-    resolution: {integrity: sha512-+F5nVvco+J7V46c/pGfplKAwOXgmkNzAKOm5Yp9x6PadxOLKAb9QfhpZpIlIO8OG0rIt5QW/d3M669e4hKaoPA==}
+  '@cmts-dev/carmentis-sdk-core@1.2.35':
+    resolution: {integrity: sha512-PN0diiSgWPfRJDzZR2NxvMiZJ7FtHmDmd+zVo+66J6DCZ+5wE4p9c5WXBsjbFB41jr8WhGdjo1lX1FYoxIwt9A==}
 
   '@cmts-dev/carmentis-sdk-json-rpc@1.0.2':
     resolution: {integrity: sha512-yukZjg25TFs43WwaFlJSiknVeTUT5Bvi3fSk+NWE3VKTnqgaasuFZVSzDEQZmytn/t0k2NJoo5t7A9TheMRjwg==}
