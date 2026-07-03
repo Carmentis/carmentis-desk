@@ -216,7 +216,7 @@ onMounted(async () => {
         microblockToApprove.value = mb;
         console.log('Approval data:', approvalData.value);
 
-        const nodeUrl = 'https://ares.testnet.carmentis.io';
+        const nodeUrl = 'http://localhost:26657';
         const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(nodeUrl);
         let applicationLedger =
             mb.getHeight() === 1
