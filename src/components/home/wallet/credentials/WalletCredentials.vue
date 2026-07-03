@@ -68,6 +68,7 @@ async function handleAddSubmit() {
         const token = sdJwtToken.value.trim();
         const parsed = await parseCompactSdJwt(token);
 
+        /* TODO
         const sub = parsed.jwt.payload.sub as string | undefined;
         if (sub !== undefined) {
             const walletDid = await walletStore.getDidJwk(walletId.value);
@@ -77,6 +78,7 @@ async function handleAddSubmit() {
                 );
             }
         }
+         */
 
         const name = sdJwtName.value.trim() || parsed.jwt.payload.vct;
 
