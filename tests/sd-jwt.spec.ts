@@ -4,8 +4,30 @@ import {SDJwtVcInstance} from "@sd-jwt/sd-jwt-vc";
 import base64url from 'base64url';
 import {CryptoEncoderFactory, Secp256k1PrivateSignatureKey} from "@cmts-dev/carmentis-sdk-core";
 
+class DidCmtsPkResolver {
+    resolve(did: string): string | undefined {
+        if (did.startsWith("did:cmts:")) {
+            return did.substring("did:cmts:".length);
+        }
+        return undefined;
+    }
+
+    toDid(pk: string): string {
+        return `did:cmts:${pk}`;
+    }
+}
 
 describe("SD-JWT test", () => {
+
+    it("Should encode a pk into did:cmts", () => {
+        const pk = "SIG:SECP256K1:PK{02374b39521dc08cbafc76d78e9b444330d2ad1ba1b0167063044e3827385492dc}";
+        const expected = `did:cmts:sig:secp256k1:pk:02374b39521dc08cbafc76d78e9b444330d2ad1ba1b0167063044e3827385492dc`
+        const expectedDidVb = `did:cmts:vb:02374b39521dc08cbafc76d78e9b444330d2ad1ba1b0167063044e3827385492dc`
+        const resolver = new DidCmtsPkResolver();
+        const did = resolver.toDid(pk);
+        expect(expected).toEqual(did);
+        console.log(did);
+    })
     it("Should create a VC", async () => {
         const { privateKey, publicKey } = await ES256.generateKeyPair();
         expect(privateKey).toBeDefined();
@@ -34,6 +56,13 @@ describe("SD-JWT test", () => {
             vct: 'EmailCredential',
             email: 'gamarcadet@gmail.com',
             issuer,
+
+            // did:jwk:e......
+
+            // SIG:SEP256K1:PK{....}
+            // did:cmts:pk_<PK>
+
+            // did:cmts:vb_<VB_ID>
             sub: await encoder.encodePublicKey(userPublicKey),
         }
         const credential = await issuerCredentialEmission.issue(payload);

@@ -8,7 +8,11 @@
  */
 import * as v from 'valibot';
 
-export const AuthByPublicKeyParamsSchema = v.object({
+export enum AuthMethod {
+    CanonicalJson = 'canonical-json',
+}
+
+export const SharedAuthParams = v.object({
     /** Name of the entity requesting authentication — displayed to the user */
     origin: v.string(),
 
@@ -16,6 +20,12 @@ export const AuthByPublicKeyParamsSchema = v.object({
      * The challenge to be signed by the user's private key.
      */
     challenge: v.string(),
+})
+
+export const CanonicalJsonAuthMethod = v.object({
+    ...SharedAuthParams.entries,
+
+    sigMethod: v.literal(AuthMethod.CanonicalJson),
 
 
     /**
@@ -27,12 +37,12 @@ export const AuthByPublicKeyParamsSchema = v.object({
     /**
      * ''
      */
-    sigEncoding: v.optional(v.picklist(['base64', 'hex']), 'base64'),
+    sigEncoding: v.optional(v.picklist(['b64', 'base64', 'hex', 'hexa']), 'base64'),
+})
 
-    /**
-     * Signature format: 'canonical-json'
-     */
-    sigFormat: v.optional(v.picklist(['canonical-json']), 'canonical-json'),
-});
+export const AuthByPublicKeyParamsSchema = v.variant(
+    'sigMethod',
+    [ CanonicalJsonAuthMethod ]
+)
 
 export type AuthByPublicKeyParams = v.InferOutput<typeof AuthByPublicKeyParamsSchema>;

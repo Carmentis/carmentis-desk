@@ -14,7 +14,7 @@ import { useSessionStore } from '../../../../stores/sessionStore.ts';
 import {storeToRefs} from 'pinia';
 import * as jose from 'jose';
 import {JwkSignatureKeyExporter} from '../../../../utils/jwk-signature-key-exporter.ts';
-import type {AuthByPublicKeyParams} from './AuthByPublicKeyRequestType.ts';
+import {AuthByPublicKeyParams, AuthMethod} from './AuthByPublicKeyRequestType.ts';
 import {useWalletStore} from "../../../../stores/walletStore.ts";
 import {JsonWebKeyFactory} from "../../../../utils/jwk/JsonWebKeyFactory.ts";
 import {match, P} from "ts-pattern";
@@ -46,44 +46,50 @@ async function approve() {
         const sk = await wc.getDefaultAccountCrypto().getPrivateSignatureKey(schemeId);
         const pk = await sk.getPublicKey();
 
-        // encode the public key into the desired format
-        const carmentisSignatureKeyEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
-        const encodedPk = await match({ pk, format: props.params.pkFormat })
-            .with({ format: 'cmts' }, async ({ pk }) => carmentisSignatureKeyEncoder.encodePublicKey(pk))
-            .exhaustive();
-
-        // compute the json-payload
-        const { challenge, origin } = props.params
-        const payload = {
-            sub: challenge,
-            iss: encodedPk,
-            aud: origin,
-            iat: Math.floor(Date.now() / 1000),
-            exp: Math.floor(Date.now() / 1000) + 60,
-        }
-
-
         // encode the signature into the desired format
-        const { sigFormat } = props.params;
-        const rawSignature = await match(sigFormat)
-            .with('canonical-json', async () => {
+        const { origin, challenge, sigMethod } = props.params;
+        console.log(`Signature params:`, props.params);
+        const response = await match(sigMethod)
+            .with(AuthMethod.CanonicalJson, async () => {
+                const { sigEncoding, pkFormat } = props.params;
+
+                // encode the public key into the desired format
+                const carmentisSignatureKeyEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
+                const encodedPk = await match({ pk, format: pkFormat })
+                    .with({ format: 'cmts' }, async ({ pk }) => carmentisSignatureKeyEncoder.encodePublicKey(pk))
+                    .exhaustive();
+
+                // compute the json-payload
+                const payload = {
+                    sub: challenge,
+                    iss: encodedPk,
+                    aud: origin,
+                    iat: Math.floor(Date.now() / 1000),
+                    exp: Math.floor(Date.now() / 1000) + 60,
+                }
+
                 // encode the payload into the desired format
                 const utf8Decoder = new TextEncoder();
                 const rawPayload = utf8Decoder.encode(stringify(payload));
 
                 // compute the signature
-                return await sk.sign(rawPayload);
+                const rawSignature = await sk.sign(rawPayload);
+
+                // encode the signature in the desired format
+                const b64Decoder = EncoderFactory.bytesToBase64Encoder();
+                const hexDecoder = EncoderFactory.bytesToHexEncoder();
+                const signature = match(sigEncoding)
+                    .with(P.union('base64', 'b64'), () => b64Decoder.encode(rawSignature))
+                    .with(P.union('hex', 'hexa'), () => hexDecoder.encode(rawSignature))
+                    .exhaustive();
+
+
+                // return the response
+                return { pk: encodedPk, signature, scheme: schemeId, payload }
             })
             .exhaustive()
 
-        // encode the signature in the desired format
-        const b64Decoder = EncoderFactory.bytesToBase64Encoder();
-        const hexDecoder = EncoderFactory.bytesToHexEncoder();
-        const sigEncoding = props.params.sigEncoding;
-        const signature = match(sigEncoding)
-            .with('base64', () => b64Decoder.encode(rawSignature))
-            .with('hex', () => hexDecoder.encode(rawSignature))
-            .exhaustive()
+
 
 
 
@@ -123,7 +129,7 @@ async function approve() {
             detail: 'You are authenticated',
             life: 3000,
         });
-        emit('done', { pk: encodedPk, signature, scheme: schemeId, payload });
+        emit('done', response);
     } catch (e) {
         console.error('Error approving authentication request:', e);
         throw e;
