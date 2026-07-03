@@ -27,8 +27,8 @@ import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import { useToast } from 'primevue/usetoast';
-import { computed, onMounted, ref, shallowRef } from 'vue';
-import { useStorageStore } from '../../../../stores/storage.ts';
+import {computed, onMounted, ref, shallowRef, watch} from 'vue';
+import {useStorageStore, WalletStub} from '../../../../stores/storage.ts';
 import { useSessionStore } from '../../../../stores/sessionStore.ts';
 import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
@@ -36,9 +36,18 @@ import DataApprovalWallet from './DataApprovalWallet.vue';
 import VirtualBlockchainRecordNavigator from '../../VirtualBlockchainRecordNavigator.vue';
 import type { DataApprovalParams } from './DataApprovalRequestType.ts';
 import * as participationRepo from '../../../../db/repositories/participationRepository.ts';
+import Dropdown from "primevue/dropdown";
+import FieldNameAndDescription from "../../../utils/FieldNameAndDescription.vue";
+import {match} from "ts-pattern";
+
+interface ApplicationDescription {
+    name: string;
+    logoUrl: string;
+    homepageUrl: string;
+    description: string;
+}
 
 const props = defineProps<{ params: DataApprovalParams }>();
-
 const emit = defineEmits<{
     done: [result: Record<string, unknown>];
     reject: [];
@@ -48,21 +57,15 @@ const toast = useToast();
 const store = useStorageStore();
 const sessionStore = useSessionStore();
 const { wallets } = storeToRefs(store);
-const chosenWallet = ref(wallets.value[0]);
+const chosenWallet = ref<WalletStub | null>();
 const accountCrypto = computedAsync(async () => {
     if (!chosenWallet.value) return null;
     const rawSeed = await sessionStore.getWalletSeed(chosenWallet.value.id);
     return WalletCrypto.fromSeed(new SeedEncoder().decode(rawSeed)).getDefaultAccountCrypto();
 }, null);
 
-interface ApplicationDescription {
-    name: string;
-    logoUrl: string;
-    homepageUrl: string;
-    description: string;
-}
 
-const isLoading = ref(true);
+const isLoading = ref(false);
 const loadError = ref<string | null>(null);
 const isProcessing = ref(false);
 const approvalData = ref<WalletInteractiveAnchoringResponseApprovalData | null>(null);
@@ -70,8 +73,159 @@ const microblockToApprove = shallowRef<Microblock | null>(null);
 const virtualBlockchainContainingMicroblock = shallowRef<ApplicationLedgerVb | null>(null);
 const applicationDescription = ref<ApplicationDescription | null>(null);
 
+watch(chosenWallet, async (newWallet, oldWallet) => {
+    await initiateDataApproval()
+})
+
+async function initiateDataApproval() {
+    if (!chosenWallet.value) return;
+    const wallet = chosenWallet.value;
+    try {
+        const rawSeed = await sessionStore.getWalletSeed(wallet.id);
+        const localAccountCrypto = WalletCrypto.fromSeed(
+            new SeedEncoder().decode(rawSeed),
+        ).getDefaultAccountCrypto();
+        console.log('Wallet request:', props.params);
+
+        const anchorRequestId = props.params.anchorRequestId;
+        const handshakeResponse = await sendRequestToOperator(props.params.serverUrl, {
+            type: WalletInteractiveAnchoringRequestType.APPROVAL_HANDSHAKE,
+            anchorRequestId,
+        });
+        console.log(`Received getApprovalData response:`, JSON.stringify(handshakeResponse));
+
+        /*
+        if (false) {
+            match(handshakeResponse.type)
+                .with(WalletInteractiveAnchoringResponseType.ACTOR_KEY_REQUIRED, async () => {
+                    console.debug('Operator asking for actor key: proceeding to the actor key generation');
+
+                    const actorKeyRequiredResponse = handshakeResponse as {
+                        type: string;
+                        b64GenesisSeed: string;
+                    };
+                    const genesisSeed = BytesToBase64Encoder.decode(actorKeyRequiredResponse.b64GenesisSeed);
+
+                    console.log(`Event approval: Genesis seed: ${genesisSeed}`);
+                    const actorCrypto = localAccountCrypto.deriveActorFromVbSeed(genesisSeed);
+
+                    const signatureSchemeId = SignatureSchemeId.SECP256K1;
+                    const actorSignaturePublicKey = await actorCrypto.getPublicSignatureKey(signatureSchemeId);
+
+                    const pkeSchemeId = PublicKeyEncryptionSchemeId.ML_KEM_768_AES_256_GCM;
+                    const actorPublicEncryptionKey = await actorCrypto.getPublicEncryptionKey(pkeSchemeId);
+
+                    const signatureEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
+                    const pkeEncoder = HCVPkeEncoder.createBase64HCVPkeEncoder();
+                    const encodedPk = await signatureEncoder.encodePublicKey(actorSignaturePublicKey);
+                    const actorKeyResponse = await sendRequestToOperator(props.params.serverUrl, {
+                        type: WalletInteractiveAnchoringRequestType.ACTOR_KEY,
+                        anchorRequestId: props.params.anchorRequestId,
+                        actorSignaturePublicKey: encodedPk,
+                        actorPkePublicKey: await pkeEncoder.encodePublicEncryptionKey(actorPublicEncryptionKey),
+                    });
+
+                    match(actorKeyResponse.type)
+                        .with(WalletInteractiveAnchoringResponseType.APPROVAL_DATA, async () => {
+                            console.debug('Operator accepted actor key');
+                            approvalData.value = actorKeyResponse as WalletInteractiveAnchoringResponseApprovalData;
+                        })
+                        .with(WalletInteractiveAnchoringResponseType.ERROR, async () => {
+                            console.debug('Operator rejected actor key');
+                            throw new Error('An error occurred while getting the approval data: ' + handshakeResponse.errorMessage);
+                        })
+                })
+                .with(WalletInteractiveAnchoringResponseType.APPROVAL_DATA, async () => {
+                    approvalData.value = handshakeResponse as WalletInteractiveAnchoringResponseApprovalData;
+                })
+                .with(WalletInteractiveAnchoringResponseType.ERROR, async () => {
+                    throw new Error('An error occurred while getting the approval data: ' + handshakeResponse.errorMessage);
+                })
+                .otherwise(() => throw new Error(`Unexpected handshake response type: ${handshakeResponse.type}`);)
+        }
+
+         */
+
+        if (handshakeResponse.type == WalletInteractiveAnchoringResponseType.ACTOR_KEY_REQUIRED) {
+            console.debug('Operator asking for actor key: proceeding to the actor key generation');
+
+            const actorKeyRequiredResponse = handshakeResponse as {
+                type: string;
+                b64GenesisSeed: string;
+            };
+            const genesisSeed = BytesToBase64Encoder.decode(actorKeyRequiredResponse.b64GenesisSeed);
+
+            console.log(`Event approval: Genesis seed: ${genesisSeed}`);
+            const actorCrypto = localAccountCrypto.deriveActorFromVbSeed(genesisSeed);
+
+            const signatureSchemeId = SignatureSchemeId.SECP256K1;
+            const actorSignaturePublicKey = await actorCrypto.getPublicSignatureKey(signatureSchemeId);
+
+            const pkeSchemeId = PublicKeyEncryptionSchemeId.ML_KEM_768_AES_256_GCM;
+            const actorPublicEncryptionKey = await actorCrypto.getPublicEncryptionKey(pkeSchemeId);
+
+            const signatureEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
+            const pkeEncoder = HCVPkeEncoder.createBase64HCVPkeEncoder();
+            const encodedPk = await signatureEncoder.encodePublicKey(actorSignaturePublicKey);
+            const actorKeyResponse = await sendRequestToOperator(props.params.serverUrl, {
+                type: WalletInteractiveAnchoringRequestType.ACTOR_KEY,
+                anchorRequestId: props.params.anchorRequestId,
+                actorSignaturePublicKey: encodedPk,
+                actorPkePublicKey: await pkeEncoder.encodePublicEncryptionKey(actorPublicEncryptionKey),
+            });
+
+            if (actorKeyResponse.type === WalletInteractiveAnchoringResponseType.APPROVAL_DATA) {
+                approvalData.value = actorKeyResponse as WalletInteractiveAnchoringResponseApprovalData;
+            } else if (actorKeyResponse.type === WalletInteractiveAnchoringResponseType.ERROR) {
+                throw new Error(actorKeyResponse.errorMessage);
+            } else {
+                throw new Error(`Unexpected response type: ${actorKeyResponse.type}`);
+            }
+        } else if (handshakeResponse.type == WalletInteractiveAnchoringResponseType.APPROVAL_DATA) {
+            approvalData.value = handshakeResponse as WalletInteractiveAnchoringResponseApprovalData;
+        } else if (handshakeResponse.type === WalletInteractiveAnchoringResponseType.ERROR) {
+            throw new Error('An error occurred while getting the approval data: ' + handshakeResponse.errorMessage);
+        } else {
+            throw new Error(`Unexpected handshake response type: ${handshakeResponse.type}`);
+        }
+
+        const encodedMicroblock = approvalData.value.b64SerializedMicroblock;
+        const rawMicroblock = EncoderFactory.bytesToBase64Encoder().decode(encodedMicroblock);
+        const mb = Microblock.loadFromSerializedMicroblock(rawMicroblock);
+        microblockToApprove.value = mb;
+        console.log('Approval data:', approvalData.value);
+
+        const nodeUrl = wallet.nodeEndpoint;
+        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(nodeUrl);
+        let applicationLedger =
+            mb.getHeight() === 1
+                ? ApplicationLedgerVb.createApplicationLedgerVirtualBlockchain(provider)
+                : await provider.loadApplicationLedgerVirtualBlockchain(
+                    await provider.getVirtualBlockchainIdContainingMicroblock(
+                        mb.getPreviousHash(),
+                    ),
+                );
+        applicationLedger.enableDraftMode();
+        await applicationLedger.appendMicroBlock(mb);
+        virtualBlockchainContainingMicroblock.value = applicationLedger;
+
+        try {
+            const appVb = await provider.loadApplicationVirtualBlockchain(applicationLedger.getApplicationId());
+            applicationDescription.value = (await appVb.getApplicationDescription()) as ApplicationDescription;
+        } catch (e) {
+            console.warn('Could not load application description:', e);
+        }
+
+        isLoading.value = false;
+    } catch (e) {
+        console.error('Error obtaining approval data:', e);
+        loadError.value = e instanceof Error ? e.message : String(e);
+        isLoading.value = false;
+    }
+}
+
 async function approve() {
-    if (!microblockToApprove.value || !virtualBlockchainContainingMicroblock.value) return;
+    if (!microblockToApprove.value || !virtualBlockchainContainingMicroblock.value || !chosenWallet.value) return;
     isProcessing.value = true;
     try {
         if (!accountCrypto.value) return;
@@ -152,98 +306,6 @@ async function sendRequestToOperator(serverUrl: string, request: object) {
     }
 }
 
-onMounted(async () => {
-    try {
-        const rawSeed = await sessionStore.getWalletSeed(chosenWallet.value.id);
-        const localAccountCrypto = WalletCrypto.fromSeed(
-            new SeedEncoder().decode(rawSeed),
-        ).getDefaultAccountCrypto();
-        console.log('Wallet request:', props.params);
-
-        const anchorRequestId = props.params.anchorRequestId;
-        const handshakeResponse = await sendRequestToOperator(props.params.serverUrl, {
-            type: WalletInteractiveAnchoringRequestType.APPROVAL_HANDSHAKE,
-            anchorRequestId,
-        });
-        console.log(`Received getApprovalData response:`, JSON.stringify(handshakeResponse));
-
-        if (handshakeResponse.type == WalletInteractiveAnchoringResponseType.ACTOR_KEY_REQUIRED) {
-            console.debug('Operator asking for actor key: proceeding to the actor key generation');
-
-            const actorKeyRequiredResponse = handshakeResponse as {
-                type: string;
-                b64GenesisSeed: string;
-            };
-            const genesisSeed = BytesToBase64Encoder.decode(actorKeyRequiredResponse.b64GenesisSeed);
-
-            console.log(`Event approval: Genesis seed: ${genesisSeed}`);
-            const actorCrypto = localAccountCrypto.deriveActorFromVbSeed(genesisSeed);
-
-            const signatureSchemeId = SignatureSchemeId.SECP256K1;
-            const actorSignaturePublicKey = await actorCrypto.getPublicSignatureKey(signatureSchemeId);
-
-            const pkeSchemeId = PublicKeyEncryptionSchemeId.ML_KEM_768_AES_256_GCM;
-            const actorPublicEncryptionKey = await actorCrypto.getPublicEncryptionKey(pkeSchemeId);
-
-            const signatureEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
-            const pkeEncoder = HCVPkeEncoder.createBase64HCVPkeEncoder();
-            const encodedPk = await signatureEncoder.encodePublicKey(actorSignaturePublicKey);
-            const actorKeyResponse = await sendRequestToOperator(props.params.serverUrl, {
-                type: WalletInteractiveAnchoringRequestType.ACTOR_KEY,
-                anchorRequestId: props.params.anchorRequestId,
-                actorSignaturePublicKey: encodedPk,
-                actorPkePublicKey: await pkeEncoder.encodePublicEncryptionKey(actorPublicEncryptionKey),
-            });
-
-            if (actorKeyResponse.type === WalletInteractiveAnchoringResponseType.APPROVAL_DATA) {
-                approvalData.value = actorKeyResponse as WalletInteractiveAnchoringResponseApprovalData;
-            } else if (actorKeyResponse.type === WalletInteractiveAnchoringResponseType.ERROR) {
-                throw new Error(actorKeyResponse.errorMessage);
-            } else {
-                throw new Error(`Unexpected response type: ${actorKeyResponse.type}`);
-            }
-        } else if (handshakeResponse.type == WalletInteractiveAnchoringResponseType.APPROVAL_DATA) {
-            approvalData.value = handshakeResponse as WalletInteractiveAnchoringResponseApprovalData;
-        } else if (handshakeResponse.type === WalletInteractiveAnchoringResponseType.ERROR) {
-            throw new Error('An error occurred while getting the approval data: ' + handshakeResponse.errorMessage);
-        } else {
-            throw new Error(`Unexpected handshake response type: ${handshakeResponse.type}`);
-        }
-
-        const encodedMicroblock = approvalData.value.b64SerializedMicroblock;
-        const rawMicroblock = EncoderFactory.bytesToBase64Encoder().decode(encodedMicroblock);
-        const mb = Microblock.loadFromSerializedMicroblock(rawMicroblock);
-        microblockToApprove.value = mb;
-        console.log('Approval data:', approvalData.value);
-
-        const nodeUrl = 'http://localhost:26657';
-        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(nodeUrl);
-        let applicationLedger =
-            mb.getHeight() === 1
-                ? ApplicationLedgerVb.createApplicationLedgerVirtualBlockchain(provider)
-                : await provider.loadApplicationLedgerVirtualBlockchain(
-                      await provider.getVirtualBlockchainIdContainingMicroblock(
-                          mb.getPreviousHash(),
-                      ),
-                  );
-        applicationLedger.enableDraftMode();
-        await applicationLedger.appendMicroBlock(mb);
-        virtualBlockchainContainingMicroblock.value = applicationLedger;
-
-        try {
-            const appVb = await provider.loadApplicationVirtualBlockchain(applicationLedger.getApplicationId());
-            applicationDescription.value = (await appVb.getApplicationDescription()) as ApplicationDescription;
-        } catch (e) {
-            console.warn('Could not load application description:', e);
-        }
-
-        isLoading.value = false;
-    } catch (e) {
-        console.error('Error obtaining approval data:', e);
-        loadError.value = e instanceof Error ? e.message : String(e);
-        isLoading.value = false;
-    }
-});
 </script>
 
 <template>
@@ -297,6 +359,41 @@ onMounted(async () => {
 
         <!-- Body -->
         <div class="flex-1 overflow-auto p-6">
+            <Card>
+                <template #content>
+                    <FieldNameAndDescription name="Wallet Selection" description="Select a wallet first to initiate the data approval"/>
+                    <Dropdown
+                        id="walletSelect"
+                        v-model="chosenWallet"
+                        :options="wallets"
+                        optionLabel="name"
+                        placeholder="Choose a wallet for auth"
+                        class="w-full"
+                    >
+                        <template #value="slotProps">
+                            <div v-if="slotProps.value" class="flex items-center gap-2">
+                                <i class="pi pi-wallet text-surface-500"></i>
+                                <span>{{ slotProps.value.name }}</span>
+                            </div>
+                            <span v-else class="text-surface-500">
+                                        {{ slotProps.placeholder }}
+                                    </span>
+                        </template>
+                        <template #option="slotProps">
+                            <div class="flex items-center gap-2">
+                                <i class="pi pi-wallet text-surface-500"></i>
+                                <div>
+                                    <div class="font-semibold">{{ slotProps.option.name }}</div>
+                                    <div class="text-xs text-surface-500">
+                                        {{ slotProps.option.nodeEndpoint }}
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </Dropdown>
+                </template>
+            </Card>
+
             <!-- Loading -->
             <div v-if="isLoading" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
@@ -340,11 +437,12 @@ onMounted(async () => {
             </Card>
 
             <!-- Main content -->
+            <!-- Wallet selector -->
+
             <div v-else-if="microblockToApprove" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 <!-- Left column: wallet + microblock sections -->
                 <div class="flex flex-col gap-4">
-                    <!-- Wallet selector -->
-                    <DataApprovalWallet />
+
 
                     <!-- Microblock card -->
                     <Card>
