@@ -100,9 +100,13 @@ export function useAppLedgerExplorer(
 
     onMounted(async () => {
         if (!wallet.value || !participation.value) return;
-        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
+        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(
+            wallet.value.nodeEndpoint
+        );
         try {
-            const appVb = await provider.loadApplicationVirtualBlockchain(Hash.fromHex(participation.value.id));
+            const appVb = await provider.loadApplicationVirtualBlockchain(
+                Hash.fromHex(participation.value.id)
+            );
             appDescription.value = (await appVb.getApplicationDescription()) as AppDescription;
         } catch (e) {
             console.warn('Could not load app description', e);
