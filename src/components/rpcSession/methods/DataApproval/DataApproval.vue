@@ -159,7 +159,7 @@ async function initiateDataApproval() {
             console.log(`Event approval: Genesis seed: ${genesisSeed}`);
             const actorCrypto = localAccountCrypto.deriveActorFromVbSeed(genesisSeed);
 
-            const signatureSchemeId = SignatureSchemeId.SECP256K1;
+            const signatureSchemeId = wallet.schemeId;
             const actorSignaturePublicKey = await actorCrypto.getPublicSignatureKey(signatureSchemeId);
 
             const pkeSchemeId = PublicKeyEncryptionSchemeId.ML_KEM_768_AES_256_GCM;
