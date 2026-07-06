@@ -5,6 +5,7 @@ export interface WalletRow {
     name: string;
     nodeEndpoint: string;
     indexer: string;
+    schemeId: number;
 }
 
 interface DbRow {
@@ -12,6 +13,7 @@ interface DbRow {
     name: string;
     node_endpoint: string;
     indexer: string;
+    schemeId: number;
 }
 
 function rowToEntity(row: DbRow): WalletRow {
@@ -20,6 +22,7 @@ function rowToEntity(row: DbRow): WalletRow {
         name: row.name,
         nodeEndpoint: row.node_endpoint,
         indexer: row.indexer,
+        schemeId: row.schemeId,
     };
 }
 
@@ -38,8 +41,8 @@ export async function getWalletById(id: number): Promise<WalletRow | null> {
 export async function insertWallet(data: Omit<WalletRow, 'id'>): Promise<number> {
     const db = await getDb();
     const result = await db.execute(
-        'INSERT INTO wallets (name, node_endpoint, indexer) VALUES (?, ?, ?)',
-        [data.name, data.nodeEndpoint, data.indexer ?? null],
+        'INSERT INTO wallets (name, node_endpoint, indexer, schemeId) VALUES (?, ?, ?, ?)',
+        [data.name, data.nodeEndpoint, data.indexer ?? null, data.schemeId],
     );
     return result.lastInsertId!;
 }
@@ -51,6 +54,7 @@ export async function updateWallet(id: number, data: Partial<Omit<WalletRow, 'id
     if (data.name !== undefined) { fields.push('name = ?'); values.push(data.name); }
     if (data.nodeEndpoint !== undefined) { fields.push('node_endpoint = ?'); values.push(data.nodeEndpoint); }
     if (data.indexer !== undefined) { fields.push('indexer = ?'); values.push(data.indexer); }
+    if (data.schemeId !== undefined) { fields.push('schemeId = ?'); values.push(data.schemeId); }
     if (fields.length === 0) return;
     values.push(id);
     await db.execute(`UPDATE wallets SET ${fields.join(', ')} WHERE id = ?`, values);

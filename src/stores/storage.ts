@@ -69,6 +69,7 @@ export interface WalletEntity {
     name: string;
     seed: string;
     nodeEndpoint: string;
+    schemeId: number;
     indexer: string;
     organizations: OrganizationEntity[];
     participations: ApplicationParticipation[];
@@ -76,7 +77,7 @@ export interface WalletEntity {
 }
 
 /** Shallow wallet — only top-level fields, no children loaded. Seed is in Stronghold. */
-export type WalletStub = Pick<WalletEntity, 'id' | 'name' | 'nodeEndpoint' | 'indexer'>;
+export type WalletStub = Pick<WalletEntity, 'id' | 'name' | 'nodeEndpoint' | 'indexer' | 'schemeId'>;
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
@@ -104,6 +105,7 @@ export const useStorageStore = defineStore('storage', () => {
             name: data.name,
             nodeEndpoint: data.nodeEndpoint,
             indexer: data.indexer,
+            schemeId: data.schemeId,
         });
         await session.storeWalletSeed(walletId, data.seed);
         organizations.value = await walletRepo.getAllWallets();
@@ -173,6 +175,7 @@ export const useStorageStore = defineStore('storage', () => {
                 name: wallet.name,
                 nodeEndpoint: wallet.nodeEndpoint,
                 indexer: wallet.indexer,
+                schemeId: wallet.schemeId,
             });
             await session.storeWalletSeed(walletId, wallet.seed);
 

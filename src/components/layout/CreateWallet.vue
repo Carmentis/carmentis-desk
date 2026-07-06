@@ -6,9 +6,11 @@ import Button from 'primevue/button';
 import Card from 'primevue/card';
 import SelectButton from 'primevue/selectbutton';
 import { useStorageStore } from '../../stores/storage';
-import { SeedEncoder, WalletCrypto } from '@cmts-dev/carmentis-sdk-core';
+import {SeedEncoder, SignatureSchemeId, WalletCrypto} from '@cmts-dev/carmentis-sdk-core';
 import { mnemonicToSeedSync, generateMnemonic } from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english.js';
+import FieldNameAndDescription from "../utils/FieldNameAndDescription.vue";
+import Select from "primevue/select";
 
 const router = useRouter();
 const storageStore = useStorageStore();
@@ -39,6 +41,19 @@ watch(networkMethod, (newMethod) => {
         indexer.value = '';
     }
 }, { immediate: true })
+
+
+const schemeOptions = [
+    {
+        label: "Secp256k1",
+        value: SignatureSchemeId.SECP256K1
+    },
+    {
+        label: "MLDSA65",
+        value: SignatureSchemeId.ML_DSA_65
+    }
+]
+const chosenSignatureScheme = ref(schemeOptions[0].value);
 
 // Method selection: 'seed' or 'passphrase'
 const creationMethod = ref<'seed' | 'passphrase'>('seed');
@@ -110,6 +125,7 @@ const createWallet = async () => {
         seed: finalSeed,
         nodeEndpoint: nodeEndpoint.value,
         indexer: indexer.value,
+        schemeId: chosenSignatureScheme.value,
     });
     isCreatingWallet.value = false;
     await router.push(`/wallet/${createdWalletId}`);
@@ -146,19 +162,32 @@ const goBack = () => {
                         />
                     </div>
 
-                    <!-- Creation Method Selection -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Creation Method
-                            <span class="text-red-500">*</span>
-                        </label>
-                        <SelectButton
-                            v-model="creationMethod"
-                            :options="methodOptions"
-                            optionLabel="label"
-                            optionValue="value"
-                            class="w-full"
-                        />
+
+                    <div class="flex justify-between">
+                        <!-- Creation Method Selection -->
+                        <div>
+                            <FieldNameAndDescription name="Creation Method" description="Method used to create the wallet." required/>
+                            <SelectButton
+                                v-model="creationMethod"
+                                :options="methodOptions"
+                                optionLabel="label"
+                                optionValue="value"
+                                class="w-full"
+                            />
+                        </div>
+
+                        <!-- Crypto Selection -->
+                        <div>
+                            <FieldNameAndDescription name="Scheme" description="Cryptographic scheme to use."/>
+                            <Select
+                                size="small"
+                                v-model="chosenSignatureScheme"
+                                :options="schemeOptions"
+                                optionLabel="label"
+                                optionValue="value"
+                                class="w-10rem"
+                            />
+                        </div>
                     </div>
 
                     <!-- Seed Phrase Input (shown when method is 'seed') -->
@@ -217,6 +246,8 @@ const goBack = () => {
                             A seed will be derived from your passphrase. Use a strong, memorable passphrase.
                         </small>
                     </div>
+
+
 
                     <!-- Network Selection -->
                     <div>

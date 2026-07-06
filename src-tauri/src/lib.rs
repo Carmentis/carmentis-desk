@@ -75,12 +75,20 @@ pub fn run() {
             tauri_plugin_sql::Builder::default()
                 .add_migrations(
                     "sqlite:carmentis.db",
-                    vec![Migration {
-                        version: 1,
-                        description: "initial_schema",
-                        sql: include_str!("../migrations/01_initial_schema.sql"),
-                        kind: MigrationKind::Up,
-                    }],
+                    vec![
+                        Migration {
+                            version: 1,
+                            description: "initial_schema",
+                            sql: include_str!("../migrations/01_initial_schema.sql"),
+                            kind: MigrationKind::Up,
+                        },
+                        Migration {
+                            version: 2,
+                            description: "add_scheme_and_blockchain_tables",
+                            sql: include_str!("../migrations/02_add_scheme_and_blockchain_tables.sql"),
+                            kind: MigrationKind::Up,
+                        },
+                    ],
                 )
                 .build(),
         )

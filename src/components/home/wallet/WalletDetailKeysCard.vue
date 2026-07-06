@@ -91,21 +91,12 @@ const {execute: checkKeyPair} = useAsyncState(
     undefined,
 )
 
-// wallet key pair
-const walletState = walletStore.state;
-
 // chosen signature scheme
-const signatureScheme = ref(walletState.signatureSchemaType);
-const schemeOptions = [
-    {
-        label: "Secp256k1",
-        value: SignatureSchemeId.SECP256K1
-    },
-    {
-        label: "MLDSA65",
-        value: SignatureSchemeId.ML_DSA_65
-    }
-]
+const signatureScheme = computed(() => {
+    return match(wallet.value)
+        .with(P.nullish, () => SignatureSchemeId.SECP256K1)
+        .otherwise((wallet) => wallet.schemeId)
+});
 
 
 // chosen format
@@ -280,18 +271,6 @@ const copyMenuItems = computed(() => {
                     />
                 </div>
                 <div class="flex cols gap-2">
-                    <div>
-                        <FieldNameAndDescription name="Scheme" description="Cryptographic scheme to use."/>
-                        <Select
-                            size="small"
-                            v-model="signatureScheme"
-                            :options="schemeOptions"
-                            optionLabel="label"
-                            optionValue="value"
-                            class="w-10rem"
-                            @change="(event) => { walletStore.setSignatureSchemaType(event.value) }"
-                        />
-                    </div>
                     <div>
                         <FieldNameAndDescription name="Format" description="Format of the keys"/>
                         <Select

@@ -31,7 +31,6 @@ const emit = defineEmits<{
 const toast = useToast();
 const store = useStorageStore();
 const sessionStore = useSessionStore();
-const {state} = useWalletStore();
 const { wallets } = storeToRefs(store);
 const chosenWallet = ref(wallets.value[0]);
 const isProcessing = ref(false);
@@ -40,7 +39,7 @@ const isProcessing = ref(false);
 async function approve() {
     isProcessing.value = true;
     try {
-        const schemeId = state.signatureSchemaType;
+        const schemeId = chosenWallet.value.schemeId ?? SignatureSchemeId.SECP256K1;
         const seed = await sessionStore.getWalletSeed(chosenWallet.value.id);
         const wc = WalletCrypto.fromSeed(new SeedEncoder().decode(seed));
         const sk = await wc.getDefaultAccountCrypto().getPrivateSignatureKey(schemeId);
