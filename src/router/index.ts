@@ -15,6 +15,9 @@ import Settings from '../components/home/settings/Settings.vue';
 import OnboardingView from '../views/OnboardingView.vue';
 import LoginView from '../views/LoginView.vue';
 import { useSessionStore } from '../stores/sessionStore';
+import {match, P} from "ts-pattern";
+import SplashscreenView from "../views/SplashscreenView.vue";
+import {storeToRefs} from "pinia";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -33,6 +36,11 @@ const router = createRouter({
             path: '/',
             name: 'home',
             component: Home,
+        },
+        {
+            path: '/spash',
+            name: 'splash',
+            component: SplashscreenView,
         },
         {
             path: '/connect/rpc',
@@ -103,11 +111,33 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to) => {
-    if (to.name === 'onboarding' || to.name === 'login') return true;
+    console.log("Navigating to", to.fullPath);
     const session = useSessionStore();
-    if (!session.isOnboarded) return { name: 'onboarding' };
-    if (!session.isUnlocked) return { name: 'login', query: { redirect: to.fullPath } };
-    return true;
+    const { isOnboarded, isUnlocked, isLoading } = storeToRefs(session);
+    return match({ to, isLoading: isLoading.value, isOnboarded: isOnboarded.value, isUnlocked: isUnlocked.value })
+        .with({  isLoading: true }, () => {
+            if (to.name === 'splash') return true;
+            return { name: 'splash' }
+        })
+        .with({ to: { name: 'login' }, isOnboarded: true, isUnlocked: false }, () => true)
+        .with({ to: { name: 'onboarding' }, isOnboarded: false }, () => true)
+        .otherwise(() => {
+            console.log("Current session", session);
+            if (!session.isOnboarded) return { name: 'onboarding' };
+            if (!session.isUnlocked) return { name: 'login', query: { redirect: to.fullPath } };
+            return true;
+        });
+    /*
+    return match({ to, session })
+        .with({ to: { name: 'login' }, session: {  } }, () => true)
+        .otherwise(() => {
+            console.log("Current session", session);
+            if (!session.isOnboarded) return { name: 'onboarding' };
+            if (!session.isUnlocked) return { name: 'login', query: { redirect: to.fullPath } };
+            return true;
+        });
+
+     */
 });
 
 export default router;

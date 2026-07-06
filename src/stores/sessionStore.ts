@@ -14,6 +14,7 @@ export const useSessionStore = defineStore('session', () => {
     const isOnboarded = ref(false);
     const isUnlocked = ref(false);
     const pseudo = ref('');
+    const isLoading = ref(true);
 
     let _stronghold: Stronghold | null = null;
     let _client: Client | null = null;
@@ -37,6 +38,8 @@ export const useSessionStore = defineStore('session', () => {
      * Does NOT open the Stronghold vault (requires password → done in login/onboard).
      */
     async function initialize(): Promise<void> {
+        console.log('Initialize session');
+        isLoading.value = true;
         const profile = await userProfileRepo.getUserProfile();
         if (profile) {
             isOnboarded.value = true;
@@ -45,6 +48,7 @@ export const useSessionStore = defineStore('session', () => {
             isOnboarded.value = false;
         }
         isUnlocked.value = false;
+        isLoading.value = false;
     }
 
     /**
@@ -103,6 +107,7 @@ export const useSessionStore = defineStore('session', () => {
     }
 
     return {
+        isLoading,
         isOnboarded,
         isUnlocked,
         pseudo,

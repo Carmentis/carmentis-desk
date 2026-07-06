@@ -12,7 +12,7 @@ import {
     SeedEncoder,
     SignatureSchemeId,
     WalletCrypto,
-    WalletInteractiveAnchoringRequestType,
+    WalletInteractiveAnchoringRequestType, WalletInteractiveAnchoringResponse,
     WalletInteractiveAnchoringResponseApprovalData,
     WalletInteractiveAnchoringResponseType,
     WalletInteractiveAnchoringValidation,
@@ -32,7 +32,6 @@ import {useStorageStore, WalletStub} from '../../../../stores/storage.ts';
 import { useSessionStore } from '../../../../stores/sessionStore.ts';
 import { computedAsync } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
-import DataApprovalWallet from './DataApprovalWallet.vue';
 import VirtualBlockchainRecordNavigator from '../../VirtualBlockchainRecordNavigator.vue';
 import type { DataApprovalParams } from './DataApprovalRequestType.ts';
 import * as participationRepo from '../../../../db/repositories/participationRepository.ts';
@@ -94,57 +93,59 @@ async function initiateDataApproval() {
         });
         console.log(`Received getApprovalData response:`, JSON.stringify(handshakeResponse));
 
+
         /*
-        if (false) {
-            match(handshakeResponse.type)
-                .with(WalletInteractiveAnchoringResponseType.ACTOR_KEY_REQUIRED, async () => {
-                    console.debug('Operator asking for actor key: proceeding to the actor key generation');
+        match(handshakeResponse)
+            .with({ type: WalletInteractiveAnchoringResponseType.ACTOR_KEY_REQUIRED }, async (response) => {
+                console.debug('Operator asking for actor key: proceeding to the actor key generation');
 
-                    const actorKeyRequiredResponse = handshakeResponse as {
-                        type: string;
-                        b64GenesisSeed: string;
-                    };
-                    const genesisSeed = BytesToBase64Encoder.decode(actorKeyRequiredResponse.b64GenesisSeed);
+                const actorKeyRequiredResponse = response;
+                const genesisSeed = BytesToBase64Encoder.decode(actorKeyRequiredResponse.b64GenesisSeed);
 
-                    console.log(`Event approval: Genesis seed: ${genesisSeed}`);
-                    const actorCrypto = localAccountCrypto.deriveActorFromVbSeed(genesisSeed);
+                console.log(`Event approval: Genesis seed: ${genesisSeed}`);
+                const actorCrypto = localAccountCrypto.deriveActorFromVbSeed(genesisSeed);
 
-                    const signatureSchemeId = SignatureSchemeId.SECP256K1;
-                    const actorSignaturePublicKey = await actorCrypto.getPublicSignatureKey(signatureSchemeId);
+                const signatureSchemeId = SignatureSchemeId.SECP256K1;
+                const actorSignaturePublicKey = await actorCrypto.getPublicSignatureKey(signatureSchemeId);
 
-                    const pkeSchemeId = PublicKeyEncryptionSchemeId.ML_KEM_768_AES_256_GCM;
-                    const actorPublicEncryptionKey = await actorCrypto.getPublicEncryptionKey(pkeSchemeId);
+                const pkeSchemeId = PublicKeyEncryptionSchemeId.ML_KEM_768_AES_256_GCM;
+                const actorPublicEncryptionKey = await actorCrypto.getPublicEncryptionKey(pkeSchemeId);
 
-                    const signatureEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
-                    const pkeEncoder = HCVPkeEncoder.createBase64HCVPkeEncoder();
-                    const encodedPk = await signatureEncoder.encodePublicKey(actorSignaturePublicKey);
-                    const actorKeyResponse = await sendRequestToOperator(props.params.serverUrl, {
-                        type: WalletInteractiveAnchoringRequestType.ACTOR_KEY,
-                        anchorRequestId: props.params.anchorRequestId,
-                        actorSignaturePublicKey: encodedPk,
-                        actorPkePublicKey: await pkeEncoder.encodePublicEncryptionKey(actorPublicEncryptionKey),
-                    });
+                const signatureEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
+                const pkeEncoder = HCVPkeEncoder.createBase64HCVPkeEncoder();
+                const encodedPk = await signatureEncoder.encodePublicKey(actorSignaturePublicKey);
+                const actorKeyResponse = await sendRequestToOperator(props.params.serverUrl, {
+                    type: WalletInteractiveAnchoringRequestType.ACTOR_KEY,
+                    anchorRequestId: props.params.anchorRequestId,
+                    actorSignaturePublicKey: encodedPk,
+                    actorPkePublicKey: await pkeEncoder.encodePublicEncryptionKey(actorPublicEncryptionKey),
+                });
 
-                    match(actorKeyResponse.type)
-                        .with(WalletInteractiveAnchoringResponseType.APPROVAL_DATA, async () => {
-                            console.debug('Operator accepted actor key');
-                            approvalData.value = actorKeyResponse as WalletInteractiveAnchoringResponseApprovalData;
-                        })
-                        .with(WalletInteractiveAnchoringResponseType.ERROR, async () => {
-                            console.debug('Operator rejected actor key');
-                            throw new Error('An error occurred while getting the approval data: ' + handshakeResponse.errorMessage);
-                        })
-                })
-                .with(WalletInteractiveAnchoringResponseType.APPROVAL_DATA, async () => {
-                    approvalData.value = handshakeResponse as WalletInteractiveAnchoringResponseApprovalData;
-                })
-                .with(WalletInteractiveAnchoringResponseType.ERROR, async () => {
-                    throw new Error('An error occurred while getting the approval data: ' + handshakeResponse.errorMessage);
-                })
-                .otherwise(() => throw new Error(`Unexpected handshake response type: ${handshakeResponse.type}`);)
-        }
+                match(actorKeyResponse)
+                    .with({type: WalletInteractiveAnchoringResponseType.APPROVAL_DATA}, async (response) => {
+                        console.debug('Operator accepted actor key');
+                        //approvalData.value = actorKeyResponse as WalletInteractiveAnchoringResponseApprovalData;
+                        approvalData.value = response;
+                    })
+                    .with({type:WalletInteractiveAnchoringResponseType.ERROR}, async (response) => {
+                        console.debug('Operator rejected actor key');
+                        throw new Error('An error occurred while getting the approval data: ' + response.errorMessage);
+                    })
+            })
+            .with({ type: WalletInteractiveAnchoringResponseType.APPROVAL_DATA }, async (response) => {
+                approvalData.value = response //handshakeResponse as WalletInteractiveAnchoringResponseApprovalData;
+            })
+            .with({ type: WalletInteractiveAnchoringResponseType.ERROR }, async (response) => {
+                throw new Error('An error occurred while getting the approval data: ' + response.errorMessage);
+            })
+            .otherwise(() => {
+                throw new Error(`Unexpected handshake response type: ${handshakeResponse.type}`);
+            })
+            */
 
-         */
+
+
+
 
         if (handshakeResponse.type == WalletInteractiveAnchoringResponseType.ACTOR_KEY_REQUIRED) {
             console.debug('Operator asking for actor key: proceeding to the actor key generation');
@@ -275,7 +276,7 @@ async function approve() {
     }
 }
 
-async function sendRequestToOperator(serverUrl: string, request: object) {
+async function sendRequestToOperator(serverUrl: string, request: object): Promise<WalletInteractiveAnchoringResponse> {
     const endpoint = `${serverUrl}/api/protocols/wiap/v1`;
     console.log(`Sending request to operator at ${endpoint}: `, request);
     try {
@@ -322,11 +323,11 @@ async function sendRequestToOperator(serverUrl: string, request: object) {
                     <h1 class="text-sm font-semibold text-surface-800">Event Approval Request</h1>
                     <div class="flex items-center gap-3 mt-0.5">
                         <span class="text-xs text-surface-500 font-mono truncate">
-                            {{ params.serverUrl }}
+                            Operator: {{ params.serverUrl }}
                         </span>
                         <span class="text-surface-300">·</span>
                         <span class="text-xs text-surface-400 font-mono truncate">
-                            {{ params.anchorRequestId }}
+                            Anchor Request ID:{{ params.anchorRequestId }}
                         </span>
                     </div>
                 </div>

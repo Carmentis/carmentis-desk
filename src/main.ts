@@ -49,18 +49,7 @@ app.use(PrimeVue, {
     },
 });
 
-// Open DB (runs migrations), initialize session state, THEN install router
-// (router must be installed after session.initialize() because Vue Router 4
-// triggers the initial navigation — and therefore beforeEach guards — at
-// app.use(router) time, before app.mount()).
-getDb()
-    .then(async () => {
-        const storage = useStorageStore();
-        const session = useSessionStore();
-        await Promise.all([storage.initStorage(), session.initialize()]);
-    })
-    .catch((err) => console.error('Failed to initialize database:', err))
-    .finally(() => {
-        app.use(router);
-        app.mount('#app');
-    });
+app.use(router);
+app.mount('#app');
+
+
