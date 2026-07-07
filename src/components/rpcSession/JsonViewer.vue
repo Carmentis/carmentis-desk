@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useClipboard } from '../../composables/useClipboard.ts';
 
 const props = defineProps<{ data: any }>();
 
@@ -20,10 +21,11 @@ interface VisibleNode {
 }
 
 const PAGE_SIZE = 50;
-const MAX_STRING_LENGTH = 200;
+const MAX_STRING_LENGTH = 150;
 
 const collapsed = ref(new Set<string>());
 const pageLimits = ref(new Map<string, number>());
+const { copyToClipboard } = useClipboard();
 
 function getType(v: any): JsonType {
     if (v === null) return 'null';
@@ -97,97 +99,93 @@ const expandedStrings = ref(new Set<string>());
 </script>
 
 <template>
-    <div class="font-mono text-xs rounded-lg shadow border-surface-200 overflow-auto bg-surface-50">
+    <div class="bg-gray-900 rounded-lg overflow-hidden border border-gray-700">
         <template v-if="nodes.length === 0">
-            <span class="block px-3 py-2 text-surface-400 italic">empty</span>
+            <span class="block px-4 py-3 text-gray-400 italic text-sm">empty</span>
         </template>
 
-        <div
-            v-for="node in nodes"
-            :key="node.id"
-            class="flex items-start leading-6 hover:bg-surface-100 transition-colors"
-            :style="{
-                paddingLeft: `${node.depth * 14 + 10}px`,
-                paddingRight: '10px',
-            }"
-        >
-            <!-- Truncation / load-more row -->
-            <template v-if="node.isTruncation">
-                <button
-                    class="text-primary hover:underline py-0.5 text-xs"
-                    @click="showMore(node.truncParentId!, node.truncTotal!)"
-                >
-                    {{ node.truncTotal! - node.truncShown! }} more items — click to load
-                </button>
-            </template>
-
-            <!-- Normal node -->
-            <template v-else>
+        <div v-else class="font-mono text-xs overflow-auto max-h-96">
+            <div
+                v-for="node in nodes"
+                :key="node.id"
+                class="flex items-start py-1 px-4 hover:bg-gray-800 transition-colors group"
+                :style="{ paddingLeft: `${node.depth * 16 + 16}px` }"
+            >
                 <!-- Toggle chevron -->
                 <button
                     v-if="node.isExpandable"
-                    class="flex-shrink-0 w-4 mr-0.5 text-surface-400 hover:text-surface-700 focus:outline-none"
+                    class="flex-shrink-0 w-4 text-gray-400 hover:text-gray-200 focus:outline-none mr-1"
                     @click="toggle(node.id)"
                 >
                     <i
                         :class="collapsed.has(node.id) ? 'pi pi-chevron-right' : 'pi pi-chevron-down'"
-                        class="text-[10px]"
-                    ></i>
+                        class="text-[9px]"
+                    />
                 </button>
-                <span v-else class="flex-shrink-0 w-4 mr-0.5"></span>
+                <span v-else class="flex-shrink-0 w-4 mr-1" />
 
                 <!-- Key label -->
-                <span v-if="node.displayKey" class="text-surface-500 mr-1 flex-shrink-0">{{ node.displayKey }}:</span>
+                <span v-if="node.displayKey" class="text-blue-400 mr-2 flex-shrink-0">{{ node.displayKey }}</span>
+                <span v-if="node.displayKey" class="text-gray-500 mr-1 flex-shrink-0">:</span>
 
                 <!-- Value -->
                 <template v-if="node.isExpandable">
-                    <span v-if="collapsed.has(node.id)" class="text-surface-400">
-                        <span v-if="node.type === 'array'">
-                            [
-                            <span class="text-primary">
-                                {{ node.childCount }}
-                            </span>
-                            ]
-                        </span>
-                        <span v-else>
-                            {
-                            <span class="text-primary">
-                                {{ node.childCount }}
-                            </span>
-                            }
-                        </span>
+                    <span v-if="collapsed.has(node.id)" class="text-gray-400">
+                        <span v-if="node.type === 'array'">[<span class="text-gray-300">{{ node.childCount }}</span>]</span>
+                        <span v-else>{<span class="text-gray-300">{{ node.childCount }}</span>}</span>
                     </span>
-                    <span v-else class="text-surface-400">
+                    <span v-else class="text-gray-400">
                         {{ node.type === 'array' ? '[' : '{' }}
                     </span>
                 </template>
 
                 <template v-else-if="node.type === 'string'">
-                    <span
-                        v-if="node.value.length <= MAX_STRING_LENGTH || expandedStrings.has(node.id)"
-                        class="text-emerald-700 break-all"
-                    >
-                        "{{ node.value }}"
-                    </span>
-                    <span v-else class="text-emerald-700">
-                        "{{ node.value.slice(0, MAX_STRING_LENGTH) }}"
+                    <span class="text-green-400 flex items-center gap-1">
+                        <span class="break-words whitespace-normal">
+                            "{{ node.value.length <= MAX_STRING_LENGTH && !expandedStrings.has(node.id) ? node.value.slice(0, MAX_STRING_LENGTH) : node.value }}"
+                        </span>
                         <button
-                            class="ml-1 text-primary hover:underline text-[10px]"
+                            v-if="node.value.length > MAX_STRING_LENGTH && !expandedStrings.has(node.id)"
+                            class="text-gray-400 hover:text-gray-200 flex-shrink-0 text-[9px] opacity-0 group-hover:opacity-100"
                             @click="expandedStrings.add(node.id)"
+                            title="Expand full value"
                         >
-                            +{{ node.value.length - MAX_STRING_LENGTH }} chars
+                            <i class="pi pi-arrow-right-arrow-left" />
+                        </button>
+                        <button
+                            class="text-gray-400 hover:text-gray-200 flex-shrink-0 text-[9px] opacity-0 group-hover:opacity-100"
+                            @click="copyToClipboard(node.value, 'Value copied')"
+                            title="Copy value"
+                        >
+                            <i class="pi pi-copy" />
                         </button>
                     </span>
                 </template>
 
-                <span v-else-if="node.type === 'number'" class="text-blue-600">
+                <span v-else-if="node.type === 'number'" class="text-yellow-300 flex items-center gap-1">
                     {{ node.value }}
+                    <button
+                        class="text-gray-400 hover:text-gray-200 flex-shrink-0 text-[9px] opacity-0 group-hover:opacity-100"
+                        @click="copyToClipboard(String(node.value), 'Value copied')"
+                        title="Copy value"
+                    >
+                        <i class="pi pi-copy" />
+                    </button>
                 </span>
-                <span v-else-if="node.type === 'boolean'" class="text-violet-600">
-                    {{ node.value }}
-                </span>
-                <span v-else class="text-surface-400 italic">null</span>
-            </template>
+
+                <span v-else-if="node.type === 'boolean'" class="text-purple-400">{{ node.value }}</span>
+                <span v-else class="text-gray-500 italic">null</span>
+
+                <!-- Truncation / load-more row -->
+                <template v-if="node.isTruncation">
+                    <button
+                        class="text-blue-400 hover:underline text-[9px] ml-2"
+                        @click="showMore(node.truncParentId!, node.truncTotal!)"
+                    >
+                        +{{ node.truncTotal! - node.truncShown! }} more
+                    </button>
+                </template>
+            </div>
         </div>
     </div>
 </template>
