@@ -1,29 +1,54 @@
 <script setup lang="ts">
-import Menubar from 'primevue/menubar';
-import Button from 'primevue/button';
-import Dialog from 'primevue/dialog';
-import InputText from 'primevue/inputtext';
-import type { MenuItem } from 'primevue/menuitem';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { invoke } from '@tauri-apps/api/core';
 import { useStorageStore } from '../../stores/storage.ts';
+import { useUiStore } from '../../stores/uiStore.ts';
 import { useNavbarData, buildExportData } from '../../composables/useNavbarData';
 
 const router = useRouter();
 const confirm = useConfirm();
 const toast = useToast();
 const store = useStorageStore();
+const uiStore = useUiStore();
 const { navTree: organizations, operators } = useNavbarData();
 
+const moreMenuOpen = ref(false);
+const expandedWallets = ref<Set<number>>(new Set());
+const expandedOrgs = ref<Set<number>>(new Set());
 const showOperatorDialog = ref(false);
 const newOperatorName = ref('');
 const newOperatorEndpoint = ref('');
-
-// Import
 const fileInputRef = ref<HTMLInputElement | null>(null);
+
+function toggleWallet(id: number) {
+    const expanded = new Set(expandedWallets.value);
+    if (expanded.has(id)) {
+        expanded.delete(id);
+    } else {
+        expanded.add(id);
+    }
+    expandedWallets.value = expanded;
+}
+
+function toggleOrg(id: number) {
+    const expanded = new Set(expandedOrgs.value);
+    if (expanded.has(id)) {
+        expanded.delete(id);
+    } else {
+        expanded.add(id);
+    }
+    expandedOrgs.value = expanded;
+}
+
+function navigate(path: string) {
+    router.push(path);
+    if (window.innerWidth < 768) {
+        uiStore.sidebarOpen = false;
+    }
+}
 
 function triggerImport() {
     fileInputRef.value?.click();
@@ -32,6 +57,7 @@ function triggerImport() {
 async function openDebug() {
     try {
         await invoke('open_devtools');
+        moreMenuOpen.value = false;
     } catch (e) {
         console.error('Failed to open devtools:', e);
         toast.add({ severity: 'error', summary: 'Debug', detail: 'Could not open the developer tools.', life: 4000 });
@@ -129,6 +155,7 @@ async function exportData() {
         anchor.download = `carmentis-desk-export-${new Date().toISOString().slice(0, 10)}.json`;
         anchor.click();
         URL.revokeObjectURL(url);
+        moreMenuOpen.value = false;
     } catch {
         toast.add({ severity: 'error', summary: 'Export failed', detail: 'Could not export data.', life: 4000 });
     }
@@ -146,130 +173,317 @@ function confirmClearAllOperators() {
         accept: () => store.clearOperators(),
     });
 }
-
-const menuItems = computed<MenuItem[]>(() => [
-    {
-        label: 'Wallets',
-        icon: 'pi pi-wallet',
-        items: [
-            { label: 'Create Wallet', icon: 'pi pi-plus', command: () => router.push('/wallet/new') },
-            { separator: true, visible: organizations.value.length > 0 },
-            ...organizations.value.map((wallet) => ({
-                label: wallet.name,
-                icon: 'pi pi-wallet',
-                command: () => router.push(`/wallet/${wallet.id}`),
-                items: [
-                    {
-                        label: 'Credentials',
-                        icon: 'pi pi-shield',
-                        command: () => router.push(`/wallet/${wallet.id}/credentials`),
-                    },
-                    ...wallet.organizations.map((org) => ({
-                        label: org.name,
-                        icon: 'pi pi-building',
-                        command: () => router.push(`/wallet/${wallet.id}/organization/${org.id}`),
-                        items: [
-                            ...org.applications.map((app) => ({
-                                label: app.name,
-                                icon: 'pi pi-desktop',
-                                command: () => router.push(`/wallet/${wallet.id}/organization/${org.id}/application/${app.id}`),
-                            })),
-                            ...org.nodes.map((node) => ({
-                                label: node.name,
-                                icon: 'pi pi-sitemap',
-                                command: () => router.push(`/wallet/${wallet.id}/organization/${org.id}/node/${node.id}`),
-                            })),
-                        ],
-                    })),
-                ],
-            })),
-            { separator: true, visible: organizations.value.length > 0 },
-            {
-                label: 'Clear All Wallets',
-                icon: 'pi pi-trash',
-                command: () => confirmClearAllOrganizations(),
-                visible: organizations.value.length > 0,
-            },
-        ],
-    },
-    {
-        label: 'Operators',
-        icon: 'pi pi-server',
-        items: [
-            { label: 'Add Operator', icon: 'pi pi-plus', command: () => openOperatorDialog() },
-            { separator: true, visible: operators.value.length > 0 },
-            ...operators.value.map((op) => ({
-                label: op.name,
-                icon: 'pi pi-server',
-                command: () => router.push(`/operator/${op.id}`),
-            })),
-            { separator: true, visible: operators.value.length > 0 },
-            {
-                label: 'Clear All Operators',
-                icon: 'pi pi-trash',
-                command: () => confirmClearAllOperators(),
-                visible: operators.value.length > 0,
-            },
-        ],
-    },
-    //{ label: 'Proof Checker', icon: 'pi pi-verified', command: () => open('https://proof-checker.testnet.carmentis.io') },
-    {
-        label: 'Settings',
-        icon: 'pi pi-cog',
-        items: [
-            { label: 'Settings', icon: 'pi pi-cog', command: () => router.push('/settings') },
-            { separator: true },
-            { label: 'Export Data', icon: 'pi pi-download', command: () => exportData() },
-            { label: 'Import Data', icon: 'pi pi-upload', command: () => triggerImport() },
-            { label: 'Open debug', icon: 'pi pi-code', command: () => openDebug() },
-        ],
-    },
-    { label: 'Help', icon: 'pi pi-question-circle', command: () => router.push('/help') },
-]);
 </script>
 
 <template>
-    <div class="p-4 pb-2 w-full">
-      <Menubar :model="menuItems">
-        <template #start>
-          <div class="flex items-center gap-2 cursor-pointer" @click="router.push('/')">
+    <!-- Overlay mobile -->
+    <div
+        v-if="uiStore.sidebarOpen"
+        class="fixed inset-0 bg-black/40 z-30 md:hidden"
+        @click="uiStore.sidebarOpen = false"
+    />
+
+    <!-- Top Bar -->
+    <header class="fixed top-0 left-0 right-0 h-14 bg-white border-b border-gray-200 flex items-center px-4 z-50 gap-3">
+        <!-- Hamburger menu (mobile only) -->
+        <button
+            class="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            @click="uiStore.sidebarOpen = !uiStore.sidebarOpen"
+            title="Toggle sidebar"
+        >
+            <i class="pi pi-bars text-gray-700" />
+        </button>
+
+        <!-- Sidebar toggle (desktop only) -->
+        <button
+            class="hidden md:inline-flex p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            @click="uiStore.toggleSidebar"
+            title="Toggle sidebar"
+        >
+            <i :class="uiStore.sidebarOpen ? 'pi pi-chevron-left' : 'pi pi-chevron-right'" class="text-gray-700" />
+        </button>
+
+        <!-- Logo + Title -->
+        <div class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" @click="router.push('/')">
             <img src="/carmentis-logo.png" alt="Carmentis" class="h-8 w-auto" />
-            <span class="text-xl font-bold text-gray-900">Carmentis Desk</span>
-          </div>
-        </template>
-      </Menubar>
-    </div>
+            <span class="hidden sm:inline text-xl font-bold text-gray-900">Carmentis Desk</span>
+        </div>
 
-    <input ref="fileInputRef" type="file" accept=".json,application/json" class="hidden" @change="handleImportFile" />
+        <!-- Spacer -->
+        <div class="flex-1" />
 
-    <Dialog v-model:visible="showOperatorDialog" modal header="Add Operator" :style="{ width: '450px' }">
-        <div class="space-y-4 py-4">
-            <div>
-                <label for="operatorName" class="block text-sm font-semibold text-gray-700 mb-2">Operator Name</label>
-                <InputText
-                    id="operatorName"
-                    v-model="newOperatorName"
-                    placeholder="Enter operator name"
-                    class="w-full"
-                    @keyup.enter="createOperator"
-                />
-            </div>
-            <div>
-                <label for="operatorEndpoint" class="block text-sm font-semibold text-gray-700 mb-2">
-                    HTTP Endpoint
-                </label>
-                <InputText
-                    id="operatorEndpoint"
-                    v-model="newOperatorEndpoint"
-                    placeholder="https://example.com/api"
-                    class="w-full"
-                    @keyup.enter="createOperator"
-                />
+        <!-- Settings button -->
+        <button
+            class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            @click="router.push('/settings')"
+            title="Settings"
+        >
+            <i class="pi pi-cog text-gray-700" />
+        </button>
+
+        <!-- Help button -->
+        <button
+            class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            @click="router.push('/help')"
+            title="Help"
+        >
+            <i class="pi pi-question-circle text-gray-700" />
+        </button>
+
+        <!-- More menu (dropdown) -->
+        <div class="relative">
+            <button
+                class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                @click="moreMenuOpen = !moreMenuOpen"
+                title="More options"
+            >
+                <i class="pi pi-ellipsis-v text-gray-700" />
+            </button>
+
+            <!-- Dropdown menu -->
+            <div
+                v-if="moreMenuOpen"
+                class="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1"
+                @click.stop
+            >
+                <button
+                    class="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left flex items-center gap-2 transition-colors"
+                    @click="exportData"
+                >
+                    <i class="pi pi-download text-xs" />
+                    Export Data
+                </button>
+                <button
+                    class="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left flex items-center gap-2 transition-colors"
+                    @click="triggerImport; moreMenuOpen = false"
+                >
+                    <i class="pi pi-upload text-xs" />
+                    Import Data
+                </button>
+                <div class="border-t border-gray-200 my-1" />
+                <button
+                    class="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left flex items-center gap-2 transition-colors"
+                    @click="openDebug"
+                >
+                    <i class="pi pi-code text-xs" />
+                    Open Debug
+                </button>
             </div>
         </div>
-        <template #footer>
-            <Button label="Cancel" text @click="showOperatorDialog = false" />
-            <Button label="Create" @click="createOperator" />
-        </template>
-    </Dialog>
+    </header>
+
+    <!-- Sidebar -->
+    <aside
+        :class="[
+            'fixed top-14 left-0 bottom-0 w-64 bg-white border-r border-gray-200 z-40 flex flex-col overflow-y-auto',
+            'transition-transform duration-200 ease-in-out',
+            uiStore.sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+        ]"
+    >
+        <!-- Wallets Section -->
+        <div class="p-3 border-b border-gray-200">
+            <div class="flex items-center justify-between px-2 py-1 mb-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Wallets</span>
+                <button
+                    class="p-1 hover:bg-gray-100 rounded transition-colors"
+                    @click="navigate('/wallet/new')"
+                    title="Create Wallet"
+                >
+                    <i class="pi pi-plus text-gray-400 hover:text-gray-700 text-sm" />
+                </button>
+            </div>
+
+            <!-- Empty state -->
+            <div v-if="organizations.length === 0" class="px-2 py-2 text-sm text-gray-500">
+                <i class="pi pi-inbox mr-2" />
+                No wallets yet
+            </div>
+
+            <!-- Wallets list -->
+            <div v-for="wallet in organizations" :key="wallet.id" class="mb-1">
+                <!-- Wallet item -->
+                <div class="flex items-center gap-0">
+                    <button
+                        class="flex-1 flex items-center gap-2 px-2 py-1.5 rounded-l hover:bg-gray-100 text-gray-700 text-sm transition-colors text-left"
+                        @click="navigate(`/wallet/${wallet.id}`)"
+                    >
+                        <i class="pi pi-wallet text-sm flex-shrink-0" />
+                        <span class="truncate">{{ wallet.name }}</span>
+                    </button>
+                    <button
+                        class="px-2 py-1.5 rounded-r hover:bg-gray-100 text-gray-400 hover:text-gray-700 text-sm transition-colors flex-shrink-0"
+                        @click.stop="toggleWallet(wallet.id)"
+                    >
+                        <i
+                            :class="expandedWallets.has(wallet.id) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                            class="text-xs"
+                        />
+                    </button>
+                </div>
+
+                <!-- Wallet submenu -->
+                <div v-if="expandedWallets.has(wallet.id)" class="ml-4 border-l border-gray-200 pl-2 space-y-0.5">
+                    <!-- Credentials -->
+                    <button
+                        class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 text-gray-700 text-sm transition-colors"
+                        @click="navigate(`/wallet/${wallet.id}/credentials`)"
+                    >
+                        <i class="pi pi-shield text-sm flex-shrink-0" />
+                        <span class="truncate text-left">Credentials</span>
+                    </button>
+
+                    <!-- Organizations -->
+                    <div v-for="org in wallet.organizations" :key="org.id" class="space-y-0.5">
+                        <div class="flex items-center gap-0">
+                            <button
+                                class="flex-1 flex items-center gap-2 px-2 py-1.5 rounded-l hover:bg-gray-100 text-gray-700 text-sm transition-colors text-left"
+                                @click="navigate(`/wallet/${wallet.id}/organization/${org.id}`)"
+                            >
+                                <i class="pi pi-building text-sm flex-shrink-0" />
+                                <span class="truncate">{{ org.name }}</span>
+                            </button>
+                            <button
+                                class="px-2 py-1.5 rounded-r hover:bg-gray-100 text-gray-400 hover:text-gray-700 text-sm transition-colors flex-shrink-0"
+                                @click.stop="toggleOrg(org.id)"
+                            >
+                                <i
+                                    :class="expandedOrgs.has(org.id) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                                    class="text-xs"
+                                />
+                            </button>
+                        </div>
+
+                        <!-- Org submenu (apps + nodes) -->
+                        <div v-if="expandedOrgs.has(org.id)" class="ml-4 border-l border-gray-200 pl-2 space-y-0.5">
+                            <!-- Applications -->
+                            <button
+                                v-for="app in org.applications"
+                                :key="app.id"
+                                class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 text-gray-700 text-sm transition-colors"
+                                @click="navigate(`/wallet/${wallet.id}/organization/${org.id}/application/${app.id}`)"
+                            >
+                                <i class="pi pi-desktop text-sm flex-shrink-0" />
+                                <span class="truncate text-left">{{ app.name }}</span>
+                            </button>
+
+                            <!-- Nodes -->
+                            <button
+                                v-for="node in org.nodes"
+                                :key="node.id"
+                                class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 text-gray-700 text-sm transition-colors"
+                                @click="navigate(`/wallet/${wallet.id}/organization/${org.id}/node/${node.id}`)"
+                            >
+                                <i class="pi pi-sitemap text-sm flex-shrink-0" />
+                                <span class="truncate text-left">{{ node.name }}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clear all wallets -->
+            <button
+                v-if="organizations.length > 0"
+                class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-red-50 text-red-600 text-sm transition-colors mt-2"
+                @click="confirmClearAllOrganizations"
+            >
+                <i class="pi pi-trash text-sm flex-shrink-0" />
+                <span>Clear All</span>
+            </button>
+        </div>
+
+        <!-- Operators Section -->
+        <div class="p-3">
+            <div class="flex items-center justify-between px-2 py-1 mb-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Operators</span>
+                <button
+                    class="p-1 hover:bg-gray-100 rounded transition-colors"
+                    @click="openOperatorDialog"
+                    title="Add Operator"
+                >
+                    <i class="pi pi-plus text-gray-400 hover:text-gray-700 text-sm" />
+                </button>
+            </div>
+
+            <!-- Empty state -->
+            <div v-if="operators.length === 0" class="px-2 py-2 text-sm text-gray-500">
+                <i class="pi pi-inbox mr-2" />
+                No operators yet
+            </div>
+
+            <!-- Operators list -->
+            <button
+                v-for="op in operators"
+                :key="op.id"
+                class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 text-gray-700 text-sm transition-colors mb-1"
+                @click="navigate(`/operator/${op.id}`)"
+            >
+                <i class="pi pi-server text-sm flex-shrink-0" />
+                <span class="truncate text-left">{{ op.name }}</span>
+            </button>
+
+            <!-- Clear all operators -->
+            <button
+                v-if="operators.length > 0"
+                class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-red-50 text-red-600 text-sm transition-colors mt-2"
+                @click="confirmClearAllOperators"
+            >
+                <i class="pi pi-trash text-sm flex-shrink-0" />
+                <span>Clear All</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Modal: Add Operator -->
+    <div v-if="showOperatorDialog" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/50" @click="showOperatorDialog = false" />
+        <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Add Operator</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Operator Name</label>
+                    <input
+                        v-model="newOperatorName"
+                        type="text"
+                        placeholder="Enter operator name"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        @keyup.enter="createOperator"
+                    />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">HTTP Endpoint</label>
+                    <input
+                        v-model="newOperatorEndpoint"
+                        type="text"
+                        placeholder="https://example.com/api"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        @keyup.enter="createOperator"
+                    />
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button
+                    class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    @click="showOperatorDialog = false"
+                >
+                    Cancel
+                </button>
+                <button
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                    @click="createOperator"
+                >
+                    Create
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input -->
+    <input
+        ref="fileInputRef"
+        type="file"
+        accept=".json,application/json"
+        class="hidden"
+        @change="handleImportFile"
+    />
 </template>

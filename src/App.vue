@@ -12,13 +12,16 @@ import OpenIdCredentialOfferDeepLinkHandler from './components/openid/OpenIdCred
 import AppNavbar from './components/layout/AppNavbar.vue';
 import AppBreadcrumb from './components/layout/AppBreadcrumb.vue';
 import { useSessionStore } from './stores/sessionStore';
+import { useUiStore } from './stores/uiStore';
 
 
 const appWindow = getCurrentWindow();
 const router = useRouter();
 const sessionStore = useSessionStore();
+const uiStore = useUiStore();
 // Hide the navbar while the session is locked (e.g. on the unlock screen).
 const { isUnlocked } = storeToRefs(sessionStore);
+const { sidebarOpen } = storeToRefs(uiStore);
 const openidQuery = ref<string>('');
 const openidCredentialOfferQuery = ref<string>('');
 
@@ -81,7 +84,7 @@ onMounted(async () => {
 
 
         <!-- Main Content -->
-        <main class="mx-auto sm:px-6 lg:px-8 pb-8">
+        <main class="pt-14 m-4 px-4 sm:px-6 lg:px-8 pb-8" :style="{ paddingLeft: sidebarOpen ? '16rem' : '0' }">
             <AppBreadcrumb />
             <OpenIdDeepLinkHandler :uri="openidQuery" />
             <OpenIdCredentialOfferDeepLinkHandler :uri="openidCredentialOfferQuery" />
