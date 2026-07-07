@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, watch, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Breadcrumb from 'primevue/breadcrumb';
 import { useAsyncState } from '@vueuse/core';
@@ -9,7 +9,6 @@ import * as orgRepo from '../../db/repositories/organizationRepository';
 import * as appRepo from '../../db/repositories/applicationRepository';
 import * as nodeRepo from '../../db/repositories/nodeRepository';
 import * as operatorRepo from '../../db/repositories/operatorRepository';
-import Message from 'primevue/message';
 import {useQuery} from "@tanstack/vue-query";
 const route = useRoute();
 const router = useRouter();
@@ -20,6 +19,7 @@ const appId = computed(() => Number(route.params.appId) || null);
 const nodeId = computed(() => Number(route.params.nodeId) || null);
 const operatorId = computed(() => Number(route.params.operatorId) || null);
 
+const connectivityHover = ref(false);
 
 const { data: wallet, refetch: fetchWallet } = useQuery({
     queryKey: ['wallet', walletId.value],
@@ -116,35 +116,60 @@ const breakdownQuery = useAccountBreakdownQuery(computed(() => walletId.value ??
 </script>
 
 <template>
-    <div v-if="show" class="bg-surface-0 flex items-center gap-4 mb-2">
-        <Message severity="secondary" size="small" v-if="walletId && breakdownQuery.data.value">
-            {{ breakdownQuery.data.value.getSpendable() }}
-        </Message>
-        <Message v-if="wallet" severity="secondary" size="small">
-            <span class="font-bold">Indexer:</span> {{wallet.indexer}}
-        </Message>
-        <Message v-if="wallet" severity="secondary" size="small">
-            <span class="font-bold">Node:</span> {{wallet.nodeEndpoint}}
-        </Message>
-        <Message severity="secondary" size="small" v-if="walletId && breakdownQuery.data.value"class="compact-message">
+    <div v-if="show" class="space-y-3">
+        <!-- Top row: Breadcrumb and Balance -->
+        <div class="flex items-center justify-between gap-4">
+            <Breadcrumb :home="breadcrumbHome" :model="items" class="compact-breadcrumb" />
 
-        <Breadcrumb :home="breadcrumbHome" :model="items" class="compact-breadcrumb" />
-        </Message>
+            <!-- Balance and Connectivity Info -->
+            <div class="flex items-center gap-3">
+                <div v-if="walletId && breakdownQuery.data.value" class="text-sm font-medium text-gray-700">
+                    {{ breakdownQuery.data.value.getSpendable() }}
+                </div>
+
+                <!-- Connectivity Tooltip -->
+                <div
+                    class="relative"
+                    @mouseenter="connectivityHover = true"
+                    @mouseleave="connectivityHover = false"
+                >
+                    <button class="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Connectivity Info">
+                        <i class="pi pi-info-circle text-gray-600 hover:text-gray-800" />
+                    </button>
+
+                    <!-- Tooltip Popup -->
+                    <div v-if="connectivityHover" class="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 whitespace-nowrap z-50 text-sm">
+                        <div v-if="wallet" class="space-y-2">
+                            <div class="text-gray-700">
+                                <span class="font-semibold">Indexer:</span>
+                                <div class="text-xs text-gray-600 break-words max-w-xs">{{ wallet.indexer }}</div>
+                            </div>
+                            <div class="border-t border-gray-200" />
+                            <div class="text-gray-700">
+                                <span class="font-semibold">Node:</span>
+                                <div class="text-xs text-gray-600 break-words max-w-xs">{{ wallet.nodeEndpoint }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Breakdown section -->
+        <div v-if="walletId && breakdownQuery.data.value" class="text-sm">
+            <!-- Breakdown content can go here if needed -->
+        </div>
     </div>
 </template>
 
 <style scoped>
-.compact-message {
-    padding: 0 !important;
-    margin: 0 !important;
-}
-
-.compact-message .p-message-wrapper {
-    padding: 0 !important;
-}
-
 .compact-breadcrumb {
     padding: 0 !important;
     margin: 0 !important;
+}
+
+:deep(.compact-breadcrumb .p-breadcrumb) {
+    background: transparent !important;
+    padding: 0 !important;
 }
 </style>
