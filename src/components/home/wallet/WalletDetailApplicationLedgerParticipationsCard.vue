@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import Card from "primevue/card";
 import WalletDetailAppParticipationCard from "./WalletDetailAppParticipationCard.vue";
-import {useAccountBreakdownQuery, useAccountStateQuery} from "../../../composables/useAccountBreakdown.ts";
-import {computed, watch} from "vue";
+import {computed} from "vue";
 import {ApplicationParticipation} from "../../../stores/storage.ts";
 import {useAsyncState} from "@vueuse/core";
 import {useRoute} from "vue-router";
@@ -22,40 +20,44 @@ const { state: wallet } = useAsyncState(
     null,
     { immediate: true },
 );
-
-
-
 </script>
-<template>
-    <!-- Application Participations -->
-    <Card v-if="participations.length > 0">
-        <template #title>
-            <div class="flex items-center gap-2">
-                <i class="pi pi-box text-xl"></i>
-                <span>Application Ledgers ({{ participations.length }})</span>
-            </div>
-        </template>
-        <template #subtitle>
-            <p class="text-sm text-surface-500">
-                Applications this wallet has interacted with through the anchoring protocol. Click on a card
-                to explore the associated virtual blockchain records.
-            </p>
-        </template>
-        <template #content>
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                <WalletDetailAppParticipationCard
-                    v-for="participation in participations"
-                    :key="participation.id"
-                    :participation="participation"
-                    :node-endpoint="wallet!.nodeEndpoint"
-                    :wallet-id="walletId"
-                />
-            </div>
-        </template>
-    </Card>
 
-    <div v-else class="flex items-center w-6/12">
-        You will see here the usage of application ledgers this wallet has interacted with through the anchoring protocol.
-        Since you have not interacted with any application ledgers yet, this section will be empty.
+<template>
+    <div v-if="participations.length > 0" class="space-y-4">
+        <!-- Header -->
+        <div class="flex items-center gap-3">
+            <i class="pi pi-box text-lg text-blue-600" />
+            <h2 class="text-lg font-semibold text-gray-900">Application Ledgers</h2>
+            <span class="text-xs font-medium bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full">
+                {{ participations.length }}
+            </span>
+        </div>
+
+        <!-- Subtitle -->
+        <p class="text-sm text-gray-500">
+            Applications this wallet has interacted with through the anchoring protocol. Click on a card to explore the associated virtual blockchain records.
+        </p>
+
+        <!-- Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <WalletDetailAppParticipationCard
+                v-for="participation in participations"
+                :key="participation.id"
+                :participation="participation"
+                :node-endpoint="wallet!.nodeEndpoint"
+                :wallet-id="walletId"
+            />
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div v-else class="text-center py-16 px-6">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-gray-100 mb-4">
+            <i class="pi pi-inbox text-2xl text-gray-400" />
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">No Application Ledgers</h3>
+        <p class="text-sm text-gray-500 max-w-sm mx-auto">
+            You will see application ledgers here once this wallet interacts with applications through the anchoring protocol.
+        </p>
     </div>
 </template>
