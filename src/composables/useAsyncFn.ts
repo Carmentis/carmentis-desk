@@ -1,9 +1,9 @@
 import { ref } from 'vue'
 
-export function useAsyncFn<T = any>(asyncFn: (...args: any[]) => Promise<T>) {
+export function useAsyncFn<T = any>(asyncFn: (...args: any[]) => Promise<T>, initialState?: T) {
     const isLoading = ref(false)
     const error = ref<Error | null>(null)
-    const data = ref<T | null>(null)
+    const data = ref<T | null>(initialState ?? null)
 
     const execute = async (...args: any[]) => {
         isLoading.value = true

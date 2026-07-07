@@ -179,7 +179,7 @@ export function useCreateWalletMutation(operatorId: number) {
     const authStore = useOperatorAuthStore();
     const token = authStore.getValidToken(operatorId);
     return useMutation({
-        mutationFn: async (newWallet: { rpcEndpoint: string; name: string; seed: string }) => {
+        mutationFn: async (newWallet: { rpcEndpoint: string; name: string; seed: string, indexerEndpoint: string }) => {
             const response = await axios.post<OperatorWallet>(`${endpoint.value}/wallet`, newWallet, {
                 headers: {
                     Authorization: `Bearer ${token}`,

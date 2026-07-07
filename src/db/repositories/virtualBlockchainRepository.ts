@@ -32,9 +32,23 @@ export async function getVirtualBlockchainById(vbId: string): Promise<VirtualBlo
     return rows.length > 0 ? rowToEntity(rows[0]) : null;
 }
 
-export async function getVirtualBlockchainsByWalletId(walletId: number): Promise<VirtualBlockchainRow[]> {
+export async function getVirtualBlockchainsByWalletId(
+    walletId: number,
+    offset: number = 0,
+    limit: number = 10
+): Promise<VirtualBlockchainRow[]> {
     const db = await getDb();
-    const rows = await db.select<DbRow[]>('SELECT * FROM virtual_blockchain WHERE wallet_id = ? ORDER BY vb_id', [walletId]);
+
+    const rows = await db.select<DbRow[]>(
+        `
+        SELECT *
+        FROM virtual_blockchain
+        WHERE wallet_id = ?
+        ORDER BY vb_id
+        `,
+        [walletId]
+    );
+
     return rows.map(rowToEntity);
 }
 

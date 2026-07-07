@@ -65,6 +65,7 @@ async function createWallet() {
             rpcEndpoint: newWalletRpcEndpoint.value.trim(),
             name: newWalletName.value.trim(),
             seed: newWalletSeed.value.trim(),
+            indexerEndpoint: '', // TODO(assign)
         });
 
         toast.add({
@@ -101,6 +102,7 @@ async function uploadWallet() {
         const seed = await sessionStore.getWalletSeed(selectedWalletToUpload.value.id);
         await createWalletMutation.mutateAsync({
             rpcEndpoint: selectedWalletToUpload.value.nodeEndpoint,
+            indexerEndpoint: selectedWalletToUpload.value.indexer,
             name: selectedWalletToUpload.value.name,
             seed,
         });

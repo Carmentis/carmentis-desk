@@ -18,8 +18,8 @@ importers:
         specifier: ^1.20.1
         version: 1.20.1(typanion@3.14.0)(typescript@5.6.3)
       '@cmts-dev/carmentis-sdk-core':
-        specifier: ^1.4.2
-        version: 1.4.2(typescript@5.6.3)
+        specifier: ^1.4.0
+        version: 1.4.0(typescript@5.6.3)
       '@cmts-dev/carmentis-sdk-json-rpc':
         specifier: ^1.0.2
         version: 1.0.2(typescript@5.6.3)
@@ -29,6 +29,9 @@ importers:
       '@digitalbazaar/did-method-key':
         specifier: ^5.3.0
         version: 5.3.0
+      '@logtape/logtape':
+        specifier: ^2.2.3
+        version: 2.2.3
       '@openid4vc/openid4vci':
         specifier: 0.4.5
         version: 0.4.5
@@ -274,8 +277,8 @@ packages:
   '@cmts-dev/carmentis-relay-client@1.2.0':
     resolution: {integrity: sha512-Oq4ZDEFiNRaF3vU3ov0tTcSCshfOds64mEoICum21CHUV5D1b6+bXK5l3cfM6MYj3L6B/NettkGA6AJpPvOY4w==}
 
-  '@cmts-dev/carmentis-sdk-core@1.2.35':
-    resolution: {integrity: sha512-PN0diiSgWPfRJDzZR2NxvMiZJ7FtHmDmd+zVo+66J6DCZ+5wE4p9c5WXBsjbFB41jr8WhGdjo1lX1FYoxIwt9A==}
+  '@cmts-dev/carmentis-sdk-core@1.4.0':
+    resolution: {integrity: sha512-/X1P2BD3cLBF9mN15Iy5xisqgSB+IpTwL8MKxROP0Oto42BZlio31gCSo9ZzHmIgbdJ7K8ZClVstWTiuzOxXGw==}
 
   '@cmts-dev/carmentis-sdk-json-rpc@1.0.2':
     resolution: {integrity: sha512-yukZjg25TFs43WwaFlJSiknVeTUT5Bvi3fSk+NWE3VKTnqgaasuFZVSzDEQZmytn/t0k2NJoo5t7A9TheMRjwg==}
@@ -681,6 +684,9 @@ packages:
 
   '@logtape/logtape@1.3.7':
     resolution: {integrity: sha512-YgF+q9op97oLLPwc7TcTNIllTArVtTwkwyKky6XVzAXQcBrvFXXtMuwJSryONAyOUSItrx994O/HABOrszZyFg==}
+
+  '@logtape/logtape@2.2.3':
+    resolution: {integrity: sha512-NIPzXBJneBv7Ar6sFBbEo5L8zZr2lopQnlVeT881y68qGNcJBy/Y8s8uAwUaVhobB8GIiMluOY7j3bOsaaIhQQ==}
 
   '@noble/ciphers@1.3.0':
     resolution: {integrity: sha512-2I0gnIVPtfnMw9ee9h1dJG7tp81+8Ob3OJb3Mv37rx5L40/b0i7djjCVvGOVqc9AEIQyvyu1i6ypKdFw8R8gQw==}
@@ -3772,7 +3778,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@cmts-dev/carmentis-sdk-core@1.4.2(typescript@5.6.3)':
+  '@cmts-dev/carmentis-sdk-core@1.4.0(typescript@5.6.3)':
     dependencies:
       '@logtape/logtape': 1.3.7
       '@noble/ciphers': 1.3.0
@@ -4101,6 +4107,8 @@ snapshots:
       '@js-joda/core': 5.6.3
 
   '@logtape/logtape@1.3.7': {}
+
+  '@logtape/logtape@2.2.3': {}
 
   '@noble/ciphers@1.3.0': {}
 

@@ -10,6 +10,11 @@ import ToastService from 'primevue/toastservice';
 import ConfirmationService from 'primevue/confirmationservice';
 import {QueryClient, VueQueryPlugin} from '@tanstack/vue-query';
 import { getDb } from './db/database.ts';
+import {Logger} from '@cmts-dev/carmentis-sdk-core';
+import { configureSync, getConsoleSink } from "@logtape/logtape";
+
+Logger.enableLogsSync();
+
 
 import './style.css';
 
@@ -49,7 +54,18 @@ app.use(PrimeVue, {
     },
 });
 
+// add router
 app.use(router);
+
+// disable unresolved directive (non-breaking warning)
+app.config.warnHandler = (msg, instance, trace) => {
+    if (msg.includes("Failed to resolve directive")) {
+        return
+    }
+
+    console.warn(msg, trace)
+}
+
 app.mount('#app');
 
 

@@ -35,6 +35,8 @@ import { storeToRefs } from 'pinia';
 import VirtualBlockchainRecordNavigator from '../../VirtualBlockchainRecordNavigator.vue';
 import type { DataApprovalParams } from './DataApprovalRequestType.ts';
 import * as participationRepo from '../../../../db/repositories/participationRepository.ts';
+import * as virtualBlockchainRepo from '../../../../db/repositories/virtualBlockchainRepository.ts';
+import * as microblockRepo from '../../../../db/repositories/microblockRepository.ts';
 import Dropdown from "primevue/dropdown";
 import FieldNameAndDescription from "../../../utils/FieldNameAndDescription.vue";
 import {match} from "ts-pattern";
@@ -157,9 +159,9 @@ async function initiateDataApproval() {
             const genesisSeed = BytesToBase64Encoder.decode(actorKeyRequiredResponse.b64GenesisSeed);
 
             console.log(`Event approval: Genesis seed: ${genesisSeed}`);
-            const actorCrypto = localAccountCrypto.deriveActorFromVbSeed(genesisSeed);
-
             const signatureSchemeId = wallet.schemeId;
+            const actorCrypto = localAccountCrypto.deriveActorFromVbSeed(genesisSeed);
+            actorCrypto.setSignatureSchemeId(signatureSchemeId);
             const actorSignaturePublicKey = await actorCrypto.getPublicSignatureKey(signatureSchemeId);
 
             const pkeSchemeId = PublicKeyEncryptionSchemeId.ML_KEM_768_AES_256_GCM;
@@ -230,9 +232,11 @@ async function approve() {
     isProcessing.value = true;
     try {
         if (!accountCrypto.value) return;
+        const signatureSchemeId = chosenWallet.value.schemeId;
         const genesisSeed = await virtualBlockchainContainingMicroblock.value.getGenesisSeed();
         const actorCrypto = accountCrypto.value.deriveActorFromVbSeed(genesisSeed.toBytes());
-        const actorPrivateSignatureKey = await actorCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
+        actorCrypto.setSignatureSchemeId(signatureSchemeId);
+        const actorPrivateSignatureKey = await actorCrypto.getPrivateSignatureKey(signatureSchemeId);
 
         const signature = await microblockToApprove.value.sign(actorPrivateSignatureKey, false);
 
@@ -249,9 +253,44 @@ async function approve() {
             throw new Error(`Unexpected response type: ${approvalSignatureResponse.type}`);
         }
 
-        const sigResponse = approvalSignatureResponse as any;
+        const sigResponse = approvalSignatureResponse;
+
+        // decode the virtual blockchain id and re-encode it in hex
         const hexEncoder = EncoderFactory.bytesToHexEncoder();
         const vbId = hexEncoder.encode(b64Encoder.decode(sigResponse.b64VbHash));
+
+        // decode the microblock hash an
+        const microblockHash = hexEncoder.encode(b64Encoder.decode(sigResponse.b64MbHash));
+
+        // create a virtual blockchain in the db if not already done
+        console.log(`Checking if virtual blockchain ${vbId} exists`)
+        const vb = await virtualBlockchainRepo.getVirtualBlockchainById(vbId)
+        if (!vb) {
+            console.log("Virtual blockchain does not exist, creating it")
+            // create it
+            await virtualBlockchainRepo.insertVirtualBlockchain({
+               vbId,
+               vbType: virtualBlockchainContainingMicroblock.value.getType(),
+               walletId: chosenWallet.value.id
+            })
+        } else {
+            console.log("Virtual blockchain exists, no new entry to create")
+        }
+
+        // create the microblock
+        const operatorEndpoint = props.params.serverUrl;
+        const encodedMicroblock = approvalData.value!.b64SerializedMicroblock;
+        const microblockHeight = virtualBlockchainContainingMicroblock.value.getHeight();
+        await microblockRepo.insertMicroblock({
+            height: microblockHeight,
+            microblockHash,
+            publishedByMe: 0, // published by operator
+            vbId,
+            b64EncodedMicroblock: encodedMicroblock, // microblock not complete
+            publishedToOperator: operatorEndpoint
+        })
+
+
         const appId = virtualBlockchainContainingMicroblock.value.getApplicationId().encode();
         await participationRepo.insertAppLedger(chosenWallet.value.id, appId, {
             id: vbId,

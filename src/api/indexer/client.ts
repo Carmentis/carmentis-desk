@@ -1,7 +1,7 @@
 import {
     getAppControllerGetAccountHistoryUrl,
     getAppControllerGetAccountsUrl, getAppControllerGetApplicationsUrl, getAppControllerGetOrganizationsUrl,
-    getAppControllerGetValidatorNodesUrl,
+    getAppControllerGetValidatorNodesUrl, getAppControllerGetVirtualBlockchainsUrl,
 } from './indexer';
 import type {
     AccountDto,
@@ -9,8 +9,9 @@ import type {
     AccountListResponseDto,
     AppControllerGetAccountHistoryParams,
     AppControllerGetAccountsParams, AppControllerGetApplicationsParams, AppControllerGetOrganizationsParams,
-    AppControllerGetValidatorNodesParams, ApplicationListResponseDto, OrganizationListResponseDto,
-    ValidatorNodeListResponseDto,
+    AppControllerGetValidatorNodesParams,
+    AppControllerGetVirtualBlockchainsParams, ApplicationListResponseDto, OrganizationListResponseDto,
+    ValidatorNodeListResponseDto, VirtualBlockchainDto, VirtualBlockchainListResponseDto,
 } from './model';
 
 export function createIndexerClient(baseUrl: string) {
@@ -30,5 +31,7 @@ export function createIndexerClient(baseUrl: string) {
             get<AccountHistoryListResponseDto>(getAppControllerGetAccountHistoryUrl(p)),
         getValidatorNodes: (p?: AppControllerGetValidatorNodesParams) =>
             get<ValidatorNodeListResponseDto>(getAppControllerGetValidatorNodesUrl(p)),
+        getVirtualBlockchains: (p?: AppControllerGetVirtualBlockchainsParams) =>
+            get<VirtualBlockchainListResponseDto>(getAppControllerGetVirtualBlockchainsUrl(p)),
     };
 }
