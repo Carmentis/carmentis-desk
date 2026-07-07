@@ -118,7 +118,7 @@ const breakdownQuery = useAccountBreakdownQuery(computed(() => walletId.value ??
 <template>
     <div v-if="show" class="space-y-3">
         <!-- Top row: Breadcrumb and Balance -->
-        <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center justify-between gap-4 mb-0">
             <Breadcrumb :home="breadcrumbHome" :model="items" class="compact-breadcrumb" />
 
             <!-- Balance and Connectivity Info -->
