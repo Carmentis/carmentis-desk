@@ -13,12 +13,10 @@ import * as orgRepo from '../../../db/repositories/organizationRepository';
 import * as participationRepo from '../../../db/repositories/participationRepository';
 import {useOnChainStore} from '../../../stores/onchain';
 
-import MenuBar from 'primevue/menubar';
 import {useToast} from 'primevue/usetoast';
 import {useAccountBreakdownQuery, useAccountStateQuery,} from '../../../composables/useAccountBreakdown.ts';
 import WalletDetailAppParticipationCard from './WalletDetailAppParticipationCard.vue';
 import {useConfirm} from 'primevue/useconfirm';
-import type {MenuItem} from 'primevue/menuitem';
 import WalletDetailSync from "./WalletDetailSync.vue";
 import {useClipboard} from "../../../composables/useClipboard.ts";
 import WalletDetailBalanceCard from "./WalletDetailBalanceCard.vue";
@@ -86,26 +84,38 @@ watch(walletId, () => {
 })
 
 
-const menuItems = computed<MenuItem[]>(() => [
-    {
-        label: 'Credentials',
-        icon: 'pi pi-id-card',
-        command: () => router.push(`/wallet/${walletId.value}/credentials`),
-    },
-    {
-        label: 'Delete Wallet',
-        icon: 'pi pi-trash',
-        command: deleteWallet,
-    },
-]);
 </script>
 
 <template>
     <div>
         <div v-if="wallet">
             <div class="space-y-4">
-                <!-- Actions Bar -->
-                <MenuBar :model="menuItems"></MenuBar>
+                <!-- Wallet Header -->
+                <div class="flex items-center justify-between gap-4 pb-4 border-b border-gray-200">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                            <i class="pi pi-wallet" />
+                            Wallet - {{ wallet.name }}
+                        </h1>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button
+                            @click="router.push(`/wallet/${walletId}/credentials`)"
+                            class="px-4 py-2 flex items-center gap-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                        >
+                            <i class="pi pi-id-card" />
+                            <span class="hidden sm:inline">Credentials</span>
+                        </button>
+                        <button
+                            @click="deleteWallet"
+                            class="px-4 py-2 flex items-center gap-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                            <i class="pi pi-trash" />
+                            <span class="hidden sm:inline">Delete</span>
+                        </button>
+                    </div>
+                </div>
+
                 <WalletDetailSync/>
 
                 <Tabs value="-1">
