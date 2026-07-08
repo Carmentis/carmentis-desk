@@ -12,6 +12,9 @@ import * as v from 'valibot';
 import { DcqlQuery } from 'dcql';
 
 export const CredentialPresentationSchema = v.object({
+    /** Indicates the public key to allow Desk to identity the wallet to use. */
+    publicKey: v.nullish(v.string()),
+
     /** Intended audience of the presentation (verifier URL or DID) */
     audience: v.string(),
     /** One-time nonce to bind the presentation and prevent replay attacks */

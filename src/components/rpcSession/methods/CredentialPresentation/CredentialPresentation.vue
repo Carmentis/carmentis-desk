@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { WalletSdJwtSigner } from '../../../../utils/WalletSdJwtSigner.ts';
-import { computed, ref, watch } from 'vue';
+import {computed, onMounted, ref, watch} from 'vue';
 import type { CredentialPresentation } from './CredentialPresentationRequestType.ts';
 import DropdownWalletSelection from '../../../home/wallet/DropdownWalletSelection.vue';
 import { useStorageStore } from '../../../../stores/storage.ts';
@@ -20,6 +20,7 @@ import Tag from 'primevue/tag';
 import Message from 'primevue/message';
 import Dropdown from 'primevue/dropdown';
 import {DeskLogger} from "../../../../utils/DeskLogger.ts";
+import {WalletUtils} from "../../../../utils/WalletUtils.ts";
 
 const logger = DeskLogger.getLogger().getChild('presentation');
 const props = defineProps<{ params: CredentialPresentation }>();
@@ -74,7 +75,29 @@ const { state: credentialsInWallet, execute: fetchCredentials } = useAsyncState(
 );
 
 watch(chosenWallet, () => fetchCredentials());
+watch([props], async () => {
 
+    // if the public key is not indicated in the parameter, then skip it
+    const indicatedPublicKey = props.params.publicKey;
+    if (!indicatedPublicKey) return;
+
+    // start by loading all wallet seeds
+    logger.info(`Selecting the correct wallet based on the provide public key: ${indicatedPublicKey}`);
+    let index = 0;
+    for (const wallet of wallets.value) {
+        const pk = await WalletUtils.getPublicKeyFromWalletId(wallet.id);
+        const encodedPk = await WalletUtils.encodePublicKey(pk);
+        logger.debug(`Checking wallet ${wallet.name} with public key ${encodedPk}`);
+        if (encodedPk === indicatedPublicKey) {
+            break;
+        } else {
+            index += 1;
+        }
+    }
+
+    // at this point, either the key is found or the index is still zero
+    chosenWallet.value = wallets.value[index];
+})
 
 const sdJwtCredentials = computedAsync(async () => {
     try {
@@ -230,11 +253,35 @@ async function handlePresent() {
         <!-- Wallet selector -->
         <div class="flex items-center gap-3">
             <span class="text-sm font-semibold">Wallet</span>
-            <DropdownWalletSelection
-                :wallets="wallets"
-                :chosen-wallet="chosenWallet"
-                @selected-wallet-index="chosenWallet = wallets[$event]"
-            />
+            <Dropdown
+                id="walletSelect"
+                v-model="chosenWallet"
+                :options="wallets"
+                optionLabel="name"
+                placeholder="Choose a wallet for auth"
+                class="w-full"
+            >
+                <template #value="slotProps">
+                    <div v-if="slotProps.value" class="flex items-center gap-2">
+                        <i class="pi pi-wallet text-surface-500"></i>
+                        <span>{{ slotProps.value.name }}</span>
+                    </div>
+                    <span v-else class="text-surface-500">
+                        {{ slotProps.placeholder }}
+                    </span>
+                </template>
+                <template #option="slotProps">
+                    <div class="flex items-center gap-2">
+                        <i class="pi pi-wallet text-surface-500"></i>
+                        <div>
+                            <div class="font-semibold">{{ slotProps.option.name }}</div>
+                            <div class="text-xs text-surface-500">
+                                {{ slotProps.option.nodeEndpoint }}
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </Dropdown>
         </div>
 
         <!-- Two cards side by side -->
