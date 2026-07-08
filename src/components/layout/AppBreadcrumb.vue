@@ -20,6 +20,7 @@ const nodeId = computed(() => Number(route.params.nodeId) || null);
 const operatorId = computed(() => Number(route.params.operatorId) || null);
 
 const connectivityHover = ref(false);
+const balanceHover = ref(false);
 
 const { data: wallet, refetch: fetchWallet } = useQuery({
     queryKey: ['wallet', walletId.value],
@@ -123,8 +124,43 @@ const breakdownQuery = useAccountBreakdownQuery(computed(() => walletId.value ??
 
             <!-- Balance and Connectivity Info -->
             <div class="flex items-center gap-3">
-                <div v-if="walletId && breakdownQuery.data.value" class="text-sm font-medium text-gray-700">
-                    {{ breakdownQuery.data.value.getSpendable() }}
+                <!-- Balance with Breakdown Tooltip -->
+                <div
+                    v-if="walletId && breakdownQuery.data.value"
+                    class="relative"
+                    @mouseenter="balanceHover = true"
+                    @mouseleave="balanceHover = false"
+                >
+                    <div class="text-sm font-medium text-gray-700 cursor-help hover:text-gray-900 transition-colors">
+                        {{ breakdownQuery.data.value.getSpendable() }}
+                    </div>
+
+                    <!-- Balance Breakdown Tooltip -->
+                    <div v-if="balanceHover" class="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50 text-sm w-64">
+                        <div class="space-y-2">
+                            <div class="text-gray-700">
+                                <span class="font-semibold block mb-1">Balance Breakdown</span>
+                            </div>
+                            <div class="space-y-1 text-sm">
+                                <div class="flex justify-between gap-4">
+                                    <span class="text-gray-600">Spendable:</span>
+                                    <span class="font-mono text-gray-900">{{ breakdownQuery.data.value.getSpendable() }}</span>
+                                </div>
+                                <div class="flex justify-between gap-4">
+                                    <span class="text-gray-600">Staked:</span>
+                                    <span class="font-mono text-gray-900">{{ breakdownQuery.data.value.getStaked() }}</span>
+                                </div>
+                                <div class="flex justify-between gap-4">
+                                    <span class="text-gray-600">Vested:</span>
+                                    <span class="font-mono text-gray-900">{{ breakdownQuery.data.value.getVested() }}</span>
+                                </div>
+                                <div class="flex justify-between gap-4">
+                                    <span class="text-gray-600">Escrowed:</span>
+                                    <span class="font-mono text-gray-900">{{ breakdownQuery.data.value.getEscrowed() }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Connectivity Tooltip -->
