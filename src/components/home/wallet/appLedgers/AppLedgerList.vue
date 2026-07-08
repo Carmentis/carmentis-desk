@@ -28,7 +28,7 @@ function shortId(id: string) {
         <!-- Custom List -->
         <div class="border border-gray-200 rounded-xl overflow-hidden bg-white">
             <!-- Column headers -->
-            <div class="grid grid-cols-1 gap-1 bg-gray-50 border-b border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+            <div class="grid grid-cols-1 gap-1 bg-white border-b border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 <div>Ledger ID</div>
                 <span class="text-xs text-gray-500 truncate hidden sm:block">Operator</span>
             </div>
@@ -40,7 +40,7 @@ function shortId(id: string) {
                 class="w-full text-left flex flex-col sm:grid sm:grid-cols-1 gap-2 px-3 py-3 border-b border-gray-100 transition-colors last:border-b-0"
                 :class="
                     selectedRow?.id === row.id
-                        ? 'bg-blue-50 border-l-2 border-l-blue-500'
+                        ? 'bg-white border-l-2 border-l-blue-500'
                         : 'hover:bg-gray-50'
                 "
                 @click="emit('select', row.originalIdx)"
