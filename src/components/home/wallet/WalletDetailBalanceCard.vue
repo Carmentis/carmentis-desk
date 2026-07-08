@@ -45,6 +45,7 @@ const breakdownQuery = useAccountBreakdownQuery(walletId.value);
 const showBreakdownDetailsDialog = ref(false);
 const showTokenTransferDialog = ref(false);
 const showAccountTransactionsHistory = ref(false);
+const moreMenuOpen = ref(false);
 const hasError = computed(() => breakdownQuery.error.value || accountIdQuery.error.value)
 const isLoading = computed(() => accountIdQuery.isLoading.value || breakdownQuery.isLoading.value)
 </script>
@@ -83,9 +84,9 @@ const isLoading = computed(() => accountIdQuery.isLoading.value || breakdownQuer
                     <span>Balance</span>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                                    <span v-if="breakdownQuery.dataUpdatedAt.value" class="text-xs text-gray-500">
-                                        {{ new Date(breakdownQuery.dataUpdatedAt.value).toLocaleString() }}
-                                    </span>
+                    <span v-if="breakdownQuery.dataUpdatedAt.value" class="text-xs text-gray-500">
+                        {{ new Date(breakdownQuery.dataUpdatedAt.value).toLocaleString() }}
+                    </span>
                     <Button
                         @click="showTokenTransferDialog = true"
                         label="Transfer"
@@ -98,22 +99,38 @@ const isLoading = computed(() => accountIdQuery.isLoading.value || breakdownQuer
                         icon="pi pi-clock"
                         size="small"
                     />
-                    <Button
-                        v-if="!!accountIdQuery.data && !!accountIdQuery.data.value"
-                        label="Copy Account ID"
-                        icon="pi pi-copy"
-                        size="small"
-                        @click="clipboard.copyToClipboard(
-                                            accountIdQuery.data.value,
-                                            'Account ID'
-                                            )"
-                    />
-                    <Button
-                        @click="() => showBreakdownDetailsDialog = true"
-                        label="See Details"
-                        icon="pi pi-eye"
-                        size="small"
-                    />
+                    <!-- More menu -->
+                    <div class="relative">
+                        <Button
+                            @click="moreMenuOpen = !moreMenuOpen"
+                            icon="pi pi-ellipsis-h"
+                            text
+                            rounded
+                            size="small"
+                            severity="secondary"
+                        />
+                        <div
+                            v-if="moreMenuOpen"
+                            class="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1"
+                            @click.stop
+                        >
+                            <button
+                                v-if="!!accountIdQuery.data && !!accountIdQuery.data.value"
+                                class="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left flex items-center gap-2 transition-colors"
+                                @click="clipboard.copyToClipboard(accountIdQuery.data.value, 'Account ID'); moreMenuOpen = false"
+                            >
+                                <i class="pi pi-copy text-xs" />
+                                Copy Account ID
+                            </button>
+                            <button
+                                class="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left flex items-center gap-2 transition-colors"
+                                @click="showBreakdownDetailsDialog = true; moreMenuOpen = false"
+                            >
+                                <i class="pi pi-eye text-xs" />
+                                See Details
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </template>
