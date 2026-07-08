@@ -19,7 +19,9 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
 import Dropdown from 'primevue/dropdown';
+import {DeskLogger} from "../../../../utils/DeskLogger.ts";
 
+const logger = DeskLogger.getLogger().getChild('presentation');
 const props = defineProps<{ params: CredentialPresentation }>();
 
 const emit = defineEmits<{
@@ -61,17 +63,26 @@ const { wallets } = storeToRefs(store);
 const chosenWallet = ref(wallets.value[0]);
 
 const { state: credentialsInWallet, execute: fetchCredentials } = useAsyncState(
-    () => credentialRepo.getCredentialsByWalletId(chosenWallet.value?.id ?? 0),
+    async () => {
+        const wallet = chosenWallet.value;
+        if (!wallet) return [];
+        logger.info(`Fetching credentials for wallet ${wallet.name}`);
+        return credentialRepo.getCredentialsByWalletId(wallet.id)
+    },
     [],
     { immediate: true },
 );
 
 watch(chosenWallet, () => fetchCredentials());
 
+
 const sdJwtCredentials = computedAsync(async () => {
     try {
+        // extract credentials from credential objects
         const rawCredentials = credentialsInWallet.value.map((credential) => credential.data);
+        logger.info(`Found ${rawCredentials.length} credentials in this wallet`)
 
+        // performing checks
         const checks = await Promise.all(rawCredentials.map((credential) => SdJwtUtils.isSdJwt(credential)));
         const wellFormedCredentials = rawCredentials.filter((_, index) => checks[index]);
 
@@ -81,6 +92,8 @@ const sdJwtCredentials = computedAsync(async () => {
             const encodedSdjwt = await SdJwtUtils.encodeSdJwt(parsedSdjwt);
             encodedCredentials.push(encodedSdjwt);
         }
+
+        logger.info(`Found ${encodedCredentials.length} well-formed encoded credentials`)
         return encodedCredentials;
     } catch (e) {
         console.error(e);
@@ -91,7 +104,13 @@ const sdJwtCredentials = computedAsync(async () => {
 const querySatisfactionResult = computedAsync<DcqlQueryResult | null>(async () => {
     const credentials = sdJwtCredentials.value;
     const query = dcqlQuery.value;
-    if (credentials === undefined || query === undefined) return null;
+    if (credentials === undefined || query === undefined) {
+        logger.debug(`Missing credentials or query: Aborting query`)
+        return null;
+    }
+
+
+    logger.debug(`Querying with ${credentials.length} credentials with query: {query}`, { query })
     // @ts-ignore
     const parsedQuery = DcqlQuery.parse(query);
     DcqlQuery.validate(parsedQuery);
@@ -99,7 +118,9 @@ const querySatisfactionResult = computedAsync<DcqlQueryResult | null>(async () =
     const dcqlFriendlyCredentials = await Promise.all(
         credentials.map((credential) => convertSdJwtToDcqlCredential(credential)),
     );
+    logger.debug(`Succesfully converted ${credentials.length} credentials to DCQL-friendly format`)
     const queryResult = DcqlQuery.query(parsedQuery, dcqlFriendlyCredentials);
+    logger.info("Query result: {queryResult}", { queryResult })
     return queryResult;
 });
 
@@ -169,9 +190,10 @@ async function handlePresent() {
 
     isPresenting.value = true;
     try {
-        const seed = await sessionStore.getWalletSeed(chosenWallet.value.id);
-        const ws = await WalletSdJwtSigner.createFromSeed(seed);
-        const sdjwt = ws.getSdJwtInstance();
+        const wallet = chosenWallet.value;
+        const seed = await sessionStore.getWalletSeed(wallet.id);
+        const schemeId = wallet.schemeId;
+        const sdjwt = await WalletSdJwtSigner.createSdJwtInstanceFromSeed(seed, schemeId);
 
         const claims: Record<string, boolean> = {};
         for (const claim of desiredClaims.value) {

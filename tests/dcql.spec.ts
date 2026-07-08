@@ -96,16 +96,6 @@ describe("DCQL test", () => {
             credential2,
         ]
 
-        /*
-        {
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "ping",
-  "params": {
-"audience": "test", "nonce": "123", "query": { "credentials": [{ "format": "vc+sd-jwt", "id": "my-cred", "claims": [{"path": "email"}] }] }
-}
-}
-         */
         const query = {
             credentials: [
                 {

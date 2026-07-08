@@ -10,21 +10,15 @@ import { CredentialEntity } from '../../stores/storage';
 import { useAsyncState } from '@vueuse/core';
 import * as walletRepo from '../../db/repositories/walletRepository';
 import { parseSdJwtEnvelope } from '../../composables/credentials/useCredentialType';
-import { SDJwtInstance } from '@sd-jwt/core';
 import { useRoute, useRouter } from 'vue-router';
 import { useOnChainStore } from '../../stores/onchain.ts';
 import { useSessionStore } from '../../stores/sessionStore.ts';
-import { storeToRefs } from 'pinia';
-import { Ed25519PrivateSignatureKey, JwkSignatureEncoder, SeedEncoder } from '@cmts-dev/carmentis-sdk-core';
-import * as jose from 'jose';
-import { JwkSignatureKeyExporter } from '../../utils/jwk-signature-key-exporter.ts';
 import { computedAsync } from '@vueuse/core';
+import {WalletSdJwtSigner} from "../../utils/WalletSdJwtSigner.ts";
 
 // we search the wallet index
 const route = useRoute();
-const router = useRouter();
 const toast = useToast();
-const onchainStore = useOnChainStore();
 const sessionStore = useSessionStore();
 const walletId = computed(() => Number(route.params.walletId));
 const { state: wallet } = useAsyncState(
@@ -57,33 +51,9 @@ const verifiablePresentation = computedAsync(async () => {
 
     // derive keys
     const seed = await sessionStore.getWalletSeed(currentWallet.id);
-    const sk = Ed25519PrivateSignatureKey.genFromSeed(new SeedEncoder().decode(seed).slice(0, 32));
-    const pk = await sk.getPublicKey();
-    const skJwk = await JwkSignatureKeyExporter.exportPrivateKey(sk);
-    const pkJwk = await JwkSignatureKeyExporter.exportPublicKey(pk);
+    const schemeId = currentWallet.schemeId;
 
     try {
-        const instance = new SDJwtInstance({
-            hasher: async (data) => {
-                const contentToHash = typeof data === 'string' ? new TextEncoder().encode(data) : data;
-                const hashBytes = await window.crypto.subtle.digest('SHA-256', contentToHash);
-                return new Uint8Array(hashBytes);
-            },
-            kbSignAlg: 'EdDSA',
-            kbSigner: async (data: string) => {
-                const encoder = new TextEncoder();
-                const decoder = new TextDecoder();
-                const signature = await window.crypto.subtle.sign(
-                    { name: 'Ed25519' },
-                    (await jose.importJWK(skJwk, 'EdDSA', {
-                        extractable: true,
-                    })) as CryptoKey,
-                    encoder.encode(data),
-                );
-                return jose.base64url.encode(new Uint8Array(signature));
-            },
-        });
-
         // map the desired disclosures
         const disclosures = namedDisclosures.value;
         const res : Record<string, boolean> = {};
@@ -92,9 +62,7 @@ const verifiablePresentation = computedAsync(async () => {
 				res[d.key] = true;
 			}
         }
-        console.log('Disclosures:', res);
-
-        console.log('Instance:', instance);
+        const instance = await WalletSdJwtSigner.createSdJwtInstanceFromSeed(seed, schemeId);
         const presentation = await instance.present(compactToken.value, res, {
             kb: {
                 payload: {
@@ -107,7 +75,9 @@ const verifiablePresentation = computedAsync(async () => {
         console.log('Presentation:', presentation);
         return presentation;
     } catch (e) {
+        const message = e instanceof Error ? e.message : 'Unknown error';
         console.error('Error presenting SD-JWT:', e);
+        toast.add({ severity: 'error', summary: 'Error presenting SD-JWT', detail: message, life: 3000 });
     }
 });
 

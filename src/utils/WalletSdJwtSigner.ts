@@ -5,6 +5,8 @@ import * as jose from "jose";
 import {SDJwtVcInstance} from "@sd-jwt/sd-jwt-vc";
 import {digest, ES256, generateSalt} from "@sd-jwt/crypto-browser";
 import {base64url} from "jose";
+import {SdJwtUtils} from "./SdJwtUtils.ts";
+import {Signer, Verifier} from "@sd-jwt/types";
 
 export class WalletSdJwtSigner {
 
@@ -33,6 +35,29 @@ export class WalletSdJwtSigner {
 
         return new WalletSdJwtSigner(signer, verifier);
     }
+
+    static async createSdJwtInstanceFromSeed(seed: string, schemeId: SignatureSchemeId) {
+        // compute private and public key for the wallet
+        const wc = WalletCrypto.fromSeed(new SeedEncoder().decode(seed));
+        const privateKey = await wc.getDefaultAccountCrypto().getPrivateSignatureKey(schemeId);
+        const publicKey = await privateKey.getPublicKey();
+
+        // compute the signer
+        const signer = SdJwtUtils.createSdJwtSignerFromPrivateKey(privateKey);
+        const verifier = SdJwtUtils.createSdJwtVerifierFromPublicKey(publicKey);
+        return new SDJwtVcInstance({
+            hasher: digest,
+            saltGenerator: generateSalt,
+            kbSigner: signer,
+            kbSignAlg: 'ES256K',
+            kbVerifier: verifier,
+        });
+    }
+
+    /**
+     * @deprecated
+     * @param seed
+     */
     static async createFromSeed(seed: string) {
         // we derive a private key from the seed
         const wc = WalletCrypto.fromSeed(new SeedEncoder().decode(seed));
@@ -53,8 +78,8 @@ export class WalletSdJwtSigner {
     private readonly sdjwt: SDJwtVcInstance;
 
     constructor(
-        private readonly signer: (data: string) => Promise<string>,
-        private readonly verifier: (data: string, signature: string) => Promise<boolean>,
+        private readonly signer: Signer,
+        private readonly verifier: Verifier,
     ) {
         this.sdjwt = new SDJwtVcInstance({
             hasher: digest,

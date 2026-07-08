@@ -1,12 +1,25 @@
 import {digest, ES256, generateSalt} from "@sd-jwt/crypto-browser";
 import {SDJwtVcInstance} from "@sd-jwt/sd-jwt-vc";
 import {SDJwt} from "@sd-jwt/core";
+import {PrivateSignatureKey, PublicSignatureKey} from "@cmts-dev/carmentis-sdk-core";
+import {base64url} from "jose";
+import {OrPromise, Signer, Verifier} from "@sd-jwt/types";
+import {DeskLogger} from "./DeskLogger.ts";
 
 interface SdJwtParserHandler {
+    getHandlerName(): string;
     tryToParse(credential: unknown): Promise<SDJwt | null>;
 }
 
+const parserLogger = DeskLogger.getLogger().getChild("sd-jwt").getChild('parser')
+
 class JSONSdJwtParser implements SdJwtParserHandler {
+    private static logger = parserLogger.getChild("json")
+
+    getHandlerName(): string {
+        return 'JSONSdJwtParser'
+    }
+
     async tryToParse(credential: unknown): Promise<SDJwt | null> {
 
         try {
@@ -28,13 +41,19 @@ class JSONSdJwtParser implements SdJwtParserHandler {
             return await sdjwt.decode(encoded)
 
         } catch (e) {
-            console.error(e)
+            JSONSdJwtParser.logger.debug(`Unable to decode credential ${credential}: ${e}`)
             return null;
         }
     }
 }
 
 class CompactSdJwtParser implements SdJwtParserHandler {
+    private static logger = parserLogger.getChild("compact")
+    getHandlerName(): string {
+        return 'CompactSdJwtParser'
+    }
+
+
     async tryToParse(credential: unknown): Promise<SDJwt | null> {
         if (typeof credential !== 'string') {
             return null;
@@ -43,23 +62,25 @@ class CompactSdJwtParser implements SdJwtParserHandler {
             const sdjwt = await SdJwtUtils.getRandomSdJwtInstance();
             return sdjwt.decode(credential);
         } catch (e) {
-            console.error(e)
+            CompactSdJwtParser.logger.debug(`Unable to decode sd-jwt: ${e}`)
             return null;
         }
     }
 }
 
 class SdJwtParserManager {
+    private logger = parserLogger;
     private readonly handlers: SdJwtParserHandler[] = [
         new JSONSdJwtParser(),
         new CompactSdJwtParser(),
     ];
 
     async tryToParse(credential: unknown): Promise<SDJwt | null> {
-        console.log(credential)
         for (const handler of this.handlers) {
+            this.logger.debug(`Trying to parse with ${handler.getHandlerName()}`)
             const parsed = await handler.tryToParse(credential);
             if (parsed) {
+                this.logger.debug(`Parsed with ${handler.getHandlerName()}`)
                 return parsed;
             }
         }
@@ -99,5 +120,24 @@ export class SdJwtUtils {
             saltGenerator: generateSalt,
         });
         return sdjwt
+    }
+
+    static createSdJwtSignerFromPrivateKey(privateKey: PrivateSignatureKey): Signer {
+        // create the Carmentis signer
+        return async (data: string) => {
+            const bytes = new TextEncoder().encode(data);
+            const signature = await privateKey.sign(bytes);
+            return base64url.encode(signature as any);
+        };
+    }
+
+    static createSdJwtVerifierFromPublicKey(publicKey: PublicSignatureKey): Verifier {
+        // create the Carmentis verifier
+        return async (data: string, signature: string) => {
+            const message = new TextEncoder().encode(data);
+            const sig = base64url.decode(signature);
+
+            return await publicKey.verify(message, sig);
+        };
     }
 }

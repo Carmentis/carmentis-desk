@@ -13,8 +13,13 @@ import { getDb } from './db/database.ts';
 import {Logger} from '@cmts-dev/carmentis-sdk-core';
 import { configureSync, getConsoleSink } from "@logtape/logtape";
 
-Logger.enableLogsSync();
-
+configureSync({
+    sinks: { console: getConsoleSink() },
+    loggers: [
+        { category: "desk", lowestLevel: "debug", sinks: ["console"] },
+        { category: "@cmts-dev/carmentis-sdk-core", lowestLevel: "debug", sinks: ["console"] }
+    ]
+});
 
 import './style.css';
 
