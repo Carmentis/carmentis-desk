@@ -6,9 +6,11 @@ import { useToast } from 'primevue/usetoast';
 import { invoke } from '@tauri-apps/api/core';
 import { useStorageStore } from '../../stores/storage.ts';
 import { useUiStore } from '../../stores/uiStore.ts';
+import { useSessionStore } from '../../stores/sessionStore.ts';
 import { useNavbarData, buildExportData } from '../../composables/useNavbarData';
 
 const router = useRouter();
+const sessionStore = useSessionStore();
 const confirm = useConfirm();
 const toast = useToast();
 const store = useStorageStore();
@@ -173,6 +175,12 @@ function confirmClearAllOperators() {
         accept: () => store.clearOperators(),
     });
 }
+
+function logout() {
+    sessionStore.lock();
+    moreMenuOpen.value = false;
+    router.push('/login');
+}
 </script>
 
 <template>
@@ -267,6 +275,14 @@ function confirmClearAllOperators() {
                 >
                     <i class="pi pi-code text-xs" />
                     Open Debug
+                </button>
+                <div class="border-t border-gray-200 my-1" />
+                <button
+                    class="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left flex items-center gap-2 transition-colors"
+                    @click="logout"
+                >
+                    <i class="pi pi-sign-out text-xs" />
+                    Logout
                 </button>
             </div>
         </div>
