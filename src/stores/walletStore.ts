@@ -19,6 +19,8 @@ import { JwkSignatureKeyExporter } from '../utils/jwk-signature-key-exporter.ts'
 import { createIndexerClient } from '../api/indexer/client.ts';
 import {AppControllerGetAccountHistoryParams} from "../api/indexer/model";
 import {match, P} from "ts-pattern";
+import {DeskLogger} from "../utils/DeskLogger.ts";
+import {WalletUtils} from "../utils/WalletUtils.ts";
 
 interface WalletState {
     isLoadingAccount: boolean;
@@ -29,6 +31,8 @@ interface WalletState {
 }
 
 export const useWalletStore = defineStore('wallet', () => {
+    const logger = DeskLogger.getLogger().getChild("wallet-store")
+
     const state = ref<WalletState>({
         // account
         isLoadingAccount: false,
@@ -78,15 +82,14 @@ export const useWalletStore = defineStore('wallet', () => {
 
     async function getAccountId(walletId: number): Promise<string | null> {
         try {
-            console.log("Getting account id for wallet", walletId);
             // access the wallet to obtain the indexer endpoint
-            const { pk } = await getKeyPair(walletId);
+            const pk = await WalletUtils.getPublicKeyFromWalletId(walletId);
             const res = await getAccountIdFromPublicKey(walletId, pk);
             return match(res)
                 .with(P.nullish, () => null)
                 .otherwise((res) => res);
         } catch (e) {
-            console.error("Error getting account id for wallet", walletId, e)
+            logger.error(`Error getting account id for wallet: ${walletId} {e}`, {e})
             return null;
         }
     }

@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { Stronghold, Client } from '@tauri-apps/plugin-stronghold';
 import { appDataDir } from '@tauri-apps/api/path';
 import * as userProfileRepo from '../db/repositories/userProfileRepository';
+import {DeskLogger} from "../utils/DeskLogger.ts";
 
 const STRONGHOLD_CLIENT = 'carmentis-desk';
 

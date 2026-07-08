@@ -4,13 +4,13 @@ import {type MaybeRefOrGetter, computed, ref, toValue, Ref} from 'vue';
 import {BalanceAvailability, CMTSToken, LockType, TokenUnit, Utils, Lock, Hash} from "@cmts-dev/carmentis-sdk-core";
 import {AccountDto, AppControllerGetAccountHistoryParams} from "../api/indexer/model";
 import {match, P} from "ts-pattern";
+import {DeskLogger} from "../utils/DeskLogger.ts";
 
-function formatCmts(milliCmts: number): string {
-    return (milliCmts / 1000).toFixed(3) + ' CMTS';
-}
+
 
 // Refetch interval in milliseconds
 const DEFAULT_REFETCH_INTERVAL = 3000;
+const logger = DeskLogger.getLogger().getChild("fetcher");
 
 export function useAccountIdQuery(walletId: MaybeRefOrGetter<number>) {
     const store = useWalletStore();
@@ -21,7 +21,7 @@ export function useAccountIdQuery(walletId: MaybeRefOrGetter<number>) {
         refetchInterval: DEFAULT_REFETCH_INTERVAL,
         queryKey: computed(() => ['account-id', toValue(walletId)]),
         queryFn: async () => {
-            console.log(`Searching account id`)
+            logger.info(`Searching account id for wallet id ${walletId}`)
             const id = toValue(walletId);
             return await store.getAccountId(id);
         },
@@ -33,12 +33,12 @@ export function useAccountStateQuery(walletId: MaybeRefOrGetter<number>) {
     const store = useWalletStore();
     const accountIdQuery = useAccountIdQuery(walletId);
     const enabled = computed(() => !!accountIdQuery.data.value);
-    console.log(`Searching account state`)
     return useQuery({
         enabled,
         queryKey: computed(() => ['account-state', toValue(walletId), accountIdQuery.data.value]),
         queryFn: async () => {
             const accountId = accountIdQuery.data.value;
+            logger.info(`Searching account state for account id ${accountId}`)
             if (accountId) {
                 return await store.fetchAccountStateByAccountId(toValue(walletId), accountId);
             } else {
@@ -75,7 +75,7 @@ export function useAccountTransactionsHistory(walletId: MaybeRefOrGetter<number>
         ]),
         queryFn: async () => {
             const accountId = accountIdQuery.data.value;
-            console.log(`Searching account transactions for account id ${accountId}`)
+            logger.info(`Searching account transactions for account id ${accountId}`)
             return match(accountIdQuery.data.value)
                 .with(P.nullish, () => {
                     throw new Error('Account ID is undefined')

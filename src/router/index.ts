@@ -131,7 +131,6 @@ router.beforeEach(async (to) => {
         .with({ to: { name: 'login' }, isOnboarded: true, isUnlocked: false }, () => true)
         .with({ to: { name: 'onboarding' }, isOnboarded: false }, () => true)
         .otherwise(() => {
-            console.log("Current session", session);
             if (!session.isOnboarded) return { name: 'onboarding' };
             if (!session.isUnlocked) return { name: 'login', query: { redirect: to.fullPath } };
             return true;
