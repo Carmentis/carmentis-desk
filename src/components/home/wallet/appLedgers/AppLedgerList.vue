@@ -30,7 +30,7 @@ function shortId(id: string) {
             <!-- Column headers -->
             <div class="grid grid-cols-1 gap-1 bg-gray-50 border-b border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 <div>Ledger ID</div>
-                <div class="text-gray-500 hidden sm:block">Operator</div>
+                <div class="text-xs text-gray-500 truncate hidden sm:block">Operator</div>
             </div>
 
             <!-- Rows -->
@@ -45,7 +45,7 @@ function shortId(id: string) {
                 "
                 @click="emit('select', row.originalIdx)"
             >
-                <span class="font-mono text-xs text-gray-800 break-all">{{ shortId(row.id) }}</span>
+                <span class="font-mono text-xs text-gray-800 break-all">{{ row.id.toUpperCase().slice(0, 32) }}...</span>
                 <span class="text-xs text-gray-500 truncate hidden sm:block">
                     {{ row.operatorEndpoint ?? '—' }}
                 </span>

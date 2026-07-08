@@ -84,7 +84,7 @@ onMounted(async () => {
 
 
         <!-- Main Content -->
-        <main class="pt-14 m-4 px-4 sm:px-6 lg:px-8 pb-8" :style="{ paddingLeft: sidebarOpen ? '16rem' : '0' }">
+        <main class="pt-14 m-8 mt-4 px-4 sm:px-6 lg:px-8 pb-8" :style="{ paddingLeft: sidebarOpen ? '16rem' : '0' }">
             <AppBreadcrumb />
             <OpenIdDeepLinkHandler :uri="openidQuery" />
             <OpenIdCredentialOfferDeepLinkHandler :uri="openidCredentialOfferQuery" />
