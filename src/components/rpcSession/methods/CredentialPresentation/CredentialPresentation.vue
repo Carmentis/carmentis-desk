@@ -76,7 +76,6 @@ const { state: credentialsInWallet, execute: fetchCredentials } = useAsyncState(
 
 watch(chosenWallet, () => fetchCredentials());
 watch([props], async () => {
-
     // if the public key is not indicated in the parameter, then skip it
     const indicatedPublicKey = props.params.publicKey;
     if (!indicatedPublicKey) return;

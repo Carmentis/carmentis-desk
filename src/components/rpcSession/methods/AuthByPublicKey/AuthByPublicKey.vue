@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ref} from 'vue';
+import {ref, watch} from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
@@ -20,6 +20,8 @@ import {JsonWebKeyFactory} from "../../../../utils/jwk/JsonWebKeyFactory.ts";
 import {match, P} from "ts-pattern";
 import {DidFactory} from "../../../../utils/did/DidFactory.ts";
 import {importJWK} from "jose";
+import {WalletUtils} from "../../../../utils/WalletUtils.ts";
+import {DeskLogger} from "../../../../utils/DeskLogger.ts";
 
 const props = defineProps<{ params: AuthByPublicKeyParams }>();
 
@@ -28,12 +30,37 @@ const emit = defineEmits<{
     reject: [];
 }>();
 
+const logger = DeskLogger.getLogger().getChild("authentication")
 const toast = useToast();
 const store = useStorageStore();
 const sessionStore = useSessionStore();
 const { wallets } = storeToRefs(store);
 const chosenWallet = ref(wallets.value[0]);
 const isProcessing = ref(false);
+
+
+watch([props], async () => {
+    // if the public key is not indicated in the parameter, then skip it
+    const indicatedPublicKey = props.params.publicKey;
+    logger.info(`Selecting the correct wallet based on the provide public key: ${indicatedPublicKey}`);
+    if (!indicatedPublicKey) return;
+
+    // start by loading all wallet seeds
+    let index = 0;
+    for (const wallet of wallets.value) {
+        const pk = await WalletUtils.getPublicKeyFromWalletId(wallet.id);
+        const encodedPk = await WalletUtils.encodePublicKey(pk);
+        logger.debug(`Checking wallet ${wallet.name} with public key ${encodedPk}`);
+        if (encodedPk === indicatedPublicKey) {
+            break;
+        } else {
+            index += 1;
+        }
+    }
+
+    // at this point, either the key is found or the index is still zero
+    chosenWallet.value = wallets.value[index];
+})
 
 
 async function approve() {

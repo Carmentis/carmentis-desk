@@ -13,8 +13,14 @@ export enum AuthMethod {
 }
 
 export const SharedAuthParams = v.object({
+    /** Indicates the public key to help desk to choose the correct wallet **/
+    publicKey: v.nullish(v.string()),
+
     /** Name of the entity requesting authentication — displayed to the user */
     origin: v.string(),
+
+    /** Name of the entity requesting authentication — displayed to the user */
+    title: v.nullish(v.string()),
 
     /**
      * The challenge to be signed by the user's private key.
