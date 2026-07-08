@@ -4,50 +4,31 @@ import ConfirmDialog from 'primevue/confirmdialog';
 import ProgressSpinner from 'primevue/progressspinner';
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { storeToRefs } from 'pinia';
 import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import OpenIdDeepLinkHandler from './components/openid/OpenIdDeepLinkHandler.vue';
 import OpenIdCredentialOfferDeepLinkHandler from './components/openid/OpenIdCredentialOfferDeepLinkHandler.vue';
-import AppNavbar from './components/layout/AppNavbar.vue';
-import AppBreadcrumb from './components/layout/AppBreadcrumb.vue';
-import { useSessionStore } from './stores/sessionStore';
-import { useUiStore } from './stores/uiStore';
-
 
 const appWindow = getCurrentWindow();
 const router = useRouter();
-const sessionStore = useSessionStore();
-const uiStore = useUiStore();
-// Hide the navbar while the session is locked (e.g. on the unlock screen).
-const { isUnlocked } = storeToRefs(sessionStore);
-const { sidebarOpen } = storeToRefs(uiStore);
 const openidQuery = ref<string>('');
 const openidCredentialOfferQuery = ref<string>('');
 
-// On définit la logique de redirection
 async function handleDeepLink(urls: string[]) {
     console.log('Handling deep link:', urls);
     for (const url of urls) {
         console.log(`Handling deep link: ${url}`);
-        // handling carmentis-specific URL
         if (url.startsWith('cmts://connect/carmentis-relay')) {
-            await appWindow.unminimize(); // Au cas où elle est réduite
-            await appWindow.show(); // S'assurer qu'elle est visible
-            await appWindow.setFocus(); // Donner le focus clavier/souris
-
-            // On extrait le chemin après le protocole
+            await appWindow.unminimize();
+            await appWindow.show();
+            await appWindow.setFocus();
             const path = url.replace('cmts://connect/carmentis-relay', '');
             await router.push(`/connect/rpc${path}`);
         }
-
-        // handling openid-specific URL
         if (url.startsWith('openid://')) {
             console.log('Handling OpenID URL:', url);
             openidQuery.value = url;
         }
-
-        // handling openid-credential-offer-specific URL
         if (url.startsWith('openid-credential-offer://')) {
             console.log('Handling OpenID Credential Offer URL:', url);
             openidCredentialOfferQuery.value = url;
@@ -55,16 +36,12 @@ async function handleDeepLink(urls: string[]) {
     }
 }
 
-// On initialise les écouteurs dans onMounted
 onMounted(async () => {
     try {
-        // 1. Vérifier si l'app a été lancée via un lien (Deep Link au démarrage)
         const startUrls = await getCurrent();
         if (startUrls && startUrls.length > 0) {
             await handleDeepLink(startUrls);
         }
-
-        // 2. Écouter les liens ouverts pendant que l'app tourne déjà
         await onOpenUrl(async (urls) => {
             console.log('Deep link reçu (running):', urls);
             await handleDeepLink(urls);
@@ -80,22 +57,16 @@ onMounted(async () => {
         <ConfirmDialog />
         <Toast position="top-center" />
 
-        <AppNavbar v-if="isUnlocked" />
+        <OpenIdDeepLinkHandler :uri="openidQuery" />
+        <OpenIdCredentialOfferDeepLinkHandler :uri="openidCredentialOfferQuery" />
 
-
-        <!-- Main Content -->
-        <main class="pt-14 m-8 mt-4 px-4 sm:px-6 lg:px-8 pb-8" :style="{ paddingLeft: sidebarOpen ? '16rem' : '0' }">
-            <AppBreadcrumb />
-            <OpenIdDeepLinkHandler :uri="openidQuery" />
-            <OpenIdCredentialOfferDeepLinkHandler :uri="openidCredentialOfferQuery" />
-            <Suspense>
-                <router-view  :key="$route.fullPath"/>
-                <template #fallback>
-                    <div class="w-full h-full flex items-center justify-center">
-                        <ProgressSpinner />
-                    </div>
-                </template>
-            </Suspense>
-        </main>
+        <Suspense>
+            <router-view :key="$route.fullPath" />
+            <template #fallback>
+                <div class="w-full h-full flex items-center justify-center">
+                    <ProgressSpinner />
+                </div>
+            </template>
+        </Suspense>
     </div>
 </template>

@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import AppLayout from '../components/layout/AppLayout.vue';
 import Home from '../components/home/Home.vue';
 import CreateWallet from '../components/layout/CreateWallet.vue';
 import WalletLayout from '../components/home/wallet/WalletLayout.vue';
@@ -22,6 +23,7 @@ import {storeToRefs} from "pinia";
 const router = createRouter({
     history: createWebHistory(),
     routes: [
+        // Public routes (no layout)
         {
             path: '/onboarding',
             name: 'onboarding',
@@ -33,75 +35,82 @@ const router = createRouter({
             component: LoginView,
         },
         {
-            path: '/',
-            name: 'home',
-            component: Home,
-        },
-        {
             path: '/spash',
             name: 'splash',
             component: SplashscreenView,
         },
+        // Protected routes (with AppLayout)
         {
-            path: '/connect/rpc',
-            name: 'rpc-session',
-            component: RpcSession,
-        },
-        {
-            path: '/wallet/new',
-            name: 'create-organization',
-            component: CreateWallet,
-        },
-        {
-            path: '/operator/:operatorId',
-            name: 'operator-detail',
-            component: OperatorDetail,
-        },
-        {
-            path: '/wallet/:walletId',
-            component: WalletLayout,
+            path: '/',
+            component: AppLayout,
             children: [
                 {
                     path: '',
-                    name: 'wallet-detail',
-                    component: WalletDetail,
+                    name: 'home',
+                    component: Home,
                 },
                 {
-                    path: 'organization/:orgId',
-                    name: 'organization-detail',
-                    component: Organization,
+                    path: 'wallet/new',
+                    name: 'create-organization',
+                    component: CreateWallet,
                 },
                 {
-                    path: 'organization/:orgId/node/:nodeId',
-                    name: 'node-detail',
-                    component: Node,
+                    path: 'operator/:operatorId',
+                    name: 'operator-detail',
+                    component: OperatorDetail,
                 },
                 {
-                    path: 'organization/:orgId/application/:appId',
-                    name: 'application-detail',
-                    component: Application,
+                    path: 'connect/rpc',
+                    name: 'rpc-session',
+                    component: RpcSession,
                 },
                 {
-                    path: 'participation/:appId',
-                    name: 'app-ledger-explorer',
-                    component: WalletAppLedgerExplorer,
+                    path: 'help',
+                    name: 'help',
+                    component: Help,
                 },
                 {
-                    path: 'credentials',
-                    name: 'wallet-credentials',
-                    component: WalletCredentials,
+                    path: 'settings',
+                    name: 'settings',
+                    component: Settings,
+                },
+                {
+                    path: 'wallet/:walletId',
+                    component: WalletLayout,
+                    children: [
+                        {
+                            path: '',
+                            name: 'wallet-detail',
+                            component: WalletDetail,
+                        },
+                        {
+                            path: 'organization/:orgId',
+                            name: 'organization-detail',
+                            component: Organization,
+                        },
+                        {
+                            path: 'organization/:orgId/node/:nodeId',
+                            name: 'node-detail',
+                            component: Node,
+                        },
+                        {
+                            path: 'organization/:orgId/application/:appId',
+                            name: 'application-detail',
+                            component: Application,
+                        },
+                        {
+                            path: 'participation/:appId',
+                            name: 'app-ledger-explorer',
+                            component: WalletAppLedgerExplorer,
+                        },
+                        {
+                            path: 'credentials',
+                            name: 'wallet-credentials',
+                            component: WalletCredentials,
+                        },
+                    ],
                 },
             ],
-        },
-        {
-            path: '/help',
-            name: 'help',
-            component: Help,
-        },
-        {
-            path: '/settings',
-            name: 'settings',
-            component: Settings,
         },
         {
             path: '/:pathMatch(.*)*',

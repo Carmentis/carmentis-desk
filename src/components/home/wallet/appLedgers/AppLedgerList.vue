@@ -30,7 +30,7 @@ function shortId(id: string) {
             <!-- Column headers -->
             <div class="grid grid-cols-1 gap-1 bg-gray-50 border-b border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 <div>Ledger ID</div>
-                <div class="text-xs text-gray-500 truncate hidden sm:block">Operator</div>
+                <span class="text-xs text-gray-500 truncate hidden sm:block">Operator</span>
             </div>
 
             <!-- Rows -->
