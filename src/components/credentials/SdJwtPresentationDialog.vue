@@ -40,47 +40,6 @@ const compactToken = computed(() => {
     const included = disclosures.filter((d) => d.key === undefined || selectedDigests.value.has(d._digest));
     return [jwt.encoded, ...included.map((d) => d._encoded)].join('~') + '~';
 });
-
-const verifiablePresentation = computedAsync(async () => {
-    console.log('Envelope changed, updating compact token');
-    if (!envelope.value) return null;
-
-    // load the current wallet
-    const currentWallet = wallet.value;
-    if (!currentWallet) return null;
-
-    // derive keys
-    const seed = await sessionStore.getWalletSeed(currentWallet.id);
-    const schemeId = currentWallet.schemeId;
-
-    try {
-        // map the desired disclosures
-        const disclosures = namedDisclosures.value;
-        const res : Record<string, boolean> = {};
-        for (const d of disclosures) {
-			if (d.key && typeof d.key === 'string') {
-				res[d.key] = true;
-			}
-        }
-        const instance = await WalletSdJwtSigner.createSdJwtInstanceFromSeed(seed, schemeId);
-        const presentation = await instance.present(compactToken.value, res, {
-            kb: {
-                payload: {
-                    nonce: '123',
-                    iat: 0,
-                    aud: 'test-audience',
-                },
-            },
-        });
-        console.log('Presentation:', presentation);
-        return presentation;
-    } catch (e) {
-        const message = e instanceof Error ? e.message : 'Unknown error';
-        console.error('Error presenting SD-JWT:', e);
-        toast.add({ severity: 'error', summary: 'Error presenting SD-JWT', detail: message, life: 3000 });
-    }
-});
-
 // Extract optional display fields from the loose payload without template casts
 const payload = computed(() => envelope.value?.jwt.payload as Record<string, unknown> | undefined);
 const vct = computed(() => (typeof payload.value?.['vct'] === 'string' ? (payload.value['vct'] as string) : null));
