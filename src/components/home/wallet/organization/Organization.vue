@@ -7,19 +7,10 @@ import Card from 'primevue/card';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
-import MenuBar from 'primevue/menubar';
-import Tabs from 'primevue/tabs';
-import TabList from 'primevue/tablist';
-import Tab from 'primevue/tab';
-import TabPanels from 'primevue/tabpanels';
-import TabPanel from 'primevue/tabpanel';
-import { NodeEntity, ApplicationEntity } from '../../../../stores/storage';
+import Message from 'primevue/message';
 import { useAsyncState } from '@vueuse/core';
 import * as walletRepo from '../../../../db/repositories/walletRepository';
 import * as orgRepo from '../../../../db/repositories/organizationRepository';
-import Message from 'primevue/message';
 import { createIndexerClient } from '../../../../api/indexer/client.ts';
 import { useToast } from 'primevue/usetoast';
 import { useOnChainStore } from '../../../../stores/onchain.ts';
@@ -71,10 +62,6 @@ const {data: organization, refetch: fetchOrg} = useQuery({
 const goBack = () => {
     router.push(`/wallet/${walletId.value}`);
 };
-
-
-
-
 
 
 
@@ -198,22 +185,22 @@ const showDeletionDialog = ref(false);
 
 const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
 
-const items = [
-    {
-        label: 'Delete',
-        icon: 'pi pi-trash',
-        severity: 'danger',
-        command: () => (showDeletionDialog.value = true),
-        outlined: true,
-    },
-];
 </script>
 
 <template>
     <div class="space-y-6">
         <div v-if="wallet && organization">
-            <div class="mb-4">
-                <MenuBar :model="items" />
+            <!-- Organization Header -->
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-gray-900">Organization - {{ organization.name }}</h2>
+                <Button
+                    @click="showDeletionDialog = true"
+                    icon="pi pi-trash"
+                    severity="danger"
+                    text
+                    rounded
+                    size="large"
+                />
             </div>
 
             <!-- Organization Cards Side-by-Side -->
