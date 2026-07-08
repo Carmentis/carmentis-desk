@@ -99,7 +99,7 @@ const expandedStrings = ref(new Set<string>());
 </script>
 
 <template>
-    <div class="bg-gray-900 rounded-lg overflow-hidden border border-gray-700">
+    <div class="bg-gray-900 rounded-lg overflow-hidden border border-gray-700 py-2">
         <template v-if="nodes.length === 0">
             <span class="block px-4 py-3 text-gray-400 italic text-sm">empty</span>
         </template>
@@ -108,7 +108,7 @@ const expandedStrings = ref(new Set<string>());
             <div
                 v-for="node in nodes"
                 :key="node.id"
-                class="flex items-start py-1 px-4 hover:bg-gray-800 transition-colors group"
+                class="flex items-start py-1 px-2 hover:bg-gray-800 transition-colors group"
                 :style="{ paddingLeft: `${node.depth * 16 + 16}px` }"
             >
                 <!-- Toggle chevron -->
