@@ -253,59 +253,80 @@ onMounted(() => {
                         </div>
                     </template>
                     <template #content>
-                        <div v-if="application.vbId">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Virtual Blockchain ID</label>
-                            <code class="bg-gray-100 px-3 py-2 rounded text-sm block mb-4">
-                                {{ application.vbId }}
-                            </code>
-
-                            <div v-if="application.description" class="mb-4">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                                <p class="text-gray-600 text-sm">
-                                    {{ application.description }}
+                        <div v-if="application.vbId" class="space-y-4">
+                            <!-- Virtual Blockchain ID -->
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i class="pi pi-tag text-gray-600 text-sm"></i>
+                                    <label class="text-sm font-semibold text-gray-700">Virtual Blockchain ID</label>
+                                </div>
+                                <p class="text-gray-700 text-sm leading-relaxed">
+                                    {{ application.vbId }}
                                 </p>
                             </div>
 
-                            <div v-if="application.website" class="mb-4">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Website</label>
-                                <a
-                                    :href="application.website"
-                                    target="_blank"
-                                    class="text-blue-600 hover:underline text-sm"
-                                >
-                                    {{ application.website }}
-                                </a>
-                            </div>
-
+                            <!-- On-Chain Status -->
                             <div
                                 v-if="isApplicationFoundOnChain === true"
-                                class="mt-4 flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg"
+                                class="flex items-center gap-3 px-4 py-3 bg-green-50 border border-green-200 rounded-lg"
                             >
-                                <i class="pi pi-check-circle text-green-600"></i>
-                                <span class="text-sm text-green-800">Application confirmed on-chain</span>
+                                <i class="pi pi-check-circle text-green-600 text-lg"></i>
+                                <span class="text-sm text-green-800 font-medium">Application confirmed on-chain</span>
                             </div>
                             <div
                                 v-else-if="isApplicationFoundOnChain === false"
-                                class="mt-4 flex items-start gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg"
+                                class="flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg"
                             >
-                                <i class="pi pi-exclamation-triangle text-amber-600 mt-0.5"></i>
+                                <i class="pi pi-exclamation-triangle text-amber-600 text-lg flex-shrink-0 mt-0.5"></i>
                                 <span class="text-sm text-amber-800">
-                                    Application not found on-chain. This may be due to network transaction processing
-                                    delays.
+                                    Application not found on-chain. This may be due to network transaction processing delays.
                                 </span>
                             </div>
                             <div
                                 v-else-if="isFetchingApplicationFromChain"
-                                class="mt-4 flex items-center gap-2 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg"
+                                class="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg"
                             >
-                                <i class="pi pi-spin pi-spinner text-blue-600"></i>
-                                <span class="text-sm text-blue-800">Checking on-chain status...</span>
+                                <i class="pi pi-spin pi-spinner text-blue-600 text-lg"></i>
+                                <span class="text-sm text-blue-800 font-medium">Checking on-chain status...</span>
                             </div>
+
+
+
+                            <!-- Website -->
+                            <div v-if="application.website" class="bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i class="pi pi-globe text-gray-600 text-sm"></i>
+                                    <label class="text-sm font-semibold text-gray-700">Website</label>
+                                </div>
+                                <a
+                                    :href="application.website"
+                                    target="_blank"
+                                    class="text-blue-600 hover:text-blue-700 text-sm break-all flex items-center gap-1"
+                                >
+                                    {{ application.website }}
+                                    <i class="pi pi-external-link text-xs"></i>
+                                </a>
+                            </div>
+
+                            <!-- Description -->
+                            <div v-if="application.description" class="bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i class="pi pi-align-left text-gray-600 text-sm"></i>
+                                    <label class="text-sm font-semibold text-gray-700">Description</label>
+                                </div>
+                                <p class="text-gray-700 text-sm leading-relaxed">
+                                    {{ application.description }}
+                                </p>
+                            </div>
+
+
                         </div>
-                        <div v-else class="text-center py-4">
-                            <i class="pi pi-exclamation-circle text-3xl text-amber-500 mb-2"></i>
+                        <div v-else class="text-center py-8">
+                            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 mb-3">
+                                <i class="pi pi-exclamation-circle text-2xl text-amber-600"></i>
+                            </div>
                             <p class="text-gray-600 text-sm">
-                                Publish first your application on-chain to show information.
+                                Publish your application on-chain to see information.
                             </p>
                         </div>
                     </template>
