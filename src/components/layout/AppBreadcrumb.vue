@@ -136,7 +136,7 @@ const breakdownQuery = useAccountBreakdownQuery(computed(() => walletId.value ??
                     </div>
 
                     <!-- Balance Breakdown Tooltip -->
-                    <div v-if="balanceHover" class="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50 text-sm w-64">
+                    <div v-if="balanceHover" class="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50 text-sm w-96">
                         <div class="space-y-2">
                             <div class="text-gray-700">
                                 <span class="font-semibold block mb-1">Balance Breakdown</span>
