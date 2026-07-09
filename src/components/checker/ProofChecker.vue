@@ -54,7 +54,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { ProofDocument } from '@cmts-dev/carmentis-sdk-core';
+import { AppLedgerProofWrapper } from '@cmts-dev/carmentis-sdk-core';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
@@ -69,9 +69,9 @@ const store = useStorageStore();
 const wallets = computed(() => store.organizations);
 
 const nodeEndpoint = ref(store.organizations[0]?.nodeEndpoint ?? '');
-const proof = ref<ProofDocument | undefined>();
+const proof = ref<AppLedgerProofWrapper | undefined>();
 
-const onUpload = (uploadedProof: ProofDocument) => {
+const onUpload = (uploadedProof: AppLedgerProofWrapper) => {
     proof.value = uploadedProof;
 };
 </script>

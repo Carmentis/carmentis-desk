@@ -12,8 +12,6 @@ import * as walletRepo from "../../../db/repositories/walletRepository.ts";
 import * as orgRepo from "../../../db/repositories/organizationRepository.ts";
 import {
     CryptoEncoderFactory,
-    Secp256k1PrivateSignatureKey,
-    Secp256k1PublicSignatureKey,
     SignatureSchemeId
 } from "@cmts-dev/carmentis-sdk-core";
 import {useRoute} from "vue-router";
@@ -36,9 +34,8 @@ const sessionStore = useSessionStore();
 const route = useRoute();
 
 enum KeyFormat {
-    JWK = "jwk",
     CMTS = 'cmts',
-    DID_JWK = "did:jwk"
+    DID_CMTS = "did:cmts"
 }
 
 
@@ -118,12 +115,8 @@ const keyFormatOptions = ref([
         value: KeyFormat.CMTS
     },
     {
-        label: "JWK",
-        value: KeyFormat.JWK
-    },
-    {
-        label: "DID JWK",
-        value: KeyFormat.DID_JWK
+        label: "DID CMTS",
+        value: KeyFormat.DID_CMTS
     }
 ])
 
@@ -190,11 +183,11 @@ const keyInJwk = computedAsync(async () => {
 
 
 
-// compute the DID JWK
-const didJwkFormat = computed(() => {
-    return match(keyInJwk.value)
-        .with(P.not(P.nullish), (kp) => {
-            return `did:jwk:${base64url.encode(JSON.stringify(kp))}`;
+// compute the DID CMTS
+const didCmtsFormat = computed(() => {
+    return match(pk.value)
+        .with(P.not(P.nullish), (pk) => {
+            return `did:cmts:${pk}`;
         })
         .otherwise(() => undefined)
 })
@@ -228,24 +221,13 @@ const copyMenuItems = computed(() => {
                 command: () => clipboard.copyToClipboard(sk.value, 'Private key'),
             },
         ])
-        .with(KeyFormat.JWK, () => [
-            {
-                label: 'Copy JWK',
-                icon: 'pi pi-copy',
-                command: () => {
-                    if (keyInJwk.value) {
-                        clipboard.copyToClipboard(JSON.stringify(keyInJwk.value), 'JWK');
-                    }
-                }
-            },
-        ])
-        .with(KeyFormat.DID_JWK, () => [
+        .with(KeyFormat.DID_CMTS, () => [
             {
                 label: 'Copy DID',
                 icon: 'pi pi-copy',
                 command: () => {
-                    if (didJwkFormat.value) {
-                        clipboard.copyToClipboard(JSON.stringify(didJwkFormat.value), 'DID JWK');
+                    if (didCmtsFormat.value) {
+                        clipboard.copyToClipboard(JSON.stringify(didCmtsFormat.value), 'DID JWK');
                     }
                 }
             },
@@ -328,10 +310,6 @@ const copyMenuItems = computed(() => {
                 <div class="flex items-center justify-between">
                     <p class="font-bold"> Displaying your keys in {{chosenKeyFormatName}} format</p>
                     <div class="flex flex-row items-center gap-2">
-                        <div v-if="chosenKeyFormat !== KeyFormat.CMTS" class="flex flex-row items-center gap-2">
-                            <p>Include private key</p>
-                            <Checkbox v-model="shouldDisplayPrivateKeyInJwk" binary  label="Display private key" class="mr-2"/>
-                        </div>
                         <SplitButton
                             label="Copy"
                             icon="pi pi-copy"
@@ -360,19 +338,9 @@ const copyMenuItems = computed(() => {
                         />
                     </div>
                 </div>
-
-
-                <div v-if="chosenKeyFormat === KeyFormat.JWK">
-                    <code v-if="keyInJwk">
-                        {{ JSON.stringify(keyInJwk, null, 2) }}
-                    </code>
-                    <div v-else>
-                        JWK format is not available for this key.
-                    </div>
-                </div>
-                <div v-if="chosenKeyFormat === KeyFormat.DID_JWK">
-                    <div v-if="didJwkFormat">
-                        <InputText v-model="didJwkFormat" :disabled="true" class="w-full" />
+                <div v-if="chosenKeyFormat === KeyFormat.DID_CMTS">
+                    <div v-if="didCmtsFormat">
+                        <InputText v-model="didCmtsFormat" readonly class="w-full" />
                     </div>
                 </div>
             </div>

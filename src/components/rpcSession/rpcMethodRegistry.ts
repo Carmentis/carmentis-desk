@@ -28,9 +28,6 @@ import type { GenericSchema } from 'valibot';
 import AuthByPublicKey from './methods/AuthByPublicKey/AuthByPublicKey.vue';
 import { AuthByPublicKeyParamsSchema } from './methods/AuthByPublicKey/AuthByPublicKeyRequestType.ts';
 
-import AuthByPublicKeyDeprecated from './methods/AuthByPublicKeyDeprecated/AuthByPublicKeyDeprecated.vue';
-import { AuthByPublicKeyDeprecatedParamsSchema } from './methods/AuthByPublicKeyDeprecated/AuthByPublicKeyDeprecatedRequestType.ts';
-
 import DataApproval from './methods/DataApproval/DataApproval.vue';
 import { DataApprovalParamsSchema } from './methods/DataApproval/DataApprovalRequestType.ts';
 
@@ -55,12 +52,6 @@ export const rpcMethodRegistry: Record<string, RpcMethodDefinition> = {
     '/v1/credential/presentation': {
         schema: CredentialPresentationSchema,
         component: CredentialPresentation,
-    },
-
-    // Legacy public key authentication — kept for backwards compatibility
-    'wr-auth-pk': {
-        schema: AuthByPublicKeyDeprecatedParamsSchema,
-        component: AuthByPublicKeyDeprecated,
     },
 
     // Microblock approval via WIAP protocol

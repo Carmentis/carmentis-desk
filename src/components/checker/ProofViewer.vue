@@ -76,12 +76,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { ProofDocument, Hash, ProviderFactory, type ImportedProof } from '@cmts-dev/carmentis-sdk-core';
+import { AppLedgerProofWrapper, Hash, ProviderFactory, type ImportedProof } from '@cmts-dev/carmentis-sdk-core';
 import ProgressSpinner from 'primevue/progressspinner';
 import ProofRecordViewer from './ProofRecordViewer.vue';
 
 const props = defineProps<{
-    proof: ProofDocument;
+    proof: AppLedgerProofWrapper;
     nodeEndpoint: string;
 }>();
 
@@ -106,7 +106,7 @@ onMounted(async () => {
     try {
         const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(props.nodeEndpoint);
 
-        title.value = props.proof.getTitle();
+        title.value = "Proof"
         author.value = props.proof.getAuthor();
         exportedAt.value = props.proof.getDate().toLocaleString();
 
