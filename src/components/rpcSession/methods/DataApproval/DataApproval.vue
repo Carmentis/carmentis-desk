@@ -84,6 +84,16 @@ const applicationDescription = ref<ApplicationDescription | null>(null);
 const organizationDescription = ref<OrganizationDescription | null>(null);
 const showAdvanced = ref(false);
 const showApprovalExplanation = ref(false);
+const selectedBlockHeight = ref<number | null>(null);
+
+const canApprove = computed(() => {
+    return true;
+    /*
+    if (!microblockToApprove.value || !selectedBlockHeight.value) return false;
+    return selectedBlockHeight.value === microblockToApprove.value.getHeight();
+
+     */
+});
 
 watch(chosenWallet, async (newWallet, oldWallet) => {
     await initiateDataApproval()
@@ -589,9 +599,17 @@ async function sendRequestToOperator(serverUrl: string, request: object): Promis
                 <div class="bg-white rounded-lg border border-gray-200 p-6 flex flex-col" v-if="virtualBlockchainContainingMicroblock">
                     <div class="mb-4">
                         <h2 class="text-lg font-semibold text-gray-900 mb-2">Data Timeline</h2>
-                        <p class="text-sm text-gray-600">
-                            This shows all data blocks in this ledger. The new block (height {{ microblockToApprove.getHeight() }}) will be added after the previous ones.
-                        </p>
+                        <div class="space-y-2 mb-4">
+                            <p class="text-sm text-gray-600">
+                                This shows all data blocks in this ledger history.
+                            </p>
+                            <p v-if="microblockToApprove && microblockToApprove.getHeight() > 1" class="text-sm text-gray-600">
+                                All previous blocks (up to height {{ microblockToApprove.getHeight() - 1 }}) have already been anchored to the blockchain. The block at height <span class="font-semibold">{{ microblockToApprove.getHeight() }} (NEW)</span> is the one awaiting your approval.
+                            </p>
+                            <p v-else-if="microblockToApprove" class="text-sm text-gray-600">
+                                The block at height <span class="font-semibold">{{ microblockToApprove.getHeight() }} (NEW)</span> is the first block in this ledger and is awaiting your approval.
+                            </p>
+                        </div>
                     </div>
                     <div class="flex-1 mb-4">
                         <VirtualBlockchainRecordNavigator
@@ -607,16 +625,18 @@ async function sendRequestToOperator(serverUrl: string, request: object): Promis
                             severity="secondary"
                             size="small"
                             outlined
-                            :disabled="isProcessing || isLoading"
+                            :disabled="isProcessing || isLoading || !canApprove"
                             @click="emit('reject')"
+                            :title="!canApprove ? 'Select the new block (height ' + microblockToApprove?.getHeight() + ') to approve' : ''"
                         />
                         <Button
                             label="Approve"
                             icon="pi pi-check"
                             size="small"
                             :loading="isProcessing"
-                            :disabled="!microblockToApprove || !!loadError"
+                            :disabled="!canApprove || !!loadError"
                             @click="approve"
+                            :title="!canApprove ? 'Select the new block (height ' + microblockToApprove?.getHeight() + ') to approve' : ''"
                         />
                     </div>
                 </div>
@@ -625,8 +645,16 @@ async function sendRequestToOperator(serverUrl: string, request: object): Promis
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6" v-if="virtualBlockchainContainingMicroblock">
                     <!-- Participants -->
                     <div class="bg-white rounded-lg border border-gray-200 p-6">
-                        <h2 class="text-lg font-semibold text-gray-900 mb-4">Participants</h2>
-                        <p class="text-xs text-gray-500 mb-4">Organizations involved in this data ledger</p>
+                        <div class="flex items-center justify-between gap-2 mb-4">
+                            <h2 class="text-lg font-semibold text-gray-900">Participants</h2>
+                            <div class="relative group cursor-help flex-shrink-0">
+                                <i class="pi pi-question-circle text-gray-400 text-sm hover:text-gray-600"></i>
+                                <div class="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-48 text-sm text-gray-700">
+                                    A participant is an organization identified by a public key. "Active" means its key is registered on the blockchain.
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mb-4">Participants involved in this data ledger</p>
                         <div v-if="virtualBlockchainContainingMicroblock.getAllActors().length === 0" class="text-sm text-gray-500 italic">
                             No participants defined
                         </div>
@@ -658,7 +686,15 @@ async function sendRequestToOperator(serverUrl: string, request: object): Promis
 
                     <!-- Channels -->
                     <div class="bg-white rounded-lg border border-gray-200 p-6">
-                        <h2 class="text-lg font-semibold text-gray-900 mb-4">Channels</h2>
+                        <div class="flex items-center justify-between gap-2 mb-4">
+                            <h2 class="text-lg font-semibold text-gray-900">Channels</h2>
+                            <div class="relative group cursor-help flex-shrink-0">
+                                <i class="pi pi-question-circle text-gray-400 text-sm hover:text-gray-600"></i>
+                                <div class="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-48 text-sm text-gray-700">
+                                    A channel is a logical store where data can be stored. Participants can access channels they were invited to. A channel creator always has access.
+                                </div>
+                            </div>
+                        </div>
                         <p class="text-xs text-gray-500 mb-4">Communication channels in this ledger</p>
                         <div v-if="virtualBlockchainContainingMicroblock.getAllChannels().length === 0" class="text-sm text-gray-500 italic">
                             No channels defined
