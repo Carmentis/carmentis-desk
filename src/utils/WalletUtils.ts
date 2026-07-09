@@ -4,7 +4,6 @@ import {
     CryptoEncoderFactory,
     PublicSignatureKey,
     SeedEncoder,
-    SignatureSchemeId,
     WalletCrypto
 } from "@cmts-dev/carmentis-sdk-core";
 import {useSessionStore} from "../stores/sessionStore.ts";
@@ -18,12 +17,17 @@ export class WalletUtils {
     }
 
     static async getPublicKeyFromWalletId(walletId: number) {
+        const sk = await this.getPrivateKeyFromWalletId(walletId);
+        return await sk.getPublicKey();
+    }
+
+    static async getPrivateKeyFromWalletId(walletId: number) {
         const storageStore = useStorageStore();
         const session = useSessionStore();
         const rawSeed = await session.getWalletSeed(walletId);
         const wallet = await storageStore.getWalletById(walletId);
         if (!wallet) throw new Error('Wallet not found');
-        return this.getPublicKeyFromSeedAndSignatureScheme(rawSeed, wallet.schemeId);
+        return this.getPrivateKeyFromSeedAndSignatureScheme(rawSeed, wallet.schemeId);
     }
 
     static async encodePublicKey(publicKey: PublicSignatureKey) {
@@ -32,27 +36,17 @@ export class WalletUtils {
     }
 
     static async getPublicKeyFromSeedAndSignatureScheme(rawSeed: string, signatureScheme: number) {
-        const encoder = new SeedEncoder();
-        const seed = encoder.decode(rawSeed);
-        const walletCrypto = WalletCrypto.fromSeed(seed);
-        const accountCrypto = walletCrypto.getDefaultAccountCrypto();
-        const sk = await accountCrypto.getPrivateSignatureKey(
-            signatureScheme
-        );
+        const sk = await this.getPrivateKeyFromSeedAndSignatureScheme(rawSeed, signatureScheme);
         return await sk.getPublicKey();
     }
 
-    async getKeyPair(walletId: number, signatureScheme?: SignatureSchemeId) {
-        const session = useSessionStore();
-        const rawSeed = await session.getWalletSeed(walletId);
+    static async getPrivateKeyFromSeedAndSignatureScheme(rawSeed: string, signatureScheme: number) {
         const encoder = new SeedEncoder();
         const seed = encoder.decode(rawSeed);
         const walletCrypto = WalletCrypto.fromSeed(seed);
         const accountCrypto = walletCrypto.getDefaultAccountCrypto();
-        const sk = await accountCrypto.getPrivateSignatureKey(
+        return await accountCrypto.getPrivateSignatureKey(
             signatureScheme
         );
-        const pk = await sk.getPublicKey();
-        return { sk, pk };
     }
 }
