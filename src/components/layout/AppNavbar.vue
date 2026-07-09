@@ -8,6 +8,7 @@ import { useStorageStore } from '../../stores/storage.ts';
 import { useUiStore } from '../../stores/uiStore.ts';
 import { useSessionStore } from '../../stores/sessionStore.ts';
 import { useNavbarData, buildExportData } from '../../composables/useNavbarData';
+import pkg from '../../../package.json';
 
 const router = useRouter();
 const sessionStore = useSessionStore();
@@ -415,7 +416,7 @@ function logout() {
         </div>
 
         <!-- Operators Section -->
-        <div class="p-3">
+        <div class="p-3 flex-1">
             <div class="flex items-center justify-between px-2 py-1 mb-2">
                 <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Operators</span>
                 <div class="flex items-center gap-0">
@@ -459,6 +460,11 @@ function logout() {
                 <i class="pi pi-server text-sm flex-shrink-0" />
                 <span class="truncate text-left">{{ op.name }}</span>
             </button>
+        </div>
+
+        <!-- Version Footer -->
+        <div class="p-3 border-t border-gray-200 text-xs text-gray-500 text-center">
+            v{{ pkg.version }}
         </div>
     </aside>
 
