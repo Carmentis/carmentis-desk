@@ -12,6 +12,8 @@
 import * as v from 'valibot';
 
 export const DataApprovalParamsSchema = v.object({
+    /** Indicates the public key to help desk to choose the correct wallet **/
+    publicKey: v.nullish(v.string()),
     /** Base URL of the operator server (e.g. https://operator.example.com) */
     serverUrl: v.string(),
     /** ID of the pending anchor request on the operator */
