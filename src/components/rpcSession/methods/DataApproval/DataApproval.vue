@@ -48,6 +48,13 @@ interface ApplicationDescription {
     description: string;
 }
 
+interface OrganizationDescription {
+    name: string;
+    countryCode: string;
+    city: string;
+    website: string;
+}
+
 const props = defineProps<{ params: DataApprovalParams }>();
 const emit = defineEmits<{
     done: [result: Record<string, unknown>];
@@ -73,6 +80,7 @@ const approvalData = ref<WalletInteractiveAnchoringResponseApprovalData | null>(
 const microblockToApprove = shallowRef<Microblock | null>(null);
 const virtualBlockchainContainingMicroblock = shallowRef<ApplicationLedgerVb | null>(null);
 const applicationDescription = ref<ApplicationDescription | null>(null);
+const organizationDescription = ref<OrganizationDescription | null>(null);
 const showAdvanced = ref(false);
 
 watch(chosenWallet, async (newWallet, oldWallet) => {
@@ -216,6 +224,15 @@ async function initiateDataApproval() {
         try {
             const appVb = await provider.loadApplicationVirtualBlockchain(applicationLedger.getApplicationId());
             applicationDescription.value = (await appVb.getApplicationDescription()) as ApplicationDescription;
+
+            // Load organization description
+            try {
+                const orgId = appVb.getOrganizationId();
+                const orgVb = await provider.loadOrganizationVirtualBlockchain(orgId);
+                organizationDescription.value = await orgVb.getDescription() as OrganizationDescription;
+            } catch (e) {
+                console.warn('Could not load organization description:', e);
+            }
         } catch (e) {
             console.warn('Could not load application description:', e);
         }
@@ -457,7 +474,7 @@ async function sendRequestToOperator(serverUrl: string, request: object): Promis
                 <!-- Application Information -->
                 <div class="bg-white rounded-lg border border-gray-200 p-6">
                     <h2 class="text-lg font-semibold text-gray-900 mb-4">Application</h2>
-                    <div class="flex items-start gap-4">
+                    <div class="flex items-start gap-4 mb-6">
                         <img
                             v-if="applicationDescription?.logoUrl"
                             :src="applicationDescription.logoUrl"
@@ -482,6 +499,35 @@ async function sendRequestToOperator(serverUrl: string, request: object): Promis
                             <p v-if="applicationDescription?.description" class="text-sm text-gray-600 mt-2 leading-relaxed">
                                 {{ applicationDescription.description }}
                             </p>
+                        </div>
+                    </div>
+
+                    <!-- Organization Information -->
+                    <div v-if="organizationDescription" class="border-t border-gray-200 pt-6">
+                        <p class="text-xs uppercase text-gray-500 font-semibold mb-3">Operating Organization</p>
+                        <div class="bg-gray-50 rounded-lg p-4 space-y-2">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">{{ organizationDescription.name }}</p>
+                            </div>
+                            <div v-if="organizationDescription.website" class="flex items-start gap-2">
+                                <i class="pi pi-globe text-gray-400 text-sm flex-shrink-0 mt-0.5"></i>
+                                <a
+                                    :href="organizationDescription.website"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="text-sm text-blue-600 hover:underline break-all"
+                                >
+                                    {{ organizationDescription.website }}
+                                    <i class="pi pi-external-link text-xs ml-1"></i>
+                                </a>
+                            </div>
+                            <div v-if="organizationDescription.city || organizationDescription.countryCode" class="flex items-center gap-2">
+                                <i class="pi pi-map-marker text-gray-400 text-sm flex-shrink-0"></i>
+                                <p class="text-sm text-gray-700">
+                                    <span v-if="organizationDescription.city">{{ organizationDescription.city }}, </span>
+                                    <span v-if="organizationDescription.countryCode">{{ organizationDescription.countryCode }}</span>
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
