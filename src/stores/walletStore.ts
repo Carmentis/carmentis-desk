@@ -43,7 +43,7 @@ export const useWalletStore = defineStore('wallet', () => {
         return account;
     }
 
-    async function getKeyPair(walletId: number, signatureScheme: SignatureSchemeId) {
+    async function getKeyPair(walletId: number) {
         const sk = await WalletUtils.getPrivateKeyFromWalletId(walletId);
         const pk = await sk.getPublicKey();
         return { sk, pk };

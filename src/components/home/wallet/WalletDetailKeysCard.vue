@@ -63,7 +63,7 @@ const {execute: checkKeyPair} = useAsyncState(
         const message = "Hello world!"
         try {
             const walletId = wallet.value.id;
-            const {sk, pk} = await walletStore.getKeyPair(walletId, signatureScheme.value);
+            const {sk, pk} = await walletStore.getKeyPair(walletId);
             const textEncoder = new TextEncoder();
             const rawMessage = textEncoder.encode(message);
             const sign = await sk.sign(rawMessage);
@@ -125,8 +125,7 @@ const walletKeyPair = computedAsync(async () => {
         .with(P.nullish, () => undefined)
         .otherwise(async (wallet) => {
             const {sk, pk} = await walletStore.getKeyPair(
-                wallet.id,
-                signatureScheme.value
+                wallet.id
             );
 
             return {sk, pk};
