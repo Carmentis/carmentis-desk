@@ -229,6 +229,19 @@ onMounted(() => {
 <template>
     <div class="space-y-6">
         <div v-if="wallet && organization && application">
+            <!-- Application Header -->
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-gray-900">Application - {{ application.name }}</h2>
+                <Button
+                    @click="showDeleteConfirmDialog = true"
+                    icon="pi pi-trash"
+                    severity="danger"
+                    text
+                    rounded
+                    size="large"
+                />
+            </div>
+
             <!-- Application Cards Side-by-Side -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
                 <!-- Application Info Card -->
