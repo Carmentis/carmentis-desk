@@ -26,6 +26,7 @@ import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
+import Dialog from 'primevue/dialog';
 import { useToast } from 'primevue/usetoast';
 import {computed, onMounted, ref, shallowRef, watch} from 'vue';
 import {useStorageStore, WalletStub} from '../../../../stores/storage.ts';
@@ -82,6 +83,7 @@ const virtualBlockchainContainingMicroblock = shallowRef<ApplicationLedgerVb | n
 const applicationDescription = ref<ApplicationDescription | null>(null);
 const organizationDescription = ref<OrganizationDescription | null>(null);
 const showAdvanced = ref(false);
+const showApprovalExplanation = ref(false);
 
 watch(chosenWallet, async (newWallet, oldWallet) => {
     await initiateDataApproval()
@@ -368,74 +370,122 @@ async function sendRequestToOperator(serverUrl: string, request: object): Promis
 
 <template>
     <div class="min-h-screen bg-gray-50 flex flex-col">
-        <!-- Top bar -->
-        <div class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between gap-4 flex-shrink-0">
-            <div class="flex items-center gap-3 min-w-0">
-                <div class="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
-                    <i class="pi pi-file-check text-blue-600"></i>
+        <!-- Top bar with Wallet Selector -->
+        <div class="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
+            <div class="flex items-center justify-between gap-4 mb-4">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+                        <i class="pi pi-file-check text-blue-600"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h1 class="text-lg font-semibold text-gray-900">Data Approval Required</h1>
+                        <p class="text-xs text-gray-500 mt-0.5">Approve data for {{ params.serverUrl }}</p>
+                    </div>
                 </div>
-                <div class="min-w-0">
-                    <h1 class="text-lg font-semibold text-gray-900">Data Approval Required</h1>
-                    <p class="text-xs text-gray-500 mt-0.5">Approve data for {{ params.serverUrl }}</p>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <Button
+                        label="Reject"
+                        icon="pi pi-times"
+                        severity="secondary"
+                        size="small"
+                        outlined
+                        :disabled="isProcessing || isLoading"
+                        @click="emit('reject')"
+                    />
+                    <Button
+                        label="Approve"
+                        icon="pi pi-check"
+                        size="small"
+                        :loading="isProcessing"
+                        :disabled="!microblockToApprove || !!loadError"
+                        @click="approve"
+                    />
                 </div>
             </div>
-            <div class="flex items-center gap-2 flex-shrink-0">
-                <Button
-                    label="Reject"
-                    icon="pi pi-times"
-                    severity="secondary"
-                    size="small"
-                    outlined
-                    :disabled="isProcessing || isLoading"
-                    @click="emit('reject')"
-                />
-                <Button
-                    label="Approve"
-                    icon="pi pi-check"
-                    size="small"
-                    :loading="isProcessing"
-                    :disabled="!microblockToApprove || !!loadError"
-                    @click="approve"
-                />
+
+            <!-- Wallet Selector -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Select Wallet to Approve</label>
+                <Dropdown
+                    id="walletSelect"
+                    v-model="chosenWallet"
+                    :options="wallets"
+                    optionLabel="name"
+                    placeholder="Choose a wallet"
+                    class="w-full"
+                >
+                    <template #value="slotProps">
+                        <div v-if="slotProps.value" class="flex items-center gap-2">
+                            <i class="pi pi-wallet text-gray-600"></i>
+                            <span>{{ slotProps.value.name }}</span>
+                        </div>
+                        <span v-else class="text-gray-500">{{ slotProps.placeholder }}</span>
+                    </template>
+                    <template #option="slotProps">
+                        <div class="flex items-center gap-2">
+                            <i class="pi pi-wallet text-gray-600"></i>
+                            <div>
+                                <div class="font-semibold">{{ slotProps.option.name }}</div>
+                                <div class="text-xs text-gray-500">{{ slotProps.option.nodeEndpoint }}</div>
+                            </div>
+                        </div>
+                    </template>
+                </Dropdown>
             </div>
         </div>
 
         <!-- Body -->
         <div class="flex-1 overflow-auto p-6">
-            <!-- Wallet Selector -->
-            <div class="max-w-4xl mx-auto mb-6">
-                <div class="bg-white rounded-lg border border-gray-200 p-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Wallet to Approve</label>
-                    <Dropdown
-                        id="walletSelect"
-                        v-model="chosenWallet"
-                        :options="wallets"
-                        optionLabel="name"
-                        placeholder="Choose a wallet"
-                        class="w-full"
-                    >
-                        <template #value="slotProps">
-                            <div v-if="slotProps.value" class="flex items-center gap-2">
-                                <i class="pi pi-wallet text-gray-600"></i>
-                                <span>{{ slotProps.value.name }}</span>
-                            </div>
-                            <span v-else class="text-gray-500">{{ slotProps.placeholder }}</span>
-                        </template>
-                        <template #option="slotProps">
-                            <div class="flex items-center gap-2">
-                                <i class="pi pi-wallet text-gray-600"></i>
+
+            <!-- No Wallet Selected State -->
+            <div v-if="!chosenWallet && !isLoading && !loadError" class="max-w-4xl mx-auto">
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-6">
+                    <div class="mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-2">What is Data Approval?</h2>
+                        <p class="text-sm text-gray-700 leading-relaxed mb-4">
+                            You're being asked to approve a new data block that an application wants to anchor to the blockchain.
+                            This is a secure operation where you authorize a specific transaction by digitally signing it with your wallet.
+                            Your signature proves that you consented to this action.
+                        </p>
+                        <div class="bg-white rounded-lg border border-blue-200 p-4 space-y-2 text-sm">
+                            <div class="flex gap-2">
+                                <i class="pi pi-check text-blue-600 font-bold text-lg flex-shrink-0"></i>
                                 <div>
-                                    <div class="font-semibold">{{ slotProps.option.name }}</div>
-                                    <div class="text-xs text-gray-500">{{ slotProps.option.nodeEndpoint }}</div>
+                                    <p class="font-semibold text-gray-900">Why it matters</p>
+                                    <p class="text-gray-600">Your approval cryptographically authorizes the data block, ensuring accountability and trust.</p>
                                 </div>
                             </div>
-                        </template>
-                    </Dropdown>
+                            <div class="flex gap-2">
+                                <i class="pi pi-shield text-blue-600 font-bold text-lg flex-shrink-0"></i>
+                                <div>
+                                    <p class="font-semibold text-gray-900">Your security</p>
+                                    <p class="text-gray-600">Select the wallet you want to use to sign. Only you can approve this action.</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <i class="pi pi-info-circle text-blue-600 font-bold text-lg flex-shrink-0"></i>
+                                <div>
+                                    <p class="font-semibold text-gray-900">What happens next</p>
+                                    <p class="text-gray-600">Once approved, the data block will be recorded on the blockchain permanently.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <Button
+                            label="See more"
+                            icon="pi pi-arrow-right"
+                            outlined
+                            severity="info"
+                            size="small"
+                            @click="showApprovalExplanation = true"
+                        />
+                    </div>
                 </div>
             </div>
 
             <!-- Loading State -->
-            <div v-if="isLoading" class="max-w-4xl mx-auto space-y-4">
+            <div v-else-if="isLoading" class="max-w-4xl mx-auto space-y-4">
                 <div class="bg-white rounded-lg border border-gray-200 p-6">
                     <div class="flex items-center gap-2 mb-4">
                         <i class="pi pi-spin pi-spinner text-blue-600 text-sm"></i>
@@ -461,12 +511,20 @@ async function sendRequestToOperator(serverUrl: string, request: object): Promis
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <div class="flex gap-3">
                         <i class="pi pi-info-circle text-blue-600 text-lg flex-shrink-0 mt-0.5"></i>
-                        <div class="text-sm text-blue-900">
+                        <div class="text-sm text-blue-900 flex-1">
                             <p class="font-semibold mb-1">What you're approving</p>
-                            <p class="leading-relaxed">
+                            <p class="leading-relaxed mb-2">
                                 A new data block needs to be anchored to the blockchain. You are authorizing {{ applicationDescription?.name || 'this application' }}
                                 to add this block. Your approval will be cryptographically signed and recorded.
                             </p>
+                            <Button
+                                label="See more"
+                                icon="pi pi-arrow-right"
+                                outlined
+                                severity="info"
+                                size="small"
+                                @click="showApprovalExplanation = true"
+                            />
                         </div>
                     </div>
                 </div>
@@ -672,6 +730,72 @@ async function sendRequestToOperator(serverUrl: string, request: object): Promis
                     </div>
                 </div>
             </div>
+
+            <!-- Approval Explanation Dialog -->
+            <Dialog
+                v-model:visible="showApprovalExplanation"
+                header="Understanding Data Approval"
+                modal
+                class="w-full max-w-2xl"
+            >
+                <div class="space-y-4 text-sm text-gray-700">
+                    <div>
+                        <h3 class="font-semibold text-gray-900 mb-2">What is a Data Block?</h3>
+                        <p class="leading-relaxed">
+                            A data block (also called a microblock) is a collection of information that an application wants to record permanently on the blockchain.
+                            Think of it like adding a page to a ledger — once approved and recorded, it cannot be changed or deleted. This ensures transparency and
+                            creates an immutable record of events.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 class="font-semibold text-gray-900 mb-2">Why Do You Need to Approve It?</h3>
+                        <p class="leading-relaxed">
+                            Your approval proves that you agree with the data being recorded. By approving, you're using your wallet to cryptographically sign
+                            the data block, which creates proof that you authorized this action. This is essential for accountability — the blockchain records
+                            not just the data, but also who approved it.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 class="font-semibold text-gray-900 mb-2">The Approval Process</h3>
+                        <ol class="list-decimal list-inside space-y-2">
+                            <li>You select a wallet from your list</li>
+                            <li>The system fetches the data block that needs approval</li>
+                            <li>You review the application, organization, and data details</li>
+                            <li>You click "Approve" to sign the block with your wallet</li>
+                            <li>Your signature is sent to the blockchain operator</li>
+                            <li>The data block is permanently recorded on the blockchain</li>
+                        </ol>
+                    </div>
+
+                    <div>
+                        <h3 class="font-semibold text-gray-900 mb-2">Your Security</h3>
+                        <p class="leading-relaxed">
+                            Only you can approve with your wallet. The approval uses your private key to create a signature, which proves ownership and
+                            consent. Your private key never leaves your device — only the signature is sent to the blockchain. This means no one else can
+                            approve data on your behalf.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 class="font-semibold text-gray-900 mb-2">What Happens After Approval?</h3>
+                        <p class="leading-relaxed">
+                            Once you approve, the data block is combined with your signature and sent to the blockchain operator. The operator then
+                            publishes it to the blockchain, where it becomes part of the permanent record. You can later view this approval in your
+                            data timeline to see what you authorized and when.
+                        </p>
+                    </div>
+
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 flex gap-2">
+                        <i class="pi pi-exclamation-triangle text-amber-600 text-lg flex-shrink-0"></i>
+                        <p class="text-amber-900">
+                            <span class="font-semibold">Important:</span> Review the application, organization, and data details carefully before approving.
+                            You are responsible for what you approve.
+                        </p>
+                    </div>
+                </div>
+            </Dialog>
         </div>
     </div>
 </template>
