@@ -503,32 +503,27 @@ async function sendRequestToOperator(serverUrl: string, request: object): Promis
                     </div>
 
                     <!-- Organization Information -->
-                    <div v-if="organizationDescription" class="border-t border-gray-200 pt-6">
-                        <p class="text-xs uppercase text-gray-500 font-semibold mb-3">Operating Organization</p>
-                        <div class="bg-gray-50 rounded-lg p-4 space-y-2">
-                            <div>
-                                <p class="text-sm font-semibold text-gray-900">{{ organizationDescription.name }}</p>
-                            </div>
-                            <div v-if="organizationDescription.website" class="flex items-start gap-2">
-                                <i class="pi pi-globe text-gray-400 text-sm flex-shrink-0 mt-0.5"></i>
+                    <div v-if="organizationDescription" class="border-t border-gray-200 pt-4 mt-4">
+                        <p class="text-sm text-gray-700 leading-relaxed">
+                            This application is operated by
+                            <span class="font-semibold text-gray-900">{{ organizationDescription.name }}</span>.
+                            <span v-if="organizationDescription.city || organizationDescription.countryCode">
+                                Based in
+                                <span v-if="organizationDescription.city">{{ organizationDescription.city }}, </span>
+                                <span v-if="organizationDescription.countryCode">{{ organizationDescription.countryCode }}</span>.
+                            </span>
+                            <span v-if="organizationDescription.website">
+                                Visit their website:
                                 <a
                                     :href="organizationDescription.website"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    class="text-sm text-blue-600 hover:underline break-all"
+                                    class="text-blue-600 hover:underline"
                                 >
                                     {{ organizationDescription.website }}
-                                    <i class="pi pi-external-link text-xs ml-1"></i>
                                 </a>
-                            </div>
-                            <div v-if="organizationDescription.city || organizationDescription.countryCode" class="flex items-center gap-2">
-                                <i class="pi pi-map-marker text-gray-400 text-sm flex-shrink-0"></i>
-                                <p class="text-sm text-gray-700">
-                                    <span v-if="organizationDescription.city">{{ organizationDescription.city }}, </span>
-                                    <span v-if="organizationDescription.countryCode">{{ organizationDescription.countryCode }}</span>
-                                </p>
-                            </div>
-                        </div>
+                            </span>
+                        </p>
                     </div>
                 </div>
 
