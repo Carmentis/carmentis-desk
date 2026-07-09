@@ -1,3 +1,31 @@
+# [1.29.0](https://github.com/Carmentis/carmentis-desk/compare/v1.28.0...v1.29.0) (2026-07-09)
+
+
+### Bug Fixes
+
+* use wallet's schemeId for deriving actor signature key in DataApproval.vue ([d0e518b](https://github.com/Carmentis/carmentis-desk/commit/d0e518b5239e2b01958cca4d82d03746c87a06ce))
+
+
+### Features
+
+* add approval explanation dialog and improve DataApproval layout ([4193e82](https://github.com/Carmentis/carmentis-desk/commit/4193e8215a3d3cb5eed5e2b5cabf93f28e4e4c52))
+* add balance breakdown tooltip in AppBreadcrumb ([1986133](https://github.com/Carmentis/carmentis-desk/commit/19861334e036a425bfe18d4c9760df289f5bc428))
+* add delete button to Application header for enhanced user control ([f4df60f](https://github.com/Carmentis/carmentis-desk/commit/f4df60f671565a6e59fb3c792eac724ae9e21b8f))
+* add logout functionality to AppNavbar ([12657c3](https://github.com/Carmentis/carmentis-desk/commit/12657c3223a114a9937b060a9df8a243c22c74cd))
+* add public key-based wallet selection in AuthByPublicKey and enhanced logging ([9630966](https://github.com/Carmentis/carmentis-desk/commit/963096622f37ee048db43d340ae147ab31beb32f))
+* add scheme selection and integrate virtual blockchain and microblock support ([06421fc](https://github.com/Carmentis/carmentis-desk/commit/06421fcf9ad448dc0c11c1301ea847744f82dad1))
+* add splash screen and initialize session logic overhaul ([0e612e7](https://github.com/Carmentis/carmentis-desk/commit/0e612e7ca9d521d107075fa7028ca42cd16aad81))
+* add virtual blockchain integration to WalletDetail and enhance blockchain data handling ([3054e05](https://github.com/Carmentis/carmentis-desk/commit/3054e0595e8204b2fb66e2637933b3025de5104b))
+* add wallet selection logic to DataApproval component ([2daaa18](https://github.com/Carmentis/carmentis-desk/commit/2daaa18be6d89d9f5e2f46516fa24c2b86f4b2f3))
+* add wallet selection UI and improve data approval flow logic ([d89dc6d](https://github.com/Carmentis/carmentis-desk/commit/d89dc6daf44eeca4a20c0f9e4732aa9e421901e3))
+* add WalletUtils and integrate public key-based wallet selection in CredentialPresentation ([3ed12a3](https://github.com/Carmentis/carmentis-desk/commit/3ed12a30fb1625eb403c3458f199ab92cb759c35))
+* display app version in AppNavbar footer and adjust layout styles ([8835582](https://github.com/Carmentis/carmentis-desk/commit/8835582c49dc197162c9aac5c577ae9c58507f08))
+* display organization details in DataApproval component ([ce0ef75](https://github.com/Carmentis/carmentis-desk/commit/ce0ef753b018f5243cc12d52de2c88aba5139e05))
+* enhance account ID retrieval and extend signature encoder support ([89ee8bf](https://github.com/Carmentis/carmentis-desk/commit/89ee8bfdc7882555253946f302fd5acfba6425f5))
+* enhance DataApproval component with action buttons and improved layout ([582dd68](https://github.com/Carmentis/carmentis-desk/commit/582dd683bd362b7e2c0eed2208ec8f4e06fdc6f2))
+* enhance key management with multi-format support and modular utilities ([6fbe3eb](https://github.com/Carmentis/carmentis-desk/commit/6fbe3eb48092781b4e069203705187d00b7dc07a))
+* improve DataApproval component with block selection logic and tooltips ([c66b653](https://github.com/Carmentis/carmentis-desk/commit/c66b6535bf916a8a3088f7402b4f8459729171da))
+
 # [1.28.0](https://github.com/Carmentis/carmentis-desk/compare/v1.27.0...v1.28.0) (2026-06-25)
 
 
