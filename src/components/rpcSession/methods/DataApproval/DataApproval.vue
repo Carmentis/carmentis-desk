@@ -73,6 +73,7 @@ const approvalData = ref<WalletInteractiveAnchoringResponseApprovalData | null>(
 const microblockToApprove = shallowRef<Microblock | null>(null);
 const virtualBlockchainContainingMicroblock = shallowRef<ApplicationLedgerVb | null>(null);
 const applicationDescription = ref<ApplicationDescription | null>(null);
+const showAdvanced = ref(false);
 
 watch(chosenWallet, async (newWallet, oldWallet) => {
     await initiateDataApproval()
@@ -349,34 +350,19 @@ async function sendRequestToOperator(serverUrl: string, request: object): Promis
 </script>
 
 <template>
-    <div class="min-h-screen bg-surface-50 flex flex-col">
+    <div class="min-h-screen bg-gray-50 flex flex-col">
         <!-- Top bar -->
-        <div
-            class="bg-white border-b border-surface-200 px-6 py-4 flex items-center justify-between gap-4 flex-shrink-0"
-        >
+        <div class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between gap-4 flex-shrink-0">
             <div class="flex items-center gap-3 min-w-0">
-                <div class="w-9 h-9 rounded-full bg-primary-50 flex items-center justify-center flex-shrink-0">
-                    <i class="pi pi-file-check text-primary"></i>
+                <div class="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <i class="pi pi-file-check text-blue-600"></i>
                 </div>
                 <div class="min-w-0">
-                    <h1 class="text-sm font-semibold text-surface-800">Event Approval Request</h1>
-                    <div class="flex items-center gap-3 mt-0.5">
-                        <span class="text-xs text-surface-500 font-mono truncate">
-                            Operator: {{ params.serverUrl }}
-                        </span>
-                        <span class="text-surface-300">·</span>
-                        <span class="text-xs text-surface-400 font-mono truncate">
-                            Anchor Request ID:{{ params.anchorRequestId }}
-                        </span>
-                    </div>
+                    <h1 class="text-lg font-semibold text-gray-900">Data Approval Required</h1>
+                    <p class="text-xs text-gray-500 mt-0.5">Approve data for {{ params.serverUrl }}</p>
                 </div>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
-                <span
-                    class="hidden sm:inline-flex text-xs font-medium px-2 py-1 rounded-full bg-amber-100 text-amber-700"
-                >
-                    Pending
-                </span>
                 <Button
                     label="Reject"
                     icon="pi pi-times"
@@ -399,338 +385,250 @@ async function sendRequestToOperator(serverUrl: string, request: object): Promis
 
         <!-- Body -->
         <div class="flex-1 overflow-auto p-6">
-            <Card>
-                <template #content>
-                    <FieldNameAndDescription name="Wallet Selection" description="Select a wallet first to initiate the data approval"/>
+            <!-- Wallet Selector -->
+            <div class="max-w-4xl mx-auto mb-6">
+                <div class="bg-white rounded-lg border border-gray-200 p-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Wallet to Approve</label>
                     <Dropdown
                         id="walletSelect"
                         v-model="chosenWallet"
                         :options="wallets"
                         optionLabel="name"
-                        placeholder="Choose a wallet for auth"
+                        placeholder="Choose a wallet"
                         class="w-full"
                     >
                         <template #value="slotProps">
                             <div v-if="slotProps.value" class="flex items-center gap-2">
-                                <i class="pi pi-wallet text-surface-500"></i>
+                                <i class="pi pi-wallet text-gray-600"></i>
                                 <span>{{ slotProps.value.name }}</span>
                             </div>
-                            <span v-else class="text-surface-500">
-                                        {{ slotProps.placeholder }}
-                                    </span>
+                            <span v-else class="text-gray-500">{{ slotProps.placeholder }}</span>
                         </template>
                         <template #option="slotProps">
                             <div class="flex items-center gap-2">
-                                <i class="pi pi-wallet text-surface-500"></i>
+                                <i class="pi pi-wallet text-gray-600"></i>
                                 <div>
                                     <div class="font-semibold">{{ slotProps.option.name }}</div>
-                                    <div class="text-xs text-surface-500">
-                                        {{ slotProps.option.nodeEndpoint }}
-                                    </div>
+                                    <div class="text-xs text-gray-500">{{ slotProps.option.nodeEndpoint }}</div>
                                 </div>
                             </div>
                         </template>
                     </Dropdown>
-                </template>
-            </Card>
-
-            <!-- Loading -->
-            <div v-if="isLoading" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                    <template #content>
-                        <div class="flex items-center gap-2 mb-4">
-                            <i class="pi pi-spin pi-spinner text-primary text-sm"></i>
-                            <span class="text-sm text-surface-500">Fetching approval data…</span>
-                        </div>
-                        <div class="flex flex-col gap-2">
-                            <Skeleton height="1.5rem" width="50%" />
-                            <Skeleton height="1rem" width="80%" />
-                            <Skeleton height="1rem" width="65%" />
-                            <Skeleton height="4rem" class="mt-2" />
-                        </div>
-                    </template>
-                </Card>
-                <Card>
-                    <template #content>
-                        <div class="flex flex-col gap-2">
-                            <Skeleton height="1.5rem" width="40%" />
-                            <Skeleton height="1rem" width="70%" />
-                            <Skeleton height="1rem" width="55%" />
-                        </div>
-                    </template>
-                </Card>
+                </div>
             </div>
 
-            <!-- Error -->
-            <Card v-else-if="loadError">
-                <template #content>
-                    <div class="flex items-start gap-3 text-red-700 py-2">
-                        <i class="pi pi-times-circle text-xl flex-shrink-0 mt-0.5"></i>
-                        <div>
-                            <p class="font-semibold text-sm">Failed to load approval data</p>
-                            <p class="text-xs mt-1 text-red-600 font-mono break-all">
-                                {{ loadError }}
+            <!-- Loading State -->
+            <div v-if="isLoading" class="max-w-4xl mx-auto space-y-4">
+                <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="pi pi-spin pi-spinner text-blue-600 text-sm"></i>
+                        <span class="text-sm text-gray-600">Loading approval data…</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div v-else-if="loadError" class="max-w-4xl mx-auto">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+                    <i class="pi pi-times-circle text-2xl text-red-600 flex-shrink-0"></i>
+                    <div>
+                        <p class="font-semibold text-sm text-red-900">Failed to load approval data</p>
+                        <p class="text-xs text-red-700 mt-1 font-mono break-all">{{ loadError }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div v-else-if="microblockToApprove" class="max-w-4xl mx-auto space-y-6">
+                <!-- What's happening section -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex gap-3">
+                        <i class="pi pi-info-circle text-blue-600 text-lg flex-shrink-0 mt-0.5"></i>
+                        <div class="text-sm text-blue-900">
+                            <p class="font-semibold mb-1">What you're approving</p>
+                            <p class="leading-relaxed">
+                                A new data block needs to be anchored to the blockchain. You are authorizing {{ applicationDescription?.name || 'this application' }}
+                                to add this block. Your approval will be cryptographically signed and recorded.
                             </p>
                         </div>
                     </div>
-                </template>
-            </Card>
-
-            <!-- Main content -->
-            <!-- Wallet selector -->
-
-            <div v-else-if="microblockToApprove" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                <!-- Left column: wallet + microblock sections -->
-                <div class="flex flex-col gap-4">
-
-
-                    <!-- Microblock card -->
-                    <Card>
-                        <template #content>
-                            <div class="flex flex-col gap-4">
-                                <!-- Microblock metadata -->
-                                <div>
-                                    <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide mb-3">
-                                        Microblock
-                                    </p>
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <div class="bg-surface-50 rounded-lg p-3">
-                                            <p class="text-xs text-surface-400 mb-1">Height</p>
-                                            <p class="text-sm font-bold text-surface-800">
-                                                {{ microblockToApprove.getHeight() }}
-                                            </p>
-                                        </div>
-                                        <div class="bg-surface-50 rounded-lg p-3 col-span-2">
-                                            <p class="text-xs text-surface-400 mb-1">Hash</p>
-                                            <p class="text-xs font-mono text-surface-600 break-all">
-                                                {{ microblockToApprove.getHash().encode() }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <Divider class="my-0" />
-
-                                <!-- Sections accordion -->
-                                <div>
-                                    <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide mb-3">
-                                        Sections
-                                        <span
-                                            class="ml-2 text-xs font-normal bg-surface-100 text-surface-600 px-1.5 py-0.5 rounded-full"
-                                        >
-                                            {{ microblockToApprove.getAllSections().length }}
-                                        </span>
-                                    </p>
-                                    <Accordion>
-                                        <AccordionPanel
-                                            v-for="(section, i) of microblockToApprove.getAllSections()"
-                                            :key="i"
-                                            :value="String(i)"
-                                        >
-                                            <AccordionHeader>
-                                                <div class="flex items-center gap-2">
-                                                    <span
-                                                        class="w-5 h-5 rounded-full bg-primary-50 text-primary text-xs flex items-center justify-center font-semibold flex-shrink-0"
-                                                    >
-                                                        {{ i + 1 }}
-                                                    </span>
-                                                    <span class="text-sm font-medium text-surface-700">
-                                                        {{ SectionLabel.getSectionLabelFromSection(section) }}
-                                                    </span>
-                                                    <span class="ml-auto text-xs text-surface-400 font-mono mr-2">
-                                                        type {{ section.type }}
-                                                    </span>
-                                                </div>
-                                            </AccordionHeader>
-                                            <AccordionContent>
-                                                <pre
-                                                    class="text-xs font-mono text-surface-600 whitespace-pre-wrap break-all bg-surface-50 rounded-lg p-3"
-                                                    >{{ JSON.stringify(section, null, 2) }}</pre
-                                                >
-                                            </AccordionContent>
-                                        </AccordionPanel>
-                                    </Accordion>
-                                </div>
-                            </div>
-                        </template>
-                    </Card>
                 </div>
 
-                <!-- Right column: virtual blockchain info + navigator -->
-                <div class="flex flex-col gap-4" v-if="virtualBlockchainContainingMicroblock">
-                    <!-- Application description card -->
-                    <Card v-if="applicationDescription">
-                        <template #content>
-                            <div class="flex items-start gap-4">
-                                <img
-                                    v-if="applicationDescription.logoUrl"
-                                    :src="applicationDescription.logoUrl"
-                                    :alt="applicationDescription.name"
-                                    class="w-12 h-12 rounded-xl object-contain flex-shrink-0 border border-surface-100 p-1"
-                                />
-                                <div
-                                    v-else
-                                    class="w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center flex-shrink-0"
-                                >
-                                    <i class="pi pi-box text-primary text-lg"></i>
-                                </div>
-                                <div class="min-w-0">
-                                    <h3 class="text-sm font-semibold text-surface-800">
-                                        {{ applicationDescription.name }}
-                                    </h3>
-                                    <a
-                                        v-if="applicationDescription.homepageUrl"
-                                        :href="applicationDescription.homepageUrl"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="text-xs text-primary hover:underline truncate block mt-0.5"
-                                    >
-                                        {{ applicationDescription.homepageUrl }}
-                                    </a>
-                                </div>
-                            </div>
-                            <p
-                                v-if="applicationDescription.description"
-                                class="text-xs text-surface-600 mt-3 leading-relaxed"
+                <!-- Application Information -->
+                <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Application</h2>
+                    <div class="flex items-start gap-4">
+                        <img
+                            v-if="applicationDescription?.logoUrl"
+                            :src="applicationDescription.logoUrl"
+                            :alt="applicationDescription.name"
+                            class="w-16 h-16 rounded-lg object-contain flex-shrink-0 border border-gray-200 p-1"
+                        />
+                        <div v-else class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <i class="pi pi-box text-gray-400 text-2xl"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-base font-semibold text-gray-900">{{ applicationDescription?.name }}</h3>
+                            <a
+                                v-if="applicationDescription?.homepageUrl"
+                                :href="applicationDescription.homepageUrl"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="text-sm text-blue-600 hover:underline block mt-1 break-all"
                             >
+                                {{ applicationDescription.homepageUrl }}
+                                <i class="pi pi-external-link text-xs ml-1"></i>
+                            </a>
+                            <p v-if="applicationDescription?.description" class="text-sm text-gray-600 mt-2 leading-relaxed">
                                 {{ applicationDescription.description }}
                             </p>
-                            <div class="mt-3 bg-surface-50 rounded-lg p-2">
-                                <p class="text-xs text-surface-400 mb-1">Application ID</p>
-                                <p class="text-xs font-mono text-surface-600 break-all">
-                                    {{ virtualBlockchainContainingMicroblock.getApplicationId().encode() }}
-                                </p>
-                            </div>
-                        </template>
-                    </Card>
+                        </div>
+                    </div>
+                </div>
 
-                    <!-- VB identity card -->
-                    <Card>
-                        <template #content>
-                            <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide mb-3">
-                                Virtual Blockchain
-                            </p>
-                            <div class="bg-surface-50 rounded-lg p-3 mb-4">
-                                <p class="text-xs text-surface-400 mb-1">Identifier</p>
-                                <p class="text-xs font-mono text-surface-600 break-all">
-                                    {{ virtualBlockchainContainingMicroblock.getId() }}
-                                </p>
-                            </div>
+                <!-- History / Timeline -->
+                <div class="bg-white rounded-lg border border-gray-200 p-6" v-if="virtualBlockchainContainingMicroblock">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Data Timeline</h2>
+                    <p class="text-sm text-gray-600 mb-4">
+                        This shows all data blocks in this ledger. The new block (height {{ microblockToApprove.getHeight() }}) will be added after the previous ones.
+                    </p>
+                    <VirtualBlockchainRecordNavigator
+                        v-if="accountCrypto"
+                        :application-ledger="virtualBlockchainContainingMicroblock"
+                        :account-crypto="accountCrypto"
+                    />
+                </div>
 
-                            <!-- Actors -->
-                            <div class="mb-4">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <i class="pi pi-users text-surface-400 text-xs"></i>
-                                    <p class="text-xs font-semibold text-surface-600">
-                                        Actors
-                                        <span
-                                            class="ml-1.5 text-xs font-normal bg-surface-100 text-surface-500 px-1.5 py-0.5 rounded-full"
-                                        >
-                                            {{ virtualBlockchainContainingMicroblock.getAllActors().length }}
-                                        </span>
-                                    </p>
-                                </div>
-                                <div
-                                    v-if="virtualBlockchainContainingMicroblock.getAllActors().length === 0"
-                                    class="text-xs text-surface-400 italic pl-2"
-                                >
-                                    No actors defined
-                                </div>
-                                <div v-else class="flex flex-col gap-1.5">
-                                    <div
-                                        v-for="(actor, idx) of virtualBlockchainContainingMicroblock.getAllActors()"
-                                        :key="idx"
-                                        class="flex items-center justify-between px-3 py-2 bg-surface-50 rounded-lg border border-surface-100"
-                                    >
-                                        <div class="flex items-center gap-2">
-                                            <div
-                                                class="w-6 h-6 rounded-full bg-primary-100 text-primary text-xs flex items-center justify-center font-bold flex-shrink-0"
-                                            >
-                                                {{ String(actor.name).charAt(0).toUpperCase() }}
-                                            </div>
-                                            <span class="text-sm font-medium text-surface-700">
-                                                {{ actor.name }}
-                                            </span>
-                                        </div>
-                                        <span
-                                            class="text-xs px-2 py-0.5 rounded-full"
-                                            :class="
-                                                actor.subscribed
-                                                    ? 'bg-green-100 text-green-700'
-                                                    : 'bg-surface-100 text-surface-500'
-                                            "
-                                        >
-                                            {{ actor.subscribed ? 'Subscribed' : 'Unsubscribed' }}
-                                        </span>
+                <!-- Participants & Channels -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6" v-if="virtualBlockchainContainingMicroblock">
+                    <!-- Participants -->
+                    <div class="bg-white rounded-lg border border-gray-200 p-6">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4">Participants</h2>
+                        <p class="text-xs text-gray-500 mb-4">Organizations involved in this data ledger</p>
+                        <div v-if="virtualBlockchainContainingMicroblock.getAllActors().length === 0" class="text-sm text-gray-500 italic">
+                            No participants defined
+                        </div>
+                        <div v-else class="space-y-2">
+                            <div
+                                v-for="(actor, idx) of virtualBlockchainContainingMicroblock.getAllActors()"
+                                :key="idx"
+                                class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs flex items-center justify-center font-bold flex-shrink-0">
+                                        {{ String(actor.name).charAt(0).toUpperCase() }}
                                     </div>
+                                    <span class="text-sm font-medium text-gray-900">{{ actor.name }}</span>
                                 </div>
-                            </div>
-
-                            <!-- Channels -->
-                            <div>
-                                <div class="flex items-center gap-2 mb-2">
-                                    <i class="pi pi-comments text-surface-400 text-xs"></i>
-                                    <p class="text-xs font-semibold text-surface-600">
-                                        Channels
-                                        <span
-                                            class="ml-1.5 text-xs font-normal bg-surface-100 text-surface-500 px-1.5 py-0.5 rounded-full"
-                                        >
-                                            {{ virtualBlockchainContainingMicroblock.getAllChannels().length }}
-                                        </span>
-                                    </p>
-                                </div>
-                                <div
-                                    v-if="virtualBlockchainContainingMicroblock.getAllChannels().length === 0"
-                                    class="text-xs text-surface-400 italic pl-2"
+                                <span
+                                    class="text-xs px-2 py-1 rounded-full"
+                                    :class="
+                                        actor.subscribed
+                                            ? 'bg-green-100 text-green-700'
+                                            : 'bg-gray-100 text-gray-600'
+                                    "
                                 >
-                                    No channels defined
+                                    {{ actor.subscribed ? 'Active' : 'Inactive' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Channels -->
+                    <div class="bg-white rounded-lg border border-gray-200 p-6">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4">Channels</h2>
+                        <p class="text-xs text-gray-500 mb-4">Communication channels in this ledger</p>
+                        <div v-if="virtualBlockchainContainingMicroblock.getAllChannels().length === 0" class="text-sm text-gray-500 italic">
+                            No channels defined
+                        </div>
+                        <div v-else class="space-y-2">
+                            <div
+                                v-for="(channel, idx) of virtualBlockchainContainingMicroblock.getAllChannels()"
+                                :key="idx"
+                                class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <i
+                                        class="pi text-lg"
+                                        :class="
+                                            channel.isPrivate
+                                                ? 'pi-lock text-amber-600'
+                                                : 'pi-lock-open text-green-600'
+                                        "
+                                    ></i>
+                                    <span class="text-sm font-medium text-gray-900">{{ channel.name }}</span>
                                 </div>
-                                <div v-else class="flex flex-col gap-1.5">
-                                    <div
-                                        v-for="(channel, idx) of virtualBlockchainContainingMicroblock.getAllChannels()"
-                                        :key="idx"
-                                        class="flex items-center justify-between px-3 py-2 bg-surface-50 rounded-lg border border-surface-100"
-                                    >
-                                        <div class="flex items-center gap-2">
-                                            <i
-                                                class="pi text-sm"
-                                                :class="
-                                                    channel.isPrivate
-                                                        ? 'pi-lock text-amber-500'
-                                                        : 'pi-lock-open text-green-500'
-                                                "
-                                            ></i>
-                                            <span class="text-sm font-medium text-surface-700">
-                                                {{ channel.name }}
-                                            </span>
-                                        </div>
-                                        <span
-                                            class="text-xs px-2 py-0.5 rounded-full"
-                                            :class="
-                                                channel.isPrivate
-                                                    ? 'bg-amber-100 text-amber-700'
-                                                    : 'bg-green-100 text-green-700'
-                                            "
-                                        >
-                                            {{ channel.isPrivate ? 'Private' : 'Public' }}
-                                        </span>
-                                    </div>
+                                <span
+                                    class="text-xs px-2 py-1 rounded-full"
+                                    :class="
+                                        channel.isPrivate
+                                            ? 'bg-amber-100 text-amber-700'
+                                            : 'bg-green-100 text-green-700'
+                                    "
+                                >
+                                    {{ channel.isPrivate ? 'Private' : 'Public' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Details (Microblock) - Hidden by default -->
+                <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <button
+                        @click="showAdvanced = !showAdvanced"
+                        class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    >
+                        <h2 class="text-lg font-semibold text-gray-900">Technical Details</h2>
+                        <i :class="['pi', showAdvanced ? 'pi-chevron-down' : 'pi-chevron-right']" class="text-gray-600"></i>
+                    </button>
+                    <div v-if="showAdvanced" class="border-t border-gray-200 p-6 bg-gray-50 space-y-4">
+                        <p class="text-xs text-gray-600">
+                            Advanced information for developers and technical users.
+                        </p>
+
+                        <!-- Microblock Info -->
+                        <div class="bg-white rounded-lg border border-gray-200 p-4">
+                            <h3 class="text-sm font-semibold text-gray-900 mb-3">Data Block (Microblock)</h3>
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Height:</span>
+                                    <span class="font-mono text-gray-900">{{ microblockToApprove.getHeight() }}</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Hash:</span>
+                                    <span class="font-mono text-xs text-gray-700 break-all text-right ml-2">{{ microblockToApprove.getHash().encode() }}</span>
                                 </div>
                             </div>
-                        </template>
-                    </Card>
+                        </div>
 
-                    <!-- Record navigator card -->
-                    <Card>
-                        <template #content>
-                            <p class="text-xs font-semibold text-surface-500 uppercase tracking-wide mb-3">History</p>
-                            <VirtualBlockchainRecordNavigator
-                                v-if="accountCrypto && virtualBlockchainContainingMicroblock"
-                                :application-ledger="virtualBlockchainContainingMicroblock"
-                                :account-crypto="accountCrypto"
-                            />
-                        </template>
-                    </Card>
+                        <!-- Sections -->
+                        <div class="bg-white rounded-lg border border-gray-200 p-4">
+                            <h3 class="text-sm font-semibold text-gray-900 mb-3">Data Sections ({{ microblockToApprove.getAllSections().length }})</h3>
+                            <Accordion>
+                                <AccordionPanel
+                                    v-for="(section, i) of microblockToApprove.getAllSections()"
+                                    :key="i"
+                                    :value="String(i)"
+                                >
+                                    <AccordionHeader>
+                                        <div class="flex items-center gap-2 text-sm">
+                                            <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-xs flex items-center justify-center font-semibold">
+                                                {{ i + 1 }}
+                                            </span>
+                                            <span class="font-medium text-gray-900">
+                                                {{ SectionLabel.getSectionLabelFromSection(section) }}
+                                            </span>
+                                            <span class="ml-auto text-xs text-gray-500 font-mono">type {{ section.type }}</span>
+                                        </div>
+                                    </AccordionHeader>
+                                    <AccordionContent>
+                                        <pre class="text-xs font-mono text-gray-700 whitespace-pre-wrap break-all bg-gray-100 rounded p-3 overflow-auto max-h-96">{{ JSON.stringify(section, null, 2) }}</pre>
+                                    </AccordionContent>
+                                </AccordionPanel>
+                            </Accordion>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
