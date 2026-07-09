@@ -586,16 +586,39 @@ async function sendRequestToOperator(serverUrl: string, request: object): Promis
                 </div>
 
                 <!-- History / Timeline -->
-                <div class="bg-white rounded-lg border border-gray-200 p-6" v-if="virtualBlockchainContainingMicroblock">
-                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Data Timeline</h2>
-                    <p class="text-sm text-gray-600 mb-4">
-                        This shows all data blocks in this ledger. The new block (height {{ microblockToApprove.getHeight() }}) will be added after the previous ones.
-                    </p>
-                    <VirtualBlockchainRecordNavigator
-                        v-if="accountCrypto"
-                        :application-ledger="virtualBlockchainContainingMicroblock"
-                        :account-crypto="accountCrypto"
-                    />
+                <div class="bg-white rounded-lg border border-gray-200 p-6 flex flex-col" v-if="virtualBlockchainContainingMicroblock">
+                    <div class="mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-2">Data Timeline</h2>
+                        <p class="text-sm text-gray-600">
+                            This shows all data blocks in this ledger. The new block (height {{ microblockToApprove.getHeight() }}) will be added after the previous ones.
+                        </p>
+                    </div>
+                    <div class="flex-1 mb-4">
+                        <VirtualBlockchainRecordNavigator
+                            v-if="accountCrypto"
+                            :application-ledger="virtualBlockchainContainingMicroblock"
+                            :account-crypto="accountCrypto"
+                        />
+                    </div>
+                    <div class="flex items-center justify-end gap-2">
+                        <Button
+                            label="Reject"
+                            icon="pi pi-times"
+                            severity="secondary"
+                            size="small"
+                            outlined
+                            :disabled="isProcessing || isLoading"
+                            @click="emit('reject')"
+                        />
+                        <Button
+                            label="Approve"
+                            icon="pi pi-check"
+                            size="small"
+                            :loading="isProcessing"
+                            :disabled="!microblockToApprove || !!loadError"
+                            @click="approve"
+                        />
+                    </div>
                 </div>
 
                 <!-- Participants & Channels -->
