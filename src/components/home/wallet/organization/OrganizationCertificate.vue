@@ -32,21 +32,22 @@ import {useRoute} from "vue-router";
 import {useOnChainStore} from "../../../../stores/onchain.ts";
 import {storeToRefs} from "pinia";
 import * as orgRepo from "../../../../db/repositories/organizationRepository.ts";
-import {CustomSection, SectionType} from "@cmts-dev/carmentis-sdk-core";
+import {CustomSection, SectionType, Hash, ProviderFactory} from "@cmts-dev/carmentis-sdk-core";
+import {useAsyncState} from "@vueuse/core";
+import {useQuery} from "@tanstack/vue-query";
+import * as walletRepo from "../../../../db/repositories/walletRepository.ts";
+import {DeskLogger} from "../../../../utils/DeskLogger.ts";
 
-
-const props = defineProps<{
-    walletId: number;
-}>();
 
 // define toast, clipboard and route
+const logger = DeskLogger.getLogger().getChild("organization")
 const clipboard = useClipboard();
 const toast = useToast();
 const route = useRoute();
 const onChainStore = useOnChainStore();
 const { isPublishingCustomJson } = storeToRefs(onChainStore);
 
-const walletId = ref(props.walletId);
+const walletId =  computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 const encodedWalletPublicKey = computedAsync(async () => {
     const pk = await WalletUtils.getPublicKeyFromWalletId(walletId.value);
@@ -90,6 +91,7 @@ const isLoadingCert = ref(false);
 // compute the unsigned jwt
 const unsignedJwt = computedAsync(async () => {
     if (certificatesChain.value.length === 0) return null;
+    if (!didIssuer.value) return null;
     const cert = await Certificate.importFromPem(certificatesChain.value[0]);
     const unsignedPayload = {
         iss: didIssuer.value,
@@ -97,7 +99,6 @@ const unsignedJwt = computedAsync(async () => {
         iat: Math.floor(Date.now() / 1000),
         exp: cert.getNotAfter(),
     };
-    console.log(unsignedPayload)
     return new UnsecuredJWT(unsignedPayload)
         .setIssuedAt()
         .encode();
@@ -112,7 +113,7 @@ const isVerifyingSignature = ref(false);
 const signatureVerificationResult = ref<{valid: boolean; error?: string} | null>(null);
 const signedJwtPayload = computedAsync(async () => {
     if (signedJwtInput.value.trim() === "") return {};
-    return decodeJwt(signedJwtInput.value);
+    return signedJwtInput.value;
 })
 
 const decodeBase64Url = (str: string): string => {
@@ -231,6 +232,7 @@ const isAnchoringCertificate = ref(false);
 const hasAnchoredCertificate = ref(false);
 
 const anchorCertificate = async () => {
+    if (!walletId.value) throw new Error("No wallet id defined");
     if (!signedJwtInput.value.trim()) {
         toast.add({ severity: 'error', summary: "Error", detail: "No signed JWT available", life: 3000 });
         return;
@@ -245,19 +247,10 @@ const anchorCertificate = async () => {
         isAnchoringCertificate.value = true;
 
         // Publish the certificate chain and signed JWT as custom data
-        /*
-        const customData = {
-            type: "x509-certificate-chain",
-            certificateChain: certificatesChain.value,
-            signedJwt: signedJwtInput.value,
-            payload: signedJwtPayload.value
-        };
-         */
         const customData: CustomSection = {
             type: SectionType.CUSTOM,
             __cert__: {
                 __jwt__: signedJwtPayload.value,
-                //__x5c__: certificatesChain.value,
             }
         }
 
@@ -268,6 +261,7 @@ const anchorCertificate = async () => {
         });
 
         hasAnchoredCertificate.value = true;
+        await refetchCertificateSections();
         toast.add({ severity: 'success', summary: "Success", detail: "Certificate chain anchored on-chain", life: 3000 });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -277,13 +271,148 @@ const anchorCertificate = async () => {
         isAnchoringCertificate.value = false;
     }
 };
+
+// Load anchored certificates from on-chain
+const { state: wallet } = useAsyncState(
+    () => walletRepo.getWalletById(walletId.value),
+    null,
+    { immediate: true },
+);
+
+const { state: organization } = useAsyncState(
+    () => orgRepo.getOrganizationById(orgId.value),
+    null,
+    { immediate: true },
+);
+
+interface CertificateSectionRow {
+    height: number;
+    hash: string;
+    issuer?: string;
+    data: Record<string, unknown>;
+}
+
+const selectedCertificateSection = ref<CertificateSectionRow | null>(null);
+const showCertificateSectionDialog = ref(false);
+
+const {
+    data: certificateSections,
+    isLoading: isLoadingCertificateSections,
+    refetch: refetchCertificateSections,
+} = useQuery({
+    queryKey: ['organization-certificate-sections', orgId],
+    enabled: computed(() => isOrganizationFoundOnChain.value === true),
+    queryFn: async (): Promise<CertificateSectionRow[]> => {
+        if (!organization.value?.vbId || !wallet.value) return [];
+        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
+        const orgVB = await provider.loadOrganizationVirtualBlockchain(Hash.from(organization.value.vbId));
+        const hashes = orgVB.getAllMicroblockHashes();
+        const rows: CertificateSectionRow[] = [];
+        for (let height = 1; height <= hashes.length; height++) {
+            const mb = await orgVB.getMicroblock(height);
+            const customSecs = mb.getSectionsByType(SectionType.CUSTOM);
+            for (const sec of customSecs) {
+                const data = sec as Record<string, unknown>;
+                if (data.__cert__) {
+                    rows.push({ height, hash: hashes[height - 1].encode(), data });
+                }
+            }
+        }
+        return rows;
+    },
+});
 </script>
 
 <template>
-    <div>
-        <h2 class="text-lg font-semibold text-gray-900 mb-2">Organization Certificate</h2>
-        <p class="text-sm text-gray-600 mb-4">From this chain, we construct an unsigned jwt and we expect the same jwt, this time signed by the external key.</p>
-        <Button label="Attach x509 Certificates" icon="pi pi-lock" @click="showOpenDialog = true" />
+    <div class="space-y-6">
+        <!-- Header -->
+        <div>
+            <h2 class="text-lg font-semibold text-gray-900 mb-2">Public Key Authentication (Wallet ID: {{walletId}})</h2>
+            <p class="text-sm text-gray-600 mb-4">
+                Authenticate your organization's public key using an external certificate chain. Upload an x509 certificate chain,
+                generate a signature with your private key, and anchor it on-chain to cryptographically prove your identity.
+            </p>
+        </div>
+
+        <!-- Lock message if organization not on-chain -->
+        <div
+            v-if="isOrganizationFoundOnChain !== true"
+            class="flex items-start gap-3 px-4 py-4 bg-gray-50 border border-gray-200 rounded-lg"
+        >
+            <i class="pi pi-lock text-gray-500 mt-0.5 text-lg"></i>
+            <div>
+                <p class="text-sm font-medium text-gray-700">Feature locked</p>
+                <p class="text-sm text-gray-500 mt-1">
+                    Certificate management is only available once the organization has been published on the Carmentis network.
+                </p>
+            </div>
+        </div>
+
+        <!-- Anchored Certificates Section -->
+        <div v-if="isOrganizationFoundOnChain === true" class="space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    Anchored Certificates
+                </h3>
+                <Button
+                    label="Attach New Certificate"
+                    icon="pi pi-plus"
+                    size="small"
+                    @click="showOpenDialog = true"
+                />
+            </div>
+
+            <!-- Certificates Table -->
+            <DataTable
+                :value="certificateSections ?? []"
+                :loading="isLoadingCertificateSections"
+                size="small"
+                striped-rows
+                :rows="5"
+                paginator
+                :rows-per-page-options="[5, 10]"
+                @row-click="(e) => { selectedCertificateSection = e.data; showCertificateSectionDialog = true; }"
+                row-hover
+                class="cursor-pointer"
+            >
+                <template #empty>
+                    <div class="text-center py-4 text-gray-500 text-sm">
+                        No certificates anchored yet. Click "Attach New Certificate" to get started.
+                    </div>
+                </template>
+                <Column field="height" header="Height" style="width: 5rem" />
+                <Column field="hash" header="Microblock Hash">
+                    <template #body="{ data: row }">
+                        <code class="text-xs bg-gray-100 px-1 py-0.5 rounded truncate block max-w-xs">
+                            {{ row.hash }}
+                        </code>
+                    </template>
+                </Column>
+                <Column header="Action" style="width: 6rem">
+                    <template #body="{ data: row }">
+                        <Button
+                            icon="pi pi-eye"
+                            label="View"
+                            size="small"
+                            text
+                            @click.stop="() => {
+                                selectedCertificateSection = row;
+                                showCertificateSectionDialog = true
+                            }"
+                        />
+                    </template>
+                </Column>
+            </DataTable>
+        </div>
+
+        <!-- Attach button for when organization is not on-chain -->
+        <Button
+            v-if="isOrganizationFoundOnChain !== true"
+            label="Attach x509 Certificates"
+            icon="pi pi-lock"
+            @click="showOpenDialog = true"
+            disabled
+        />
     </div>
 
     <Dialog
@@ -544,5 +673,37 @@ const anchorCertificate = async () => {
                 </StepPanels>
             </Stepper>
         </div>
+    </Dialog>
+
+    <!-- Certificate Section Detail Dialog -->
+    <Dialog
+        v-model:visible="showCertificateSectionDialog"
+        header="Certificate Details"
+        modal
+        class="w-full max-w-2xl"
+    >
+        <div v-if="selectedCertificateSection" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <span class="font-medium text-gray-600">Height</span>
+                    <p class="mt-1 text-gray-900">{{ selectedCertificateSection.height }}</p>
+                </div>
+                <div>
+                    <span class="font-medium text-gray-600">Microblock Hash</span>
+                    <code class="mt-1 block text-xs bg-gray-100 px-2 py-1 rounded break-all">
+                        {{ selectedCertificateSection.hash }}
+                    </code>
+                </div>
+            </div>
+            <div>
+                <span class="font-medium text-gray-600 text-sm">Certificate Data</span>
+                <pre class="mt-1 bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm overflow-auto max-h-96">{{ JSON.stringify(selectedCertificateSection.data, null, 2) }}</pre>
+            </div>
+        </div>
+        <template #footer>
+            <div class="flex justify-end">
+                <Button label="Close" @click="showCertificateSectionDialog = false" severity="secondary" />
+            </div>
+        </template>
     </Dialog>
 </template>
