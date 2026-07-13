@@ -45,6 +45,10 @@ export class JwkSignatureKeyExporter {
         return `did:jwk:${base64url.encode(JSON.stringify(jwk))}`;
     }
 
+    static exportJwkAsDidJwk(jwk: JWK): string {
+        return `did:jwk:${base64url.encode(JSON.stringify(jwk))}`;
+    }
+
     static async computeDidJwkFromSeed(encodedSeed: string): Promise<string> {
         const wc = WalletCrypto.fromSeed(new SeedEncoder().decode(encodedSeed));
         const sk = await wc.getDefaultAccountCrypto().getPrivateSignatureKey(SignatureSchemeId.ED25519);

@@ -17,6 +17,8 @@ import {useAsyncState} from "@vueuse/core";
 import * as walletRepo from "../../../../db/repositories/walletRepository.ts";
 import * as orgRepo from "../../../../db/repositories/organizationRepository.ts";
 import {useQuery} from "@tanstack/vue-query";
+import OrganizationCertificate from "./OrganizationCertificate.vue";
+import { useStorage } from '@vueuse/core'
 
 const route = useRoute();
 
@@ -27,6 +29,7 @@ const { data: organization } = useQuery({
     queryFn: () => orgRepo.getOrganizationById(orgId.value),
 })
 
+const activeTab = useStorage('activeOrganizationTab', '0', sessionStorage)
 const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnChain');
 </script>
 <template>
@@ -81,11 +84,12 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
 
             <!-- Nodes, Applications & Custom Data Tabs -->
             <div class="mt-6">
-                <Tabs value="0">
+                <Tabs v-model:value="activeTab">
                     <TabList>
                         <Tab value="0">Nodes</Tab>
                         <Tab value="1">Applications</Tab>
-                        <Tab value="2">Custom Data</Tab>
+                        <Tab value="2">Certificate</Tab>
+                        <Tab value="3">Custom Data</Tab>
                     </TabList>
                     <TabPanels>
                         <TabPanel value="0">
@@ -97,6 +101,10 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
                                 v-model:is-organization-found-on-chain="isOrganizationFoundOnChain"/>
                         </TabPanel>
                         <TabPanel value="2">
+                            <OrganizationCertificate
+                                v-model:is-organization-found-on-chain="isOrganizationFoundOnChain"/>
+                        </TabPanel>
+                        <TabPanel value="3">
                             <OrganizationCustomData
                                 v-model:is-organization-found-on-chain="isOrganizationFoundOnChain"/>
                         </TabPanel>

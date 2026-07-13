@@ -9,6 +9,8 @@ import Aura from '@primeuix/themes/aura';
 import ToastService from 'primevue/toastservice';
 import ConfirmationService from 'primevue/confirmationservice';
 import {QueryClient, VueQueryPlugin} from '@tanstack/vue-query';
+import Tooltip from 'primevue/tooltip';
+
 import { getDb } from './db/database.ts';
 import {Logger} from '@cmts-dev/carmentis-sdk-core';
 import { configureSync, getConsoleSink } from "@logtape/logtape";
@@ -46,6 +48,7 @@ const queryClient = new QueryClient({
 const app = createApp(App);
 app.use(createPinia());
 app.use(ToastService);
+app.directive('tooltip', Tooltip);
 app.use(ConfirmationService);
 app.use(VueQueryPlugin, {
     queryClient,
