@@ -28,16 +28,26 @@ import {UnsecuredJWT, jwtVerify, decodeJwt} from "jose";
 import {JwkSignatureKeyExporter} from "../../../../utils/jwk-signature-key-exporter.ts";
 import {importJWK} from "jose";
 import {useClipboard} from "../../../../composables/useClipboard.ts";
+import {useRoute} from "vue-router";
+import {useOnChainStore} from "../../../../stores/onchain.ts";
+import {storeToRefs} from "pinia";
+import * as orgRepo from "../../../../db/repositories/organizationRepository.ts";
+import {CustomSection, SectionType} from "@cmts-dev/carmentis-sdk-core";
 
 
 const props = defineProps<{
     walletId: number;
 }>();
 
-// define toast and clipboard
+// define toast, clipboard and route
 const clipboard = useClipboard();
 const toast = useToast();
+const route = useRoute();
+const onChainStore = useOnChainStore();
+const { isPublishingCustomJson } = storeToRefs(onChainStore);
+
 const walletId = ref(props.walletId);
+const orgId = computed(() => Number(route.params.orgId));
 const encodedWalletPublicKey = computedAsync(async () => {
     const pk = await WalletUtils.getPublicKeyFromWalletId(walletId.value);
     return WalletUtils.encodePublicKey(pk);
@@ -214,6 +224,58 @@ const addCertificate = async () => {
 const removeCertificate = (index: number) => {
     certificatesList.value.splice(index, 1);
     certificatesChain.value.splice(index, 1);
+};
+
+// Step 3: Anchor Certificate
+const isAnchoringCertificate = ref(false);
+const hasAnchoredCertificate = ref(false);
+
+const anchorCertificate = async () => {
+    if (!signedJwtInput.value.trim()) {
+        toast.add({ severity: 'error', summary: "Error", detail: "No signed JWT available", life: 3000 });
+        return;
+    }
+
+    if (!signatureVerificationResult.value?.valid) {
+        toast.add({ severity: 'error', summary: "Error", detail: "Please verify the signature before anchoring", life: 3000 });
+        return;
+    }
+
+    try {
+        isAnchoringCertificate.value = true;
+
+        // Publish the certificate chain and signed JWT as custom data
+        /*
+        const customData = {
+            type: "x509-certificate-chain",
+            certificateChain: certificatesChain.value,
+            signedJwt: signedJwtInput.value,
+            payload: signedJwtPayload.value
+        };
+         */
+        const customData: CustomSection = {
+            type: SectionType.CUSTOM,
+            __cert__: {
+                __jwt__: signedJwtPayload.value,
+                //__x5c__: certificatesChain.value,
+            }
+        }
+
+        await onChainStore.publishCustomJson({
+            walletId: walletId.value,
+            orgId: orgId.value,
+            json: customData,
+        });
+
+        hasAnchoredCertificate.value = true;
+        toast.add({ severity: 'success', summary: "Success", detail: "Certificate chain anchored on-chain", life: 3000 });
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        console.error("Error anchoring certificate:", error);
+        toast.add({ severity: 'error', summary: "Anchoring failed", detail: errorMessage, life: 3000 });
+    } finally {
+        isAnchoringCertificate.value = false;
+    }
 };
 </script>
 
@@ -411,15 +473,72 @@ const removeCertificate = (index: number) => {
                         </div>
                     </StepPanel>
 
-                    <!-- Step 3: Approve -->
+                    <!-- Step 3: Approve/Anchor -->
                     <StepPanel v-slot="{ activateCallback }" value="3">
-                        <div class="flex flex-col h-48">
-                            <div class="border-2 border-dashed border-surface-200 dark:border-surface-700 rounded bg-surface-50 dark:bg-surface-950 flex-auto flex justify-center items-center font-medium">Approval Content</div>
+                        <div class="space-y-6 py-6">
+                            <!-- Certificate Chain Summary -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-900 mb-2">
+                                    Certificate Chain Summary
+                                </label>
+                                <div class="bg-gray-50 border border-gray-300 rounded-lg p-4 space-y-2">
+                                    <div class="text-sm">
+                                        <span class="font-medium text-gray-700">Certificates:</span>
+                                        <span class="text-gray-900 ml-2">{{ certificatesList.length }} certificate(s)</span>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <div v-for="(cert, index) in certificatesList" :key="index" class="text-sm text-gray-600">
+                                            <span class="font-medium">{{ index + 1 }}.</span> {{ cert.cn }} ({{ cert.keyType }})
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Signed JWT Payload -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-900 mb-2">
+                                    Signed JWT Payload
+                                </label>
+                                <div class="bg-gray-50 border border-gray-300 rounded-lg p-4 max-h-64 overflow-auto">
+                                    <pre class="text-xs font-mono text-gray-700">{{ JSON.stringify(signedJwtPayload, null, 2) }}</pre>
+                                </div>
+                            </div>
+
+                            <!-- Success Message -->
+                            <div
+                                v-if="hasAnchoredCertificate"
+                                class="flex items-start gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg"
+                            >
+                                <i class="pi pi-check-circle text-green-600 mt-0.5"></i>
+                                <div class="text-sm text-green-800">
+                                    <span class="font-semibold block">Certificate anchored successfully</span>
+                                    <span class="text-xs">The certificate chain has been published on-chain as a custom section</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="pt-6">
-                            <Button severity="secondary" @click="activateCallback('2')">
+
+                        <div class="flex pt-6 justify-between">
+                            <Button
+                                severity="secondary"
+                                @click="activateCallback('2')"
+                                :disabled="isAnchoringCertificate"
+                            >
                                 Back
                             </Button>
+                            <Button
+                                v-if="!hasAnchoredCertificate"
+                                label="Anchor Certificate"
+                                icon="pi pi-cloud-upload"
+                                :loading="isAnchoringCertificate"
+                                @click="anchorCertificate"
+                            />
+                            <Button
+                                v-else
+                                label="Done"
+                                icon="pi pi-check"
+                                severity="success"
+                                @click="showOpenDialog = false"
+                            />
                         </div>
                     </StepPanel>
                 </StepPanels>
