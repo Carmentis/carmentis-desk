@@ -215,4 +215,16 @@ describe("Certificate", () => {
          */
 
     })
+
+    it("Should sign", async () => {
+        const unsignedJwt = "eyJhbGciOiJub25lIn0.eyJpYXQiOjE3ODM5NTMwNjksImV4cCI6MTgxNTQ2ODg5MH0.";
+
+        const alg = detectAlgorithmFromPem(CERT);
+        const isk = await importSkFromPem(SK, alg);
+        const payload = decodeJwt(unsignedJwt);
+        const signedJwt = await new SignJWT(payload)
+            .setProtectedHeader({alg: alg})
+            .sign(isk);
+        console.log(signedJwt)
+    })
 })

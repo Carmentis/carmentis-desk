@@ -24,13 +24,18 @@ import {useToast} from "primevue/usetoast";
 import {CertificatesChain} from "../../../../utils/CertificatesChain.ts";
 import {Certificate} from "../../../../utils/Certificate.ts";
 import {WalletUtils} from "../../../../utils/WalletUtils.ts";
-import {UnsecuredJWT} from "jose";
+import {UnsecuredJWT, jwtVerify, decodeJwt} from "jose";
 import {JwkSignatureKeyExporter} from "../../../../utils/jwk-signature-key-exporter.ts";
+import {importJWK} from "jose";
+import {useClipboard} from "../../../../composables/useClipboard.ts";
 
 
 const props = defineProps<{
     walletId: number;
 }>();
+
+// define toast and clipboard
+const clipboard = useClipboard();
 const toast = useToast();
 const walletId = ref(props.walletId);
 const encodedWalletPublicKey = computedAsync(async () => {
@@ -53,7 +58,7 @@ const isValidChain = computedAsync(async () => {
 const publicKeyJwk = computedAsync(async () => {
     if (certificatesChain.value.length === 0) return null;
     const cert = await Certificate.importFromPem(certificatesChain.value[0]);
-    return await cert.getPublicKeyToJwk();
+    return await cert.getPublicKeyToJwkWithChain(certificatesChain.value);
 });
 
 // formatted public key of the first certificate
@@ -91,11 +96,90 @@ const unsignedJwt = computedAsync(async () => {
 // dialog opening state
 const showOpenDialog = ref(false);
 
+// JWT signature verification
+const signedJwtInput = ref("");
+const isVerifyingSignature = ref(false);
+const signatureVerificationResult = ref<{valid: boolean; error?: string} | null>(null);
+const signedJwtPayload = computedAsync(async () => {
+    if (signedJwtInput.value.trim() === "") return {};
+    return decodeJwt(signedJwtInput.value);
+})
+
+const decodeBase64Url = (str: string): string => {
+    let output = str.replace(/-/g, '+').replace(/_/g, '/');
+    switch (output.length % 4) {
+        case 0:
+            break;
+        case 2:
+            output += '==';
+            break;
+        case 3:
+            output += '=';
+            break;
+        default:
+            throw new Error('Invalid base64url');
+    }
+    return decodeURIComponent(atob(output).split('').map((c) => {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+};
+
+const verifySignature = async () => {
+    if (!signedJwtInput.value.trim()) {
+        toast.add({ severity: 'warn', summary: "Empty input", detail: "Please paste the signed JWT", life: 3000 });
+        return;
+    }
+
+    try {
+        isVerifyingSignature.value = true;
+        signatureVerificationResult.value = null;
+
+        // Get the public key from the first certificate
+        if (!publicKeyJwk.value) {
+            throw new Error("No public key available from certificate chain");
+        }
+
+        const key = await importJWK(publicKeyJwk.value);
+
+        // Verify the JWT signature
+        const verified = await jwtVerify(signedJwtInput.value, key);
+
+        // Check if the payload matches the unsigned JWT
+        const unsignedPayloadStr = decodeBase64Url(unsignedJwt.value!.split('.')[1]);
+        const unsignedPayload = JSON.parse(unsignedPayloadStr);
+
+        const signedPayload = verified.payload;
+
+        const payloadMatches = JSON.stringify(unsignedPayload) === JSON.stringify(signedPayload);
+
+        if (payloadMatches) {
+            signatureVerificationResult.value = { valid: true };
+            toast.add({ severity: 'success', summary: "Signature valid", detail: "The JWT signature is valid and matches the certificate chain", life: 3000 });
+        } else {
+            signatureVerificationResult.value = {
+                valid: false,
+                error: "Payload mismatch: signed JWT contains different data than expected"
+            };
+            toast.add({ severity: 'error', summary: "Signature invalid", detail: "The payload doesn't match", life: 3000 });
+        }
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        signatureVerificationResult.value = {
+            valid: false,
+            error: errorMessage
+        };
+        console.error("Signature verification failed:", error);
+        toast.add({ severity: 'error', summary: "Verification failed", detail: errorMessage, life: 3000 });
+    } finally {
+        isVerifyingSignature.value = false;
+    }
+};
+
 const addCertificate = async () => {
     const pem = certificateInput.value.trim();
 
     if (!pem) {
-        toast.add({ summary: "Empty input", detail: "Please paste a certificate in PEM format" });
+        toast.add({ summary: "Empty input", detail: "Please paste a certificate in PEM format", life: 3000 });
         return;
     }
 
@@ -118,10 +202,10 @@ const addCertificate = async () => {
         // Clear input
         certificateInput.value = "";
 
-        toast.add({ summary: "Success", detail: `Certificate added: ${cn}` });
+        toast.add({ summary: "Success", detail: `Certificate added: ${cn}`, life: 3000 });
     } catch (error) {
         console.error("Error importing certificate:", error);
-        toast.add({ severity: 'error', summary: "Error", detail: "Failed to parse certificate. Ensure it's in valid PEM format." });
+        toast.add({ severity: 'error', summary: "Error", detail: "Failed to parse certificate. Ensure it's in valid PEM format.", life: 3000 });
     } finally {
         isLoadingCert.value = false;
     }
@@ -249,14 +333,79 @@ const removeCertificate = (index: number) => {
 
                     <!-- Step 2: JWT signature -->
                     <StepPanel v-slot="{ activateCallback }" value="2">
-                        <div class="flex flex-col h-48">
-                            <div class="border-2 border-dashed border-surface-200 dark:border-surface-700 rounded bg-surface-50 dark:bg-surface-950 flex-auto flex justify-center items-center font-medium">JWT Signature Content</div>
+                        <div class="space-y-6 py-6">
+                            <!-- Unsigned JWT Display -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-900 mb-2">
+                                    Unsigned JWT (to be signed externally)
+                                </label>
+                                <div class="bg-gray-50 border border-gray-300 rounded-lg p-4">
+                                    <code class="text-xs text-gray-700 break-all font-mono block">
+                                        {{ unsignedJwt || 'Generating...' }}
+                                    </code>
+                                </div>
+                                <Button
+                                    v-if="unsignedJwt"
+                                    label="Copy to Clipboard"
+                                    icon="pi pi-copy"
+                                    text
+                                    @click="clipboard.copyToClipboard(unsignedJwt, 'Unsigned JWT')"
+                                    class="mt-2"
+                                />
+                            </div>
+
+                            <!-- Signed JWT Input -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-900 mb-2">
+                                    Signed JWT (paste the signed version here)
+                                </label>
+                                <textarea
+                                    v-model="signedJwtInput"
+                                    placeholder="eyJhbGciOiJFZERTQSJ9.eyJpc3MiOiJkaWQ6andrOi..."
+                                    class="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <Button
+                                    label="Verify Signature"
+                                    icon="pi pi-check"
+                                    :loading="isVerifyingSignature"
+                                    class="mt-3"
+                                    @click="verifySignature"
+                                />
+                            </div>
+
+                            <!-- Verification Result -->
+                            <div v-if="signatureVerificationResult">
+                                <div
+                                    v-if="signatureVerificationResult.valid"
+                                    class="flex items-start gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg"
+                                >
+                                    <i class="pi pi-check-circle text-green-600 mt-0.5"></i>
+                                    <div class="text-sm text-green-800">
+                                        <span class="font-semibold block">Signature is valid</span>
+                                        <span class="text-xs">The JWT signature has been verified against the certificate chain</span>
+                                    </div>
+                                </div>
+                                <div
+                                    v-else
+                                    class="flex items-start gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-lg"
+                                >
+                                    <i class="pi pi-times-circle text-red-600 mt-0.5"></i>
+                                    <div class="text-sm text-red-800">
+                                        <span class="font-semibold block">Signature is invalid</span>
+                                        <span class="text-xs">{{ signatureVerificationResult.error }}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
                         <div class="flex pt-6 justify-between">
                             <Button severity="secondary" @click="activateCallback('1')">
                                 Back
                             </Button>
-                            <Button @click="activateCallback('3')">
+                            <Button
+                                @click="activateCallback('3')"
+                                :disabled="!signatureVerificationResult?.valid"
+                            >
                                 Next
                             </Button>
                         </div>
