@@ -303,18 +303,22 @@ const {
     queryKey: ['organization-certificate-sections', orgId],
     enabled: computed(() => isOrganizationFoundOnChain.value === true),
     queryFn: async (): Promise<CertificateSectionRow[]> => {
-        if (!organization.value?.vbId || !wallet.value) return [];
+        if (!organization.value?.vbId || !wallet.value) {
+            logger.warning("Some dependencies are not defined: aborting certificate searching")
+            return [];
+        };
         const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
         const orgVB = await provider.loadOrganizationVirtualBlockchain(Hash.from(organization.value.vbId));
-        const hashes = orgVB.getAllMicroblockHashes();
+        const vbHeight = orgVB.getHeight();
         const rows: CertificateSectionRow[] = [];
-        for (let height = 1; height <= hashes.length; height++) {
+        for (let height = 1; height <= vbHeight; height++) {
+            logger.info(`Processing microblock ${height} of ${vbHeight}`)
             const mb = await orgVB.getMicroblock(height);
             const customSecs = mb.getSectionsByType(SectionType.CUSTOM);
             for (const sec of customSecs) {
                 const data = sec as Record<string, unknown>;
                 if (data.__cert__) {
-                    rows.push({ height, hash: hashes[height - 1].encode(), data });
+                    rows.push({ height, hash: mb.getHash().encode(), data });
                 }
             }
         }
@@ -327,7 +331,7 @@ const {
     <div class="space-y-6">
         <!-- Header -->
         <div>
-            <h2 class="text-lg font-semibold text-gray-900 mb-2">Public Key Authentication (Wallet ID: {{walletId}})</h2>
+            <h2 class="text-lg font-semibold text-gray-900 mb-2">Public Key Authentication</h2>
             <p class="text-sm text-gray-600 mb-4">
                 Authenticate your organization's public key using an external certificate chain. Upload an x509 certificate chain,
                 generate a signature with your private key, and anchor it on-chain to cryptographically prove your identity.
