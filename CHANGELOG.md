@@ -1,3 +1,18 @@
+# [1.30.0](https://github.com/Carmentis/carmentis-desk/compare/v1.29.0...v1.30.0) (2026-07-15)
+
+
+### Bug Fixes
+
+* improve microblock processing and logging in OrganizationCertificate component ([c926015](https://github.com/Carmentis/carmentis-desk/commit/c92601561cf8f7c7285ee1b00c456944c50ff5ce))
+
+
+### Features
+
+* add certificate anchoring functionality to OrganizationCertificate component ([02c35ec](https://github.com/Carmentis/carmentis-desk/commit/02c35ece2d251c4037508654cb9f1989fcaa8576))
+* add JWT signing and verification in OrganizationCertificate component ([f7fe35e](https://github.com/Carmentis/carmentis-desk/commit/f7fe35ef5ef783a9c7cce239422749f69b057d6e))
+* add x509 certificate chain validation and JWT construction support ([c473c1c](https://github.com/Carmentis/carmentis-desk/commit/c473c1c05c3bd735bc44338e1d0adc6396bffabd))
+* enhance OrganizationCertificate component with certificate section management ([b61cdec](https://github.com/Carmentis/carmentis-desk/commit/b61cdec0834c2581c42ed97ef6ec8a8f2aacf508))
+
 # [1.29.0](https://github.com/Carmentis/carmentis-desk/compare/v1.28.0...v1.29.0) (2026-07-09)
 
 
