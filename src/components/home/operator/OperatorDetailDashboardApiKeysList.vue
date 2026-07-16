@@ -18,8 +18,6 @@ import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Dropdown from 'primevue/dropdown';
 import Calendar from 'primevue/calendar';
-import InputSwitch from 'primevue/inputswitch';
-import Password from 'primevue/password';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 
@@ -38,20 +36,26 @@ const showCreateApiKeyDialog = ref(false);
 const newApiKeyName = ref('');
 const selectedApplication = ref<any>(null);
 const activeUntilDate = ref<Date | null>(null);
+const endpointRegex = ref('');
+const gasMinAtomics = ref<number | null>(null);
+const gasMaxAtomics = ref<number | null>(null);
 
 function openCreateApiKeyDialog() {
     newApiKeyName.value = '';
     selectedApplication.value = null;
     activeUntilDate.value = null;
+    endpointRegex.value = '';
+    gasMinAtomics.value = null;
+    gasMaxAtomics.value = null;
     showCreateApiKeyDialog.value = true;
 }
 
 async function createApiKey() {
-    if (!newApiKeyName.value.trim() || !selectedApplication.value) {
+    if (!newApiKeyName.value.trim()) {
         toast.add({
             severity: 'error',
             summary: 'Validation Error',
-            detail: 'Please fill in all required fields',
+            detail: 'Please fill in the API key name',
             life: 3000,
         });
         return;
@@ -60,8 +64,11 @@ async function createApiKey() {
     try {
         await createApiKeyMutation.mutateAsync({
             name: newApiKeyName.value.trim(),
-            applicationVbId: selectedApplication.value.vbId,
+            applicationVbId: selectedApplication.value?.vbId || null,
             activeUntil: activeUntilDate.value ? activeUntilDate.value.toISOString() : null,
+            endpointRegex: endpointRegex.value || undefined,
+            gasMinAtomics: gasMinAtomics.value ?? undefined,
+            gasMaxAtomics: gasMaxAtomics.value ?? undefined,
         });
 
         toast.add({
@@ -232,16 +239,9 @@ function formatDate(dateString: string | null): string {
                         </template>
                     </Column>
 
-                    <Column field="apiKey" header="API Key" style="min-width: 200px">
+                    <Column field="apiKey" header="API Key">
                         <template #body="slotProps">
-                            <Password
-                                :modelValue="slotProps.data.apiKey"
-                                :feedback="false"
-                                toggleMask
-                                disabled
-                                class="w-full"
-                                inputClass="text-xs font-mono"
-                            />
+                            {{slotProps.data.apiKey}}
                         </template>
                     </Column>
 
@@ -250,7 +250,7 @@ function formatDate(dateString: string | null): string {
                             <div class="flex items-center gap-2">
                                 <i class="pi pi-box text-surface-400 text-xs"></i>
                                 <code class="text-xs bg-surface-50 px-2 py-1 rounded text-surface-700 font-mono">
-                                    {{ slotProps.data.application.name }}
+                                    {{ slotProps.data.application }}
                                 </code>
                             </div>
                         </template>
@@ -264,6 +264,7 @@ function formatDate(dateString: string | null): string {
                         </template>
                     </Column>
 
+
                     <Column field="activeUntil" header="Valid Until" sortable style="width: 130px">
                         <template #body="slotProps">
                             <span
@@ -275,9 +276,37 @@ function formatDate(dateString: string | null): string {
                         </template>
                     </Column>
 
+
                     <Column field="isActive" header="Status" style="width: 100px">
                         <template #body="slotProps">
                             {{ slotProps.data.isActive ? 'Active' : 'Inactive' }}
+                        </template>
+                    </Column>
+
+
+                    <!--
+
+
+
+
+
+
+
+
+
+                    <Column field="gasMinAtomics" header="Min Gas" style="width: 120px">
+                        <template #body="slotProps">
+                            <span class="text-xs">
+                                {{ slotProps.data.gasMinAtomics ?? 'No limit' }}
+                            </span>
+                        </template>
+                    </Column>
+
+                    <Column field="gasMaxAtomics" header="Max Gas" style="width: 120px">
+                        <template #body="slotProps">
+                            <span class="text-xs">
+                                {{ slotProps.data.gasMaxAtomics ?? 'No limit' }}
+                            </span>
                         </template>
                     </Column>
 
@@ -298,6 +327,7 @@ function formatDate(dateString: string | null): string {
                             />
                         </template>
                     </Column>
+                    -->
                 </DataTable>
             </div>
         </template>
@@ -315,8 +345,7 @@ function formatDate(dateString: string | null): string {
             </div>
             <div>
                 <label for="apiKeyApplication" class="block text-sm font-semibold text-gray-700 mb-2">
-                    Application
-                    <span class="text-red-500">*</span>
+                    Application (Optional)
                 </label>
                 <Dropdown
                     id="apiKeyApplication"
@@ -326,6 +355,7 @@ function formatDate(dateString: string | null): string {
                     placeholder="Select an application"
                     class="w-full"
                     :loading="getAllApplicationsRequest.isPending.value"
+                    showClear
                 >
                     <template #value="slotProps">
                         <div v-if="slotProps.value" class="flex items-center gap-2">
@@ -348,7 +378,7 @@ function formatDate(dateString: string | null): string {
                         </div>
                     </template>
                 </Dropdown>
-                <small class="text-surface-500 mt-1 block">Select from applications registered with the operator</small>
+                <small class="text-surface-500 mt-1 block">Leave empty to allow usage across all applications</small>
             </div>
             <div>
                 <label for="apiKeyValidUntil" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -364,6 +394,46 @@ function formatDate(dateString: string | null): string {
                     showIcon
                 />
                 <small class="text-surface-500 mt-1 block">Leave empty for no expiration</small>
+            </div>
+            <div>
+                <label for="apiKeyEndpointRegex" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Endpoint Regex (Optional)
+                </label>
+                <InputText
+                    id="apiKeyEndpointRegex"
+                    v-model="endpointRegex"
+                    placeholder="e.g., ^/api/anchor.*"
+                    class="w-full"
+                />
+                <small class="text-surface-500 mt-1 block">Restrict API key to specific endpoints with a regex pattern</small>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="apiKeyGasMin" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Min Gas Price (Atomics, Optional)
+                    </label>
+                    <InputText
+                        id="apiKeyGasMin"
+                        v-model:number="gasMinAtomics"
+                        type="number"
+                        placeholder="0"
+                        class="w-full"
+                    />
+                    <small class="text-surface-500 mt-1 block">Minimum gas price in atomic units</small>
+                </div>
+                <div>
+                    <label for="apiKeyGasMax" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Max Gas Price (Atomics, Optional)
+                    </label>
+                    <InputText
+                        id="apiKeyGasMax"
+                        v-model:number="gasMaxAtomics"
+                        type="number"
+                        placeholder="1000000"
+                        class="w-full"
+                    />
+                    <small class="text-surface-500 mt-1 block">Maximum gas price in atomic units</small>
+                </div>
             </div>
         </div>
         <template #footer>

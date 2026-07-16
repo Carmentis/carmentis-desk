@@ -267,10 +267,13 @@ export interface OperatorApiKey {
     id: number;
     name: string;
     apiKey: string;
-    applicationVbId: string;
+    applicationVbId: string | null;
     createdAt: string;
     activeUntil: string | null;
     isActive: boolean;
+    endpointRegex?: string;
+    gasMinAtomics?: number;
+    gasMaxAtomics?: number;
 }
 
 export function useGetAllApiKeys(operatorId: number) {
@@ -298,7 +301,14 @@ export function useCreateApiKeyMutation(operatorId: number) {
     const authStore = useOperatorAuthStore();
     const token = authStore.getValidToken(operatorId);
     return useMutation({
-        mutationFn: async (newApiKey: { name: string; applicationVbId: string; activeUntil: string | null }) => {
+        mutationFn: async (newApiKey: {
+            name: string;
+            applicationVbId?: string | null;
+            activeUntil?: string | null;
+            endpointRegex?: string;
+            gasMinAtomics?: number;
+            gasMaxAtomics?: number;
+        }) => {
             const response = await axios.post<OperatorApiKey>(`${endpoint.value}/apiKey`, newApiKey, {
                 headers: {
                     Authorization: `Bearer ${token}`,

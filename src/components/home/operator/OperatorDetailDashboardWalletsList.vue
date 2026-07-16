@@ -35,12 +35,14 @@ const showUploadWalletDialog = ref(false);
 const newWalletRpcEndpoint = ref('');
 const newWalletName = ref('');
 const newWalletSeed = ref('');
+const newWalletIndexerEndpoint = ref('');
 const selectedWalletToUpload = ref<WalletStub | null>(null);
 
 function openCreateWalletDialog() {
     newWalletRpcEndpoint.value = '';
     newWalletName.value = '';
     newWalletSeed.value = '';
+    newWalletIndexerEndpoint.value = '';
     showCreateWalletDialog.value = true;
 }
 
@@ -50,11 +52,11 @@ function openUploadWalletDialog() {
 }
 
 async function createWallet() {
-    if (!newWalletRpcEndpoint.value.trim() || !newWalletName.value.trim() || !newWalletSeed.value.trim()) {
+    if (!newWalletRpcEndpoint.value.trim() || !newWalletName.value.trim() || !newWalletSeed.value.trim() || !newWalletIndexerEndpoint.value.trim()) {
         toast.add({
             severity: 'error',
             summary: 'Validation Error',
-            detail: 'Please fill in all fields',
+            detail: 'Please fill in all required fields',
             life: 3000,
         });
         return;
@@ -65,7 +67,7 @@ async function createWallet() {
             rpcEndpoint: newWalletRpcEndpoint.value.trim(),
             name: newWalletName.value.trim(),
             seed: newWalletSeed.value.trim(),
-            indexerEndpoint: '', // TODO(assign)
+            indexerEndpoint: newWalletIndexerEndpoint.value.trim(),
         });
 
         toast.add({
@@ -100,6 +102,16 @@ async function uploadWallet() {
 
     try {
         const seed = await sessionStore.getWalletSeed(selectedWalletToUpload.value.id);
+        if (!seed) {
+            toast.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Wallet seed not found. Please create the wallet again.',
+                life: 3000,
+            });
+            return;
+        }
+
         await createWalletMutation.mutateAsync({
             rpcEndpoint: selectedWalletToUpload.value.nodeEndpoint,
             indexerEndpoint: selectedWalletToUpload.value.indexer,
@@ -287,12 +299,16 @@ function confirmDeleteWallet(wallet: any) {
     <Dialog v-model:visible="showCreateWalletDialog" modal header="Add Wallet" :style="{ width: '500px' }">
         <div class="space-y-4 py-4">
             <div>
-                <label for="walletName" class="block text-sm font-semibold text-gray-700 mb-2">Wallet Name</label>
+                <label for="walletName" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Wallet Name
+                    <span class="text-red-500">*</span>
+                </label>
                 <InputText id="walletName" v-model="newWalletName" placeholder="Enter wallet name" class="w-full" />
             </div>
             <div>
                 <label for="walletRpcEndpoint" class="block text-sm font-semibold text-gray-700 mb-2">
                     RPC Endpoint
+                    <span class="text-red-500">*</span>
                 </label>
                 <InputText
                     id="walletRpcEndpoint"
@@ -302,7 +318,22 @@ function confirmDeleteWallet(wallet: any) {
                 />
             </div>
             <div>
-                <label for="walletSeed" class="block text-sm font-semibold text-gray-700 mb-2">Seed</label>
+                <label for="walletIndexerEndpoint" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Indexer Endpoint
+                    <span class="text-red-500">*</span>
+                </label>
+                <InputText
+                    id="walletIndexerEndpoint"
+                    v-model="newWalletIndexerEndpoint"
+                    placeholder="https://indexer.example.com"
+                    class="w-full"
+                />
+            </div>
+            <div>
+                <label for="walletSeed" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Seed
+                    <span class="text-red-500">*</span>
+                </label>
                 <Password
                     id="walletSeed"
                     v-model="newWalletSeed"
