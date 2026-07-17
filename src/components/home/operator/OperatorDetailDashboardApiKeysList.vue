@@ -283,17 +283,6 @@ function formatDate(dateString: string | null): string {
                         </template>
                     </Column>
 
-
-                    <!--
-
-
-
-
-
-
-
-
-
                     <Column field="gasMinAtomics" header="Min Gas" style="width: 120px">
                         <template #body="slotProps">
                             <span class="text-xs">
@@ -327,6 +316,17 @@ function formatDate(dateString: string | null): string {
                             />
                         </template>
                     </Column>
+
+                    <!--
+
+
+
+
+
+
+
+
+
                     -->
                 </DataTable>
             </div>
