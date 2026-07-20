@@ -302,19 +302,6 @@ function logout() {
             <div class="flex items-center justify-between px-2 py-1 mb-2">
                 <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Wallets</span>
                 <div class="flex items-center gap-0">
-                    <!-- Delete all button -->
-                    <div v-if="organizations.length > 0" class="relative group">
-                        <button
-                            class="p-1 hover:bg-red-100 rounded transition-colors"
-                            @click="confirmClearAllOrganizations"
-                        >
-                            <i class="pi pi-trash text-gray-700 text-sm" />
-                        </button>
-                        <!-- Tooltip -->
-                        <div class="absolute bottom-full right-0 mb-2 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                            Delete all wallets
-                        </div>
-                    </div>
                     <!-- Add button -->
                     <button
                         class="p-1 hover:bg-gray-100 rounded transition-colors"
@@ -420,19 +407,6 @@ function logout() {
             <div class="flex items-center justify-between px-2 py-1 mb-2">
                 <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Operators</span>
                 <div class="flex items-center gap-0">
-                    <!-- Delete all button -->
-                    <div v-if="operators.length > 0" class="relative group">
-                        <button
-                            class="p-1 hover:bg-red-100 rounded transition-colors"
-                            @click="confirmClearAllOperators"
-                        >
-                            <i class="pi pi-trash text-gray-700 text-sm" />
-                        </button>
-                        <!-- Tooltip -->
-                        <div class="absolute bottom-full right-0 mb-2 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                            Delete all operators
-                        </div>
-                    </div>
                     <!-- Add button -->
                     <button
                         class="p-1 hover:bg-gray-100 rounded transition-colors"
