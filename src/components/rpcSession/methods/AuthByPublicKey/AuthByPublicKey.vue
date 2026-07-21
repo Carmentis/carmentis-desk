@@ -111,7 +111,14 @@ async function approve() {
 
 
                 // return the response
-                return { pk: encodedPk, signature, scheme: schemeId, payload }
+                return {
+                    // returns both pk and publicKey for consistency
+                    pk: encodedPk,
+                    publicKey: encodedPk,
+                    signature,
+                    scheme: schemeId,
+                    payload
+                }
             })
             .exhaustive()
 
