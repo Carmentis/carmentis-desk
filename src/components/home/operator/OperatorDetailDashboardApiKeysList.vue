@@ -7,6 +7,7 @@ import {
     useDeleteApiKeyMutation,
     useToggleApiKeyMutation,
     useGetAllApplications,
+    useGetAllWallets,
 } from '../../../composables/operator.ts';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
@@ -25,6 +26,7 @@ const route = useRoute();
 const operatorId = computed(() => Number(route.params.operatorId));
 const getAllApiKeysRequest = useGetAllApiKeys(operatorId.value);
 const getAllApplicationsRequest = useGetAllApplications(operatorId.value);
+const getAllWalletsRequest = useGetAllWallets(operatorId.value);
 const createApiKeyMutation = useCreateApiKeyMutation(operatorId.value);
 const deleteApiKeyMutation = useDeleteApiKeyMutation(operatorId.value);
 const toggleApiKeyMutation = useToggleApiKeyMutation(operatorId.value);
@@ -35,6 +37,7 @@ const confirm = useConfirm();
 const showCreateApiKeyDialog = ref(false);
 const newApiKeyName = ref('');
 const selectedApplication = ref<any>(null);
+const selectedWallet = ref<any>(null);
 const activeUntilDate = ref<Date | null>(null);
 const endpointRegex = ref('');
 const gasMinAtomics = ref<number | null>(null);
@@ -43,6 +46,7 @@ const gasMaxAtomics = ref<number | null>(null);
 function openCreateApiKeyDialog() {
     newApiKeyName.value = '';
     selectedApplication.value = null;
+    selectedWallet.value = null;
     activeUntilDate.value = null;
     endpointRegex.value = '';
     gasMinAtomics.value = null;
@@ -61,10 +65,12 @@ async function createApiKey() {
         return;
     }
 
+    console.log("Selected wallet", selectedWallet.value)
     try {
         await createApiKeyMutation.mutateAsync({
             name: newApiKeyName.value.trim(),
             applicationVbId: selectedApplication.value?.vbId || null,
+            walletId: selectedWallet.value?.id || undefined,
             activeUntil: activeUntilDate.value ? activeUntilDate.value.toISOString() : null,
             endpointRegex: endpointRegex.value || undefined,
             gasMinAtomics: gasMinAtomics.value ?? undefined,
@@ -247,12 +253,20 @@ function formatDate(dateString: string | null): string {
 
                     <Column field="applicationVbId" header="Application Name" sortable>
                         <template #body="slotProps">
-                            <div class="flex items-center gap-2">
-                                <i class="pi pi-box text-surface-400 text-xs"></i>
+                            <div class="flex items-center gap-2" v-if="slotProps.data.application">
                                 <code class="text-xs bg-surface-50 px-2 py-1 rounded text-surface-700 font-mono">
-                                    {{ slotProps.data.application }}
+                                    {{ slotProps.data.application.name }}
                                 </code>
                             </div>
+                        </template>
+                    </Column>
+
+                    <Column field="walletId" header="Wallet" sortable style="width: 120px">
+                        <template #body="slotProps">
+                            <div v-if="slotProps.data.wallet" class="flex items-center gap-2">
+                                <span class="text-xs">Wallet {{ slotProps.data.wallet.id }}</span>
+                            </div>
+                            <span v-else class="text-xs text-surface-500">Any wallet</span>
                         </template>
                     </Column>
 
@@ -379,6 +393,43 @@ function formatDate(dateString: string | null): string {
                     </template>
                 </Dropdown>
                 <small class="text-surface-500 mt-1 block">Leave empty to allow usage across all applications</small>
+            </div>
+            <div>
+                <label for="apiKeyWallet" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Wallet (Optional)
+                </label>
+                <Dropdown
+                    id="apiKeyWallet"
+                    v-model="selectedWallet"
+                    :options="getAllWalletsRequest.data.value || []"
+                    optionLabel="name"
+                    placeholder="Select a wallet"
+                    class="w-full"
+                    :loading="getAllWalletsRequest.isPending.value"
+                    showClear
+                >
+                    <template #value="slotProps">
+                        <div v-if="slotProps.value" class="flex items-center gap-2">
+                            <i class="pi pi-wallet text-surface-500"></i>
+                            <span>{{ slotProps.value.name }}</span>
+                        </div>
+                        <span v-else>{{ slotProps.placeholder }}</span>
+                    </template>
+                    <template #option="slotProps">
+                        <div class="flex items-center gap-2">
+                            <i class="pi pi-wallet text-surface-500"></i>
+                            <div>
+                                <div class="font-semibold">
+                                    {{ slotProps.option.name }}
+                                </div>
+                                <div class="text-xs text-surface-500 font-mono">
+                                    {{ slotProps.option.rpcEndpoint }}
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </Dropdown>
+                <small class="text-surface-500 mt-1 block">Leave empty to allow usage with any wallet</small>
             </div>
             <div>
                 <label for="apiKeyValidUntil" class="block text-sm font-semibold text-gray-700 mb-2">

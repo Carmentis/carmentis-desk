@@ -338,6 +338,7 @@ async function approve() {
         }
 
         // create the microblock
+        logger.info(`Inserting microblock ${microblockHash}`)
         const operatorEndpoint = props.params.serverUrl;
         const encodedMicroblock = approvalData.value!.b64SerializedMicroblock;
         const microblockHeight = virtualBlockchainContainingMicroblock.value.getHeight();

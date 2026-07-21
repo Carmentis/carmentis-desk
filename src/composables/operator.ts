@@ -268,6 +268,7 @@ export interface OperatorApiKey {
     name: string;
     apiKey: string;
     applicationVbId: string | null;
+    walletId?: number;
     createdAt: string;
     activeUntil: string | null;
     isActive: boolean;
@@ -304,11 +305,13 @@ export function useCreateApiKeyMutation(operatorId: number) {
         mutationFn: async (newApiKey: {
             name: string;
             applicationVbId?: string | null;
+            walletId?: number;
             activeUntil?: string | null;
             endpointRegex?: string;
             gasMinAtomics?: number;
             gasMaxAtomics?: number;
         }) => {
+            console.log("Posting new API key", newApiKey)
             const response = await axios.post<OperatorApiKey>(`${endpoint.value}/apiKey`, newApiKey, {
                 headers: {
                     Authorization: `Bearer ${token}`,

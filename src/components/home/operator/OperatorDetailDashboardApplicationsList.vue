@@ -60,7 +60,7 @@ async function createApplication() {
         console.log('Selected wallet for creating application:', selectedWallet.value);
         await createApplicationMutation.mutateAsync({
             vbId: newApplicationVbId.value.trim(),
-            walletId: selectedWallet.value.walletId,
+            walletId: selectedWallet.value.id,
             name: newApplicationName.value,
         });
 

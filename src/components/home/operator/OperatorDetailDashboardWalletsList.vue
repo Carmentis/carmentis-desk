@@ -245,12 +245,12 @@ function confirmDeleteWallet(wallet: any) {
                     responsiveLayout="scroll"
                     class="text-sm"
                 >
-                    <Column field="walletId" header="Wallet ID" sortable>
+                    <Column field="id" header="Wallet ID" sortable>
                         <template #body="slotProps">
                             <div class="flex items-center gap-2">
                                 <i class="pi pi-server text-surface-400"></i>
                                 <span class="font-mono text-xs">
-                                    {{ slotProps.data.walletId }}
+                                    {{ slotProps.data.id }}
                                 </span>
                             </div>
                         </template>
