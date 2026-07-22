@@ -1,3 +1,10 @@
+## [1.31.1](https://github.com/Carmentis/carmentis-desk/compare/v1.31.0...v1.31.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* improve wallet deletion and creation with enhanced ID handling and validation ([b084b83](https://github.com/Carmentis/carmentis-desk/commit/b084b83e919b5b11476de055aee80a7b20ee6f35))
+
 # [1.31.0](https://github.com/Carmentis/carmentis-desk/compare/v1.30.0...v1.31.0) (2026-07-21)
 
 

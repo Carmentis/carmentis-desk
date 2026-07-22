@@ -1,7 +1,7 @@
 {
   "name": "carmentis-desk",
   "private": true,
-  "version": "1.31.0",
+  "version": "1.31.1",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
