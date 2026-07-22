@@ -1,3 +1,12 @@
+# [1.31.0](https://github.com/Carmentis/carmentis-desk/compare/v1.30.0...v1.31.0) (2026-07-21)
+
+
+### Features
+
+* add `publicKey` to AuthByPublicKey response for consistency ([1fe0e8d](https://github.com/Carmentis/carmentis-desk/commit/1fe0e8d13f414d8abe581004656f982927407866))
+* add wallet selection for API keys and improve logging ([2c274ef](https://github.com/Carmentis/carmentis-desk/commit/2c274ef78e701aa5c69763dd669365bf88e8e58e))
+* extend API key and wallet creation with additional fields ([b1edb02](https://github.com/Carmentis/carmentis-desk/commit/b1edb02e4c175f06fa0c4f13b9512166749d66a8))
+
 # [1.30.0](https://github.com/Carmentis/carmentis-desk/compare/v1.29.0...v1.30.0) (2026-07-15)
 
 
