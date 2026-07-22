@@ -53,7 +53,7 @@ pub fn run() {
                 app.deep_link().register_all()?;
             }
 
-            #[cfg(desktop)]
+            #[cfg(any(target_os = "linux", windows))]
             {
                 app.deep_link().register("cmts")?;
                 app.deep_link().register("openid")?;
