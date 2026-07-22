@@ -195,8 +195,8 @@ export function useDeleteWalletMutation(operatorId: number) {
     const authStore = useOperatorAuthStore();
     const token = authStore.getValidToken(operatorId);
     return useMutation({
-        mutationFn: async (rpcEndpoint: string) => {
-            const response = await axios.delete(`${endpoint.value}/wallet/${encodeURIComponent(rpcEndpoint)}`, {
+        mutationFn: async (id: number) => {
+            const response = await axios.delete(`${endpoint.value}/wallet/${id}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },

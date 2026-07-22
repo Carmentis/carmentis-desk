@@ -17,6 +17,7 @@ import Password from 'primevue/password';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import { storeToRefs } from 'pinia';
+import {PublicKeyEncryptionSchemeId} from "@cmts-dev/carmentis-sdk-core";
 
 const route = useRoute();
 const operatorId = computed(() => Number(route.params.operatorId));
@@ -112,12 +113,17 @@ async function uploadWallet() {
             return;
         }
 
-        await createWalletMutation.mutateAsync({
+        const variables = {
             rpcEndpoint: selectedWalletToUpload.value.nodeEndpoint,
             indexerEndpoint: selectedWalletToUpload.value.indexer,
             name: selectedWalletToUpload.value.name,
             seed,
-        });
+            signatureSchemeId: selectedWalletToUpload.value.schemeId,
+            publicKeyEncryptionSchemeId: PublicKeyEncryptionSchemeId.ML_KEM_768_AES_256_GCM
+        };
+        console.log("Creating wallet with variables:", variables)
+
+        await createWalletMutation.mutateAsync(variables);
 
         toast.add({
             severity: 'success',
@@ -140,7 +146,7 @@ async function uploadWallet() {
 
 function confirmDeleteWallet(wallet: any) {
     confirm.require({
-        message: `Are you sure you want to delete wallet "${wallet.rpcEndpoint}"? This action cannot be undone.`,
+        message: `Are you sure you want to delete wallet "${wallet.name}"? This action cannot be undone.`,
         header: 'Delete Wallet',
         icon: 'pi pi-exclamation-triangle',
         rejectClass: 'p-button-secondary p-button-outlined',
@@ -149,7 +155,7 @@ function confirmDeleteWallet(wallet: any) {
         acceptClass: 'p-button-danger',
         accept: async () => {
             try {
-                await deleteWalletMutation.mutateAsync(wallet.rpcEndpoint);
+                await deleteWalletMutation.mutateAsync(wallet.id);
 
                 toast.add({
                     severity: 'success',
