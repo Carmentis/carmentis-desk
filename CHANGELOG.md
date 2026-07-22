@@ -1,3 +1,10 @@
+## [1.31.2](https://github.com/Carmentis/carmentis-desk/compare/v1.31.1...v1.31.2) (2026-07-22)
+
+
+### Bug Fixes
+
+* update deep link registration to target Linux and Windows only ([b93a901](https://github.com/Carmentis/carmentis-desk/commit/b93a901a42bc38cc5b250e50551857315ad1eaf5))
+
 ## [1.31.1](https://github.com/Carmentis/carmentis-desk/compare/v1.31.0...v1.31.1) (2026-07-22)
 
 
