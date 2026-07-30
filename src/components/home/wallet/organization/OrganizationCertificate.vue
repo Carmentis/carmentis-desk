@@ -68,9 +68,18 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
 const certificatesChain = ref<string[]>([]);
 const certificatesList = ref<Array<{pem: string; cn: string; keyType: string}>>([]);
 
+// Platform check; the certificate store selector only makes sense on Windows for now.
 const canUseCertificateStore = computedAsync(async () => {
     return await isCertificateStoreAvailable();
 }, false);
+
+// Default to visible; collapse automatically once we know the store is usable.
+const showManualEntry = ref(true);
+
+watch(canUseCertificateStore, (available) => {
+    if (available) refreshStoreCertificates();
+    showManualEntry.value = !available;
+}, { immediate: true });
 
 // Certificates available in the OS store (if available).
 const storeCertificates = ref<CertificateInfo[]>([]);
@@ -88,15 +97,6 @@ const refreshStoreCertificates = async () => {
         isLoadingStoreCertificates.value = false;
     }
 };
-
-// Initial load once we know whether the store is usable.
-watch(canUseCertificateStore, (available) => {
-    if (available) refreshStoreCertificates();
-}, { immediate: true });
-
-// Whether the manual PEM entry section is shown. Defaults to open when the
-// store isn't usable, closed otherwise (store selection is the primary path).
-const showManualEntry = ref(!canUseCertificateStore);
 
 // Tracks which store certificate (if any) is driving the current chain,
 // so step 2 knows whether it can offer in-app signing.
@@ -708,7 +708,7 @@ function base64UrlEncodeString(str: string): string {
                         <div class="flex justify-end pt-6 gap-2">
                             <Button
                                 label="Next"
-                                :disabled="certificatesList.length === 0 || isValidChain?.status === 'invalid'"
+                                :disabled="certificatesList.length === 0 || isValidChain?.status !== 'valid'"
                                 @click="activateCallback('2')"
                             />
                         </div>
@@ -727,6 +727,14 @@ function base64UrlEncodeString(str: string): string {
                                         {{ unsignedJwt || 'Generating...' }}
                                     </code>
                                 </div>
+                                <Button
+                                    v-if="!selectedStoreCertThumbprint && unsignedJwt"
+                                    label="Copy to Clipboard"
+                                    icon="pi pi-copy"
+                                    text
+                                    @click="clipboard.copyToClipboard(unsignedJwt, 'Unsigned JWT')"
+                                    class="mt-2"
+                                />
                             </div>
 
                             <!-- In-app signing (store-backed certificate) -->
