@@ -1,3 +1,10 @@
+# [1.32.0](https://github.com/Carmentis/carmentis-desk/compare/v1.31.2...v1.32.0) (2026-07-30)
+
+
+### Features
+
+* added Rust code to get certificates from the store and use them to sign VCs; updated OrganizationCertificate accordingly ([8c6ec53](https://github.com/Carmentis/carmentis-desk/commit/8c6ec53a773d80aad5f11ad29049239b63e3287a))
+
 ## [1.31.2](https://github.com/Carmentis/carmentis-desk/compare/v1.31.1...v1.31.2) (2026-07-22)
 
 
