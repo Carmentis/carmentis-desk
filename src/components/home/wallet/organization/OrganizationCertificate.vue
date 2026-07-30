@@ -8,7 +8,7 @@ signed by the external key.
 -->
 <script setup lang="ts">
 import "reflect-metadata";
-import {computed, ref} from "vue";
+import {computed, ref, watch} from "vue";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import Stepper from 'primevue/stepper';
@@ -37,7 +37,13 @@ import {useAsyncState} from "@vueuse/core";
 import {useQuery} from "@tanstack/vue-query";
 import * as walletRepo from "../../../../db/repositories/walletRepository.ts";
 import {DeskLogger} from "../../../../utils/DeskLogger.ts";
-
+import {
+    isCertificateStoreAvailable,
+    listCertificates,
+    getCertificateChainPem,
+    signData,
+    type CertificateInfo,
+} from "../../../../utils/signing";
 
 // define toast, clipboard and route
 const logger = DeskLogger.getLogger().getChild("organization")
@@ -46,6 +52,7 @@ const toast = useToast();
 const route = useRoute();
 const onChainStore = useOnChainStore();
 const { isPublishingCustomJson } = storeToRefs(onChainStore);
+const isSigningWithStore = ref(false);
 
 const walletId =  computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
@@ -60,10 +67,122 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
 // chain of certificates
 const certificatesChain = ref<string[]>([]);
 const certificatesList = ref<Array<{pem: string; cn: string; keyType: string}>>([]);
+
+const canUseCertificateStore = computedAsync(async () => {
+    return await isCertificateStoreAvailable();
+}, false);
+
+// Certificates available in the OS store (if available).
+const storeCertificates = ref<CertificateInfo[]>([]);
+const isLoadingStoreCertificates = ref(false);
+
+const refreshStoreCertificates = async () => {
+    if (!canUseCertificateStore.value) return;
+    try {
+        isLoadingStoreCertificates.value = true;
+        storeCertificates.value = await listCertificates();
+    } catch (error) {
+        console.error("Error listing certificates:", error);
+        toast.add({ severity: 'error', summary: "Error", detail: "Failed to list certificates from store.", life: 3000 });
+    } finally {
+        isLoadingStoreCertificates.value = false;
+    }
+};
+
+// Initial load once we know whether the store is usable.
+watch(canUseCertificateStore, (available) => {
+    if (available) refreshStoreCertificates();
+}, { immediate: true });
+
+// Whether the manual PEM entry section is shown. Defaults to open when the
+// store isn't usable, closed otherwise (store selection is the primary path).
+const showManualEntry = ref(!canUseCertificateStore);
+
+// Tracks which store certificate (if any) is driving the current chain,
+// so step 2 knows whether it can offer in-app signing.
+const selectedStoreCertThumbprint = ref<string | null>(null);
+
+// Shared logic for adding a single PEM to the chain, used by both the
+// manual textarea flow and the store selection flow.
+const pushCertificateToChain = async (pem: string): Promise<string> => {
+    const cert = await Certificate.importFromPem(pem);
+    const cn = cert.getCN();
+    certificatesList.value.push({ pem, cn, keyType: cert.getKeyType() });
+    certificatesChain.value.push(pem);
+    return cn;
+};
+
+const isLoadingStoreChain = ref(false);
+
+// Selecting a store certificate replaces the whole chain (it already comes
+// with its full certification path), rather than appending to any existing
+// manual entries — mixing sources for a single chain would be confusing.
+const selectStoreCertificate = async (cert: CertificateInfo) => {
+    if (certificatesList.value.length > 0 && selectedStoreCertThumbprint.value === null) {
+        // Manual entries exist and weren't seeded from the store — warn before discarding them.
+        toast.add({
+            severity: 'warn',
+            summary: "Chain will be replaced",
+            detail: "Selecting a store certificate replaces the manually entered chain.",
+            life: 4000,
+        });
+    }
+    try {
+        isLoadingStoreChain.value = true;
+        certificatesList.value = [];
+        certificatesChain.value = [];
+
+        const pemChain = await getCertificateChainPem(cert.thumbprint);
+        for (const pem of pemChain) {
+            await pushCertificateToChain(pem);
+        }
+
+        selectedStoreCertThumbprint.value = cert.thumbprint;
+        toast.add({ summary: "Certificate selected", detail: cert.friendly_name ?? cert.subject, life: 3000 });
+    } catch (error) {
+        console.error("Error loading certificate chain:", error);
+        toast.add({ severity: 'error', summary: "Error", detail: "Failed to load certificate chain from store.", life: 3000 });
+    } finally {
+        isLoadingStoreChain.value = false;
+    }
+};
+
+const signWithStoreCertificate = async () => {
+    if (!selectedStoreCertThumbprint.value || !unsignedPayload.value) return;
+
+    try {
+        isSigningWithStore.value = true;
+
+        const leafCert = await Certificate.importFromPem(certificatesChain.value[0]);
+        const alg = algForKeyType(leafCert.getKeyType());
+
+        const encodedHeader = base64UrlEncodeString(JSON.stringify({ alg, typ: 'JWT' }));
+        const encodedPayload = base64UrlEncodeString(JSON.stringify(unsignedPayload.value));
+        const signingInput = `${encodedHeader}.${encodedPayload}`;
+
+        const signatureBytes = await signData(
+            new TextEncoder().encode(signingInput),
+            selectedStoreCertThumbprint.value,
+        );
+
+        signedJwtInput.value = `${signingInput}.${base64UrlEncode(signatureBytes)}`;
+
+        // Reuse the exact same verification path as the manual flow — catches
+        // any bug in the header/alg construction above before it reaches step 3.
+        await verifySignature();
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        console.error("Error signing with store certificate:", error);
+        toast.add({ severity: 'error', summary: "Signing failed", detail: errorMessage, life: 3000 });
+    } finally {
+        isSigningWithStore.value = false;
+    }
+};
+
 const isValidChain = computedAsync(async () => {
     if (certificatesChain.value.length === 0) return null;
-    return CertificatesChain.verifyX509Chain(certificatesChain.value)
-})
+    return CertificatesChain.verifyX509Chain(certificatesChain.value);
+});
 
 // public key of the first certificate
 const publicKeyJwk = computedAsync(async () => {
@@ -88,20 +207,23 @@ const didIssuer = computed(() => {
 const certificateInput = ref("");
 const isLoadingCert = ref(false);
 
-// compute the unsigned jwt
-const unsignedJwt = computedAsync(async () => {
+// compute the unsigned payload
+const unsignedPayload = computedAsync(async () => {
     if (certificatesChain.value.length === 0) return null;
     if (!didIssuer.value) return null;
     const cert = await Certificate.importFromPem(certificatesChain.value[0]);
-    const unsignedPayload = {
+    return {
         iss: didIssuer.value,
         sub: encodedWalletPublicKey.value,
         iat: Math.floor(Date.now() / 1000),
         exp: cert.getNotAfter(),
     };
-    return new UnsecuredJWT(unsignedPayload)
-        .setIssuedAt()
-        .encode();
+});
+
+// compute the unsigned jwt
+const unsignedJwt = computed(() => {
+    if (!unsignedPayload.value) return null;
+    return new UnsecuredJWT(unsignedPayload.value).setIssuedAt().encode();
 });
 
 // dialog opening state
@@ -188,7 +310,6 @@ const verifySignature = async () => {
 
 const addCertificate = async () => {
     const pem = certificateInput.value.trim();
-
     if (!pem) {
         toast.add({ summary: "Empty input", detail: "Please paste a certificate in PEM format", life: 3000 });
         return;
@@ -196,23 +317,8 @@ const addCertificate = async () => {
 
     try {
         isLoadingCert.value = true;
-        const cert = await Certificate.importFromPem(pem);
-        const cn = cert.getCN();
-        const keyType = cert.getKeyType();
-
-        // Add to certificate list
-        certificatesList.value.push({
-            pem,
-            cn,
-            keyType
-        });
-
-        // Add to chain
-        certificatesChain.value.push(pem);
-
-        // Clear input
+        const cn = await pushCertificateToChain(pem);
         certificateInput.value = "";
-
         toast.add({ summary: "Success", detail: `Certificate added: ${cn}`, life: 3000 });
     } catch (error) {
         console.error("Error importing certificate:", error);
@@ -225,6 +331,9 @@ const addCertificate = async () => {
 const removeCertificate = (index: number) => {
     certificatesList.value.splice(index, 1);
     certificatesChain.value.splice(index, 1);
+    // If the chain no longer matches a store selection, drop the flag so
+    // step 2 falls back to the manual signing path.
+    selectedStoreCertThumbprint.value = null;
 };
 
 // Step 3: Anchor Certificate
@@ -325,6 +434,21 @@ const {
         return rows;
     },
 });
+
+function algForKeyType(keyType: string): string {
+    if (keyType === 'RSA') return 'RS256';
+    throw new Error(`In-app signing currently only supports RSA certificates (got: ${keyType})`);
+}
+
+function base64UrlEncode(bytes: Uint8Array): string {
+    let binary = '';
+    for (const b of bytes) binary += String.fromCharCode(b);
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64UrlEncodeString(str: string): string {
+    return base64UrlEncode(new TextEncoder().encode(str));
+}
 </script>
 
 <template>
@@ -438,21 +562,81 @@ const {
                         <div class="space-y-6 py-6">
                             <!-- Certificate Input -->
                             <div>
-                                <label class="block text-sm font-medium text-gray-900 mb-2">
-                                    Add Certificate (PEM format)
-                                </label>
-                                <textarea
-                                    v-model="certificateInput"
-                                    placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----"
-                                    class="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                />
-                                <Button
-                                    label="Add Certificate"
-                                    icon="pi pi-plus"
-                                    :loading="isLoadingCert"
-                                    class="mt-3"
-                                    @click="addCertificate"
-                                />
+                                <!-- Store certificate selection (if available) -->
+                                <div v-if="canUseCertificateStore" class="space-y-3">
+                                    <div class="flex justify-between items-center">
+                                        <label class="block text-sm font-medium text-gray-900">
+                                            Select a certificate from the OS store
+                                        </label>
+                                        <Button
+                                            icon="pi pi-refresh"
+                                            text
+                                            size="small"
+                                            :loading="isLoadingStoreCertificates"
+                                            @click="refreshStoreCertificates"
+                                        />
+                                    </div>
+
+                                    <DataTable
+                                        :value="storeCertificates"
+                                        :loading="isLoadingStoreCertificates"
+                                        size="small"
+                                        striped-rows
+                                        selection-mode="single"
+                                        @row-select="(e: any) => selectStoreCertificate(e.data)"
+                                    >
+                                        <template #empty>
+                                            <div class="text-center py-4 text-gray-500 text-sm">
+                                                No certificates found in the certificate store.
+                                            </div>
+                                        </template>
+                                        <Column header="Display name">
+                                            <template #body="{ data }">
+                                                {{ data.friendly_name ?? data.subject }}
+                                            </template>
+                                        </Column>
+                                        <Column field="subject" header="Issued to" />
+                                        <Column field="issuer" header="Issued by" />
+                                        <Column header="">
+                                            <template #body="{ data }">
+                                                <Tag
+                                                    v-if="selectedStoreCertThumbprint === data.thumbprint"
+                                                    value="Selected"
+                                                    severity="success"
+                                                    icon="pi pi-check"
+                                                />
+                                            </template>
+                                        </Column>
+                                    </DataTable>
+
+                                    <Button
+                                        v-if="!showManualEntry"
+                                        label="Add a certificate manually"
+                                        icon="pi pi-plus"
+                                        text
+                                        size="small"
+                                        @click="showManualEntry = true"
+                                    />
+                                </div>
+
+                                <!-- Manual PEM entry -->
+                                <div v-if="showManualEntry" class="mt-4">
+                                    <label class="block text-sm font-medium text-gray-900 mb-2">
+                                        Add a certificate in PEM format
+                                    </label>
+                                    <textarea
+                                        v-model="certificateInput"
+                                        placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----"
+                                        class="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                    <Button
+                                        label="Add Certificate"
+                                        icon="pi pi-plus"
+                                        :loading="isLoadingCert"
+                                        class="mt-3"
+                                        @click="addCertificate"
+                                    />
+                                </div>
                             </div>
 
                             <!-- Chain Validation Status -->
@@ -460,15 +644,19 @@ const {
                                 <div class="flex items-center gap-2 mb-4">
                                     <span class="text-sm font-medium text-gray-700">Chain Validation:</span>
                                     <Tag
-                                        v-if="isValidChain === true"
-                                        :value="`Valid (${certificatesList.length} certificate(s)
-                                        )`"
+                                        v-if="isValidChain?.status === 'valid'"
+                                        value="Valid chain"
                                         severity="success"
                                         icon="pi pi-check"
                                     />
                                     <Tag
-                                        v-else-if="isValidChain === false"
-                                        value="Invalid"
+                                        v-else-if="isValidChain?.status === 'incomplete'"
+                                        value="Chain incomplete (root not provided)"
+                                        severity="warn"
+                                        icon="pi pi-exclamation-triangle"
+                                    />
+                                    <Tag v-else-if="isValidChain?.status === 'invalid'"
+                                        :value="isValidChain.reason"
                                         severity="danger"
                                         icon="pi pi-times"
                                     />
@@ -520,7 +708,7 @@ const {
                         <div class="flex justify-end pt-6 gap-2">
                             <Button
                                 label="Next"
-                                :disabled="certificatesList.length === 0 || !isValidChain"
+                                :disabled="certificatesList.length === 0 || isValidChain?.status === 'invalid'"
                                 @click="activateCallback('2')"
                             />
                         </div>
@@ -529,28 +717,33 @@ const {
                     <!-- Step 2: JWT signature -->
                     <StepPanel v-slot="{ activateCallback }" value="2">
                         <div class="space-y-6 py-6">
-                            <!-- Unsigned JWT Display -->
+                            <!-- Unsigned JWT Display (kept visible for both paths, for transparency) -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-900 mb-2">
-                                    Unsigned JWT (to be signed externally)
+                                    Unsigned JWT
                                 </label>
                                 <div class="bg-gray-50 border border-gray-300 rounded-lg p-4">
                                     <code class="text-xs text-gray-700 break-all font-mono block">
                                         {{ unsignedJwt || 'Generating...' }}
                                     </code>
                                 </div>
-                                <Button
-                                    v-if="unsignedJwt"
-                                    label="Copy to Clipboard"
-                                    icon="pi pi-copy"
-                                    text
-                                    @click="clipboard.copyToClipboard(unsignedJwt, 'Unsigned JWT')"
-                                    class="mt-2"
-                                />
                             </div>
 
-                            <!-- Signed JWT Input -->
-                            <div>
+                            <!-- In-app signing (store-backed certificate) -->
+                            <div v-if="selectedStoreCertThumbprint">
+                                <Button
+                                    label="Sign with certificate"
+                                    icon="pi pi-verified"
+                                    :loading="isSigningWithStore"
+                                    @click="signWithStoreCertificate"
+                                />
+                                <p class="text-xs text-gray-500 mt-2">
+                                    You may be prompted for your certificate's PIN.
+                                </p>
+                            </div>
+
+                            <!-- Manual signature paste (external tool) -->
+                            <div v-else>
                                 <label class="block text-sm font-medium text-gray-900 mb-2">
                                     Signed JWT (paste the signed version here)
                                 </label>
@@ -568,7 +761,7 @@ const {
                                 />
                             </div>
 
-                            <!-- Verification Result -->
+                            <!-- Verification Result (shared by both paths) -->
                             <div v-if="signatureVerificationResult">
                                 <div
                                     v-if="signatureVerificationResult.valid"
@@ -594,9 +787,7 @@ const {
                         </div>
 
                         <div class="flex pt-6 justify-between">
-                            <Button severity="secondary" @click="activateCallback('1')">
-                                Back
-                            </Button>
+                            <Button severity="secondary" @click="activateCallback('1')">Back</Button>
                             <Button
                                 @click="activateCallback('3')"
                                 :disabled="!signatureVerificationResult?.valid"

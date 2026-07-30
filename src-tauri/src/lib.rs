@@ -1,6 +1,6 @@
+mod signing;
 use tauri::Manager;
 use tauri_plugin_deep_link::DeepLinkExt;
-use tauri_plugin_log::{Target, TargetKind};
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -94,7 +94,16 @@ pub fn run() {
         )
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![greet, save_file, open_devtools])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            save_file,
+            open_devtools,
+            signing::is_certificate_store_available,
+            signing::sign_data,
+            signing::list_certificates,
+            signing::get_certificate_der,
+            signing::get_certificate_chain_der,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
