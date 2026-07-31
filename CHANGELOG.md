@@ -1,3 +1,10 @@
+## [1.32.2](https://github.com/Carmentis/carmentis-desk/compare/v1.32.1...v1.32.2) (2026-07-31)
+
+
+### Bug Fixes
+
+* set mercurius as the default node for the mainnet ([b1069dc](https://github.com/Carmentis/carmentis-desk/commit/b1069dc6342c23811c723c8b78fdd68ecb924316))
+
 ## [1.32.1](https://github.com/Carmentis/carmentis-desk/compare/v1.32.0...v1.32.1) (2026-07-30)
 
 
