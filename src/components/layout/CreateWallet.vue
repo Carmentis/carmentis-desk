@@ -18,7 +18,7 @@ const storageStore = useStorageStore();
 // Networks selection (for quick network setup)
 const networkMethod = ref<'mainnet' | 'testnet' | 'devnet' | 'custom'>('mainnet');
 const networkOptions = ref([
-    { label: 'Mainnet', value: "mainnet", node: 'https://carmenta.carmentis.io', indexer: 'https://indexer.carmentis.io' },
+    { label: 'Mainnet', value: "mainnet", node: 'https://mercurius.carmentis.io', indexer: 'https://indexer.carmentis.io' },
     { label: 'Testnet', value: 'testnet', node: 'https://ares.testnet.carmentis.io', indexer: 'https://indexer.testnet.carmentis.io' },
     { label: 'Devnet', value: "devnet", node: 'https://node2.server2.devnet.carmentis.io', indexer: 'https://indexer.server4.devnet.carmentis.io' },
     { label: 'Custom', value: "custom", node: '', indexer: '' }
