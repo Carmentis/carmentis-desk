@@ -1,3 +1,10 @@
+## [1.32.1](https://github.com/Carmentis/carmentis-desk/compare/v1.32.0...v1.32.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* fixed inconsistencies in OrganizationCertificate for non-Windows platforms; not allowing an incomplete cert trust chain anymore ([53614fa](https://github.com/Carmentis/carmentis-desk/commit/53614fa24c572e526f3846b0eec0bd34faecce94))
+
 # [1.32.0](https://github.com/Carmentis/carmentis-desk/compare/v1.31.2...v1.32.0) (2026-07-30)
 
 
