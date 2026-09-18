@@ -3,7 +3,7 @@ import "reflect-metadata";
 import {describe, expect, it} from "vitest";
 import {X509Certificate} from "@peculiar/x509";
 import {base64url, UnsecuredJWT, decodeJwt, SignJWT, importPKCS8} from "jose";
-import {CryptoEncoderFactory, Secp256k1PrivateSignatureKey} from "@cmts-dev/carmentis-sdk-core";
+import {CryptoEncoderFactory, EncoderFactory, Secp256k1PrivateSignatureKey} from "@cmts-dev/carmentis-sdk-core";
 import * as x509 from '@peculiar/x509';
 import {CertificatesChain} from "../src/utils/CertificatesChain";
 import {Certificate} from "../src/utils/Certificate";
@@ -226,5 +226,18 @@ describe("Certificate", () => {
             .setProtectedHeader({alg: alg})
             .sign(isk);
         console.log(signedJwt)
+    })
+
+    it("Should sign with Carmenits", async () => {
+        const encoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
+        const sk = Secp256k1PrivateSignatureKey.gen();
+        const pk = await sk.getPublicKey();
+        const message = '123456789a';
+        const hexEncoder = EncoderFactory.bytesToHexEncoder();
+        const rawBytes = hexEncoder.decode(message);
+        const signed = await sk.sign(rawBytes);
+        console.log("message=", message);
+        console.log("signed=", hexEncoder.encode(signed));
+        console.log('public key=', await encoder.encodePublicKey(pk));
     })
 })
