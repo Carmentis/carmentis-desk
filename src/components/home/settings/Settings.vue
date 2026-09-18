@@ -13,6 +13,7 @@ import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
+import Oid4vp from "./oid4vp.vue";
 
 const { currentTheme, toggleTheme } = useTheme();
 
@@ -84,6 +85,10 @@ async function checkForUpdate() {
                     <i class="pi pi-list mr-2"></i>
                     Logs
                 </Tab>
+                <Tab value="Developer">
+                    <i class="pi pi-code mr-2"></i>
+                    Developer
+                </Tab>
             </TabList>
 
             <TabPanels>
@@ -134,6 +139,11 @@ async function checkForUpdate() {
                 <!-- Logs -->
                 <TabPanel value="logs">
                     <Logs />
+                </TabPanel>
+
+                <!-- Developer -->
+                <TabPanel value="Developer">
+                    <oid4vp />
                 </TabPanel>
             </TabPanels>
         </Tabs>
