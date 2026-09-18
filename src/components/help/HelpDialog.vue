@@ -53,17 +53,6 @@ const emit = defineEmits<{ 'update:visible': [value: boolean] }>();
                     </p>
                 </div>
 
-                <div>
-                    <h3 class="text-base font-semibold text-surface-800 mb-2 flex items-center gap-2">
-                        <i class="pi pi-server text-primary"></i>
-                        Operators
-                    </h3>
-                    <p class="text-sm text-surface-600 leading-relaxed">
-                        Operators are HTTP services that coordinate the anchoring protocol between applications and the
-                        Carmentis network. You can add one or more operator endpoints here and monitor their status from
-                        their detail page.
-                    </p>
-                </div>
 
                 <div>
                     <h3 class="text-base font-semibold text-surface-800 mb-2 flex items-center gap-2">

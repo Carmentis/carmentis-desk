@@ -8,7 +8,7 @@ import { computed, ref } from 'vue';
 
 const store = useStorageStore();
 
-const { organizations, operators } = storeToRefs(store);
+const { organizations } = storeToRefs(store);
 const searchQuery = ref('');
 
 const filteredOrganizations = computed(() => {
@@ -17,18 +17,8 @@ const filteredOrganizations = computed(() => {
     return organizations.value.filter((org) => org.name.toLowerCase().includes(query));
 });
 
-const filteredOperators = computed(() => {
-    if (!searchQuery.value.trim()) return operators.value;
-    const query = searchQuery.value.toLowerCase();
-    return operators.value.filter((op) => op.name.toLowerCase().includes(query));
-});
-
 function visitWallet(orgId: number) {
     router.push(`/wallet/${orgId}`);
-}
-
-function visitOperator(operatorId: number) {
-    router.push(`/operator/${operatorId}`);
 }
 </script>
 
@@ -36,12 +26,12 @@ function visitOperator(operatorId: number) {
     <div class="space-y-6">
         <!-- Search -->
         <div class="flex items-center justify-between">
-            <p class="text-sm text-gray-500">Manage your wallets and operators</p>
+            <p class="text-sm text-gray-500">Manage your wallets</p>
             <InputText v-model="searchQuery" placeholder="Search..." size="small" class="w-64" />
         </div>
 
         <!-- Empty State -->
-        <div v-if="organizations.length === 0 && operators.length === 0" class="text-center py-12">
+        <div v-if="organizations.length === 0" class="text-center py-12">
             <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
                 <i class="pi pi-wallet text-3xl text-gray-400"></i>
             </div>
@@ -82,47 +72,6 @@ function visitOperator(operatorId: number) {
                             <div class="flex items-center gap-2.5 text-surface-600">
                                 <i class="pi pi-server text-surface-400 text-xs"></i>
                                 <span class="truncate text-xs">Indexer: {{ org.indexer }}</span>
-                            </div>
-                        </div>
-                        <div class="pt-2 flex items-center justify-between text-surface-500 hover:text-primary-600 transition-colors text-sm font-medium">
-                            <span>View details</span>
-                            <i class="pi pi-arrow-right text-xs"></i>
-                        </div>
-                    </div>
-                </template>
-            </Card>
-
-            <!-- Operators Grid -->
-            <Card
-                v-for="operator in filteredOperators"
-                :key="operator.id"
-                class="border-0 shadow-sm hover:shadow-xl transition-all cursor-pointer bg-surface-0"
-                @click="visitOperator(operator.id)"
-            >
-                <template #content>
-                    <div class="p-2 space-y-4">
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-center gap-3">
-                                <div
-                                    class="w-12 h-12 rounded-xl bg-gradient-to-br bg-gray-100 from-surface-100 to-surface-50 flex items-center justify-center"
-                                >
-                                    <i class="pi pi-server text-2xl text-surface-600"></i>
-                                </div>
-                                <div>
-                                    <h3 class="text-base font-semibold text-surface-900 truncate">
-                                        {{ operator.name }}
-                                    </h3>
-                                    <span class="text-xs text-surface-400 font-mono">ID: {{ operator.id }}</span>
-                                </div>
-                            </div>
-                            <span class="px-2 py-1 text-xs font-semibold text-green-600 bg-green-100 rounded-md">
-                                OPERATOR
-                            </span>
-                        </div>
-                        <div class="space-y-2.5 text-sm border-t border-surface-100 pt-4">
-                            <div class="flex items-center gap-2.5 text-surface-600">
-                                <i class="pi pi-globe text-surface-400 text-xs"></i>
-                                <span class="truncate text-xs">{{ operator.httpEndpoint }}</span>
                             </div>
                         </div>
                         <div class="pt-2 flex items-center justify-between text-surface-500 hover:text-primary-600 transition-colors text-sm font-medium">

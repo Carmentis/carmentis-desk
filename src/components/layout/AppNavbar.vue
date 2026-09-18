@@ -404,36 +404,7 @@ function logout() {
 
         <!-- Operators Section -->
         <div class="p-3 flex-1">
-            <div class="flex items-center justify-between px-2 py-1 mb-2">
-                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Operators</span>
-                <div class="flex items-center gap-0">
-                    <!-- Add button -->
-                    <button
-                        class="p-1 hover:bg-gray-100 rounded transition-colors"
-                        @click="openOperatorDialog"
-                        title="Add Operator"
-                    >
-                        <i class="pi pi-plus text-gray-400 hover:text-gray-700 text-sm" />
-                    </button>
-                </div>
-            </div>
 
-            <!-- Empty state -->
-            <div v-if="operators.length === 0" class="px-2 py-2 text-sm text-gray-500">
-                <i class="pi pi-inbox mr-2" />
-                No operators yet
-            </div>
-
-            <!-- Operators list -->
-            <button
-                v-for="op in operators"
-                :key="op.id"
-                class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 text-gray-700 text-sm transition-colors mb-1"
-                @click="navigate(`/operator/${op.id}`)"
-            >
-                <i class="pi pi-server text-sm flex-shrink-0" />
-                <span class="truncate text-left">{{ op.name }}</span>
-            </button>
         </div>
 
         <!-- Version Footer -->

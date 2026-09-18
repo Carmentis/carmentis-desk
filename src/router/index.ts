@@ -9,7 +9,6 @@ import Node from '../components/home/wallet/organization/node/Node.vue';
 import Application from '../components/home/wallet/organization/application/Application.vue';
 import WalletAppLedgerExplorer from '../components/home/wallet/appLedgers/WalletAppLedgerExplorer.vue';
 import WalletCredentials from '../components/home/wallet/credentials/WalletCredentials.vue';
-import OperatorDetail from '../components/home/operator/OperatorDetail.vue';
 import RpcSession from '../components/rpcSession/RpcSession.vue';
 import Help from '../components/help/Help.vue';
 import Settings from '../components/home/settings/Settings.vue';
@@ -53,11 +52,6 @@ const router = createRouter({
                     path: 'wallet/new',
                     name: 'create-organization',
                     component: CreateWallet,
-                },
-                {
-                    path: 'operator/:operatorId',
-                    name: 'operator-detail',
-                    component: OperatorDetail,
                 },
                 {
                     path: 'connect/rpc',
