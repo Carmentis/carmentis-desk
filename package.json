@@ -19,6 +19,7 @@
     "@digitalbazaar/did-method-key": "^5.3.0",
     "@logtape/logtape": "^2.2.3",
     "@openid4vc/openid4vci": "0.4.5",
+    "@openid4vc/openid4vp": "^0.5.4",
     "@primeuix/themes": "^2.0.3",
     "@primevue/forms": "^4.5.4",
     "@scure/bip39": "^2.0.1",

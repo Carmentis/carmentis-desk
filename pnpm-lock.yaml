@@ -35,6 +35,9 @@ importers:
       '@openid4vc/openid4vci':
         specifier: 0.4.5
         version: 0.4.5
+      '@openid4vc/openid4vp':
+        specifier: ^0.5.4
+        version: 0.5.4
       '@primeuix/themes':
         specifier: ^2.0.3
         version: 2.0.3
@@ -780,11 +783,20 @@ packages:
   '@openid4vc/oauth2@0.4.5':
     resolution: {integrity: sha512-lqiQPuSPlx6Nxyi3KeLGnQAur/QV8e/eEWmpFwBKnhVFUPSdCN1GurULhkPXRBj+KmN0kNak2DrE+rzNxd4/Jw==}
 
+  '@openid4vc/oauth2@0.5.4':
+    resolution: {integrity: sha512-wEK7fDk/n+c0d2AbCTBIR8Tstf/+Yr4ckmOa0nlTv0V9cOd1WMiR3+OY5vXG9FVsV275q1DgLZr20EPqlWhtVg==}
+
   '@openid4vc/openid4vci@0.4.5':
     resolution: {integrity: sha512-rOc6LhcJV6UcE9KmNHgDDT68fEuaTxZurBkd/OROQXNpv8rXmWh3gw/avI+tK+zLDaGPYIOcyWonZkk41Y/gPQ==}
 
+  '@openid4vc/openid4vp@0.5.4':
+    resolution: {integrity: sha512-09bhaG7fI3zSdnx6pO5UKXWm4oH1RvotVWRfZ1rUnAgFCxF/QV6014oVwhgwRQcPHe/rHNXrlKjp2fGgrrO64A==}
+
   '@openid4vc/utils@0.4.5':
     resolution: {integrity: sha512-9F5CPdWnBKlPz/z8CtfSnp+XjaMso6qvcFFihjQp3vWSxyFAAQiTjJUvtwXZKKx4ZX0g9O28QVoYmJF/5jQmjA==}
+
+  '@openid4vc/utils@0.5.4':
+    resolution: {integrity: sha512-Cxc/vWxvoS1F7jREgAm0oVaC3Qna/P0wJvvwtcdLDxGeDHjqNHrqjt4RiGY5b9k+I0vjIUBb1iivVuu3H9XtMA==}
 
   '@orval/angular@8.14.0':
     resolution: {integrity: sha512-Rq/C7yZRSx/7xL+chsW3v3B3WPf/dnN2SExBghtve/xUWOMODRA9bLLPy1sGJaBIztSXmRHPOAujCzzqHCzn3Q==}
@@ -3785,6 +3797,9 @@ packages:
   zod@4.3.6:
     resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+
 snapshots:
 
   '@actions/core@3.0.0':
@@ -4278,17 +4293,34 @@ snapshots:
       '@openid4vc/utils': 0.4.5
       zod: 4.3.6
 
+  '@openid4vc/oauth2@0.5.4':
+    dependencies:
+      '@openid4vc/utils': 0.5.4
+      zod: 4.4.3
+
   '@openid4vc/openid4vci@0.4.5':
     dependencies:
       '@openid4vc/oauth2': 0.4.5
       '@openid4vc/utils': 0.4.5
       zod: 4.3.6
 
+  '@openid4vc/openid4vp@0.5.4':
+    dependencies:
+      '@openid4vc/oauth2': 0.5.4
+      '@openid4vc/utils': 0.5.4
+      zod: 4.4.3
+
   '@openid4vc/utils@0.4.5':
     dependencies:
       buffer: 6.0.3
       zod: 4.3.6
       zod-validation-error: 5.0.0(zod@4.3.6)
+
+  '@openid4vc/utils@0.5.4':
+    dependencies:
+      buffer: 6.0.3
+      zod: 4.4.3
+      zod-validation-error: 5.0.0(zod@4.4.3)
 
   '@orval/angular@8.14.0(typescript@5.6.3)':
     dependencies:
@@ -7304,4 +7336,10 @@ snapshots:
     dependencies:
       zod: 4.3.6
 
+  zod-validation-error@5.0.0(zod@4.4.3):
+    dependencies:
+      zod: 4.4.3
+
   zod@4.3.6: {}
+
+  zod@4.4.3: {}
