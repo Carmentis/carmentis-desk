@@ -97,8 +97,11 @@ responder.onMessage((message) => {
 
     const result = v.safeParse(methodDef.schema, params);
     if (!result.success) {
+        console.warn(`Invalid params for ${method}:`, result.issues);
         responder.send(JsonRpc.invalidParams(id, `Invalid params for ${method}`));
         return;
+    } else {
+        console.log(`Valid params for ${method}:`, result.output);
     }
 
     // Mount the handler component — the user will approve or reject from there

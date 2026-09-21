@@ -33,6 +33,8 @@ import { DataApprovalParamsSchema } from './methods/DataApproval/DataApprovalReq
 
 import CredentialPresentation from './methods/CredentialPresentation/CredentialPresentation.vue';
 import { CredentialPresentationSchema } from './methods/CredentialPresentation/CredentialPresentationRequestType.ts';
+import {SignJsonParamsSchema} from "./methods/SignJson/SignJsonRequestType.ts";
+import SignJson from "./methods/SignJson/SignJson.vue";
 
 export interface RpcMethodDefinition {
     /** Valibot schema — validates and parses incoming JSON-RPC `params` */
@@ -52,6 +54,12 @@ export const rpcMethodRegistry: Record<string, RpcMethodDefinition> = {
     '/v1/credential/presentation': {
         schema: CredentialPresentationSchema,
         component: CredentialPresentation,
+    },
+
+    // Signature via JSON canonicalization
+    '/v1/sign/json': {
+        schema: SignJsonParamsSchema,
+        component: SignJson,
     },
 
     // Microblock approval via WIAP protocol
