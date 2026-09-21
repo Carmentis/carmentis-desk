@@ -1,3 +1,11 @@
+# [1.33.0](https://github.com/Carmentis/carmentis-desk/compare/v1.32.2...v1.33.0) (2026-09-21)
+
+
+### Features
+
+* add JSON-RPC method `/v1/sign/json` with SignJson component and schema ([2c5fbe8](https://github.com/Carmentis/carmentis-desk/commit/2c5fbe8fbcd43a2fa96cfaf5201803157d48d060))
+* add OID4VP developer tool ([c28885d](https://github.com/Carmentis/carmentis-desk/commit/c28885d2ea8e567fd4cc4b8f2e1c635e73dcf468))
+
 ## [1.32.2](https://github.com/Carmentis/carmentis-desk/compare/v1.32.1...v1.32.2) (2026-07-31)
 
 
