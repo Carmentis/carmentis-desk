@@ -5,6 +5,12 @@ import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import SelectButton from 'primevue/selectbutton';
+import Textarea from 'primevue/textarea';
+import Tabs from 'primevue/tabs';
+import Tab from 'primevue/tab';
+import TabList from 'primevue/tablist';
+import TabPanels from 'primevue/tabpanels';
+import TabPanel from 'primevue/tabpanel';
 import { useStorageStore } from '../../stores/storage.ts';
 import {SeedEncoder, SignatureSchemeId, WalletCrypto} from '@cmts-dev/carmentis-sdk-core';
 import { mnemonicToSeedSync, generateMnemonic } from '@scure/bip39';
@@ -20,6 +26,32 @@ import Select from "primevue/select";
 const router = useRouter();
 const storageStore = useStorageStore();
 
+// Key creation method: 'jwk' (selected via Tabs) or 'seedphrase' (Seed/Passphrase within the second tab)
+const keyMethod = ref<'jwk' | 'seedphrase'>('jwk');
+const jwkInput = ref('');
+
+// JWK validation: check if input is valid JSON with required 'kty' field
+const jwkParseError = computed<string | null>(() => {
+    const trimmed = jwkInput.value.trim();
+    if (!trimmed) return null; // empty is ok, not yet filled
+    try {
+        const parsed = JSON.parse(trimmed);
+        if (typeof parsed.kty !== 'string') {
+            return "Champ 'kty' manquant : ce n'est pas un JWK valide";
+        }
+        return null; // valid
+    } catch {
+        return "JSON invalide";
+    }
+});
+
+const isJwkValid = computed(() =>
+    jwkInput.value.trim() !== '' && jwkParseError.value === null
+);
+
+// Network configuration state
+const showNetworkDetails = ref(false);
+
 // Networks selection (for quick network setup)
 const networkMethod = ref<'mainnet' | 'testnet' | 'devnet' | 'custom'>('mainnet');
 const networkOptions = ref([
@@ -29,6 +61,7 @@ const networkOptions = ref([
     { label: 'Custom', value: "custom", node: '', indexer: '' }
 ]);
 const isCustomNetwork = computed(() => networkMethod.value === 'custom');
+const networkDetailsVisible = computed(() => isCustomNetwork.value || showNetworkDetails.value);
 
 const organizationName = ref('');
 const seed = ref('');
@@ -44,6 +77,10 @@ watch(networkMethod, (newMethod) => {
     } else {
         nodeEndpoint.value = '';
         indexer.value = '';
+    }
+    // Reset customize toggle when network changes (only relevant for predefined networks)
+    if (newMethod !== 'custom') {
+        showNetworkDetails.value = false;
     }
 }, { immediate: true })
 
@@ -104,10 +141,17 @@ const deriveSeedFromPassphrase = (passphrase: string): string => {
 
 const isFormValid = computed(() => {
     if (!organizationName.value) return false;
-    if (creationMethod.value === 'seed') {
-        return !!seed.value;
+
+    // Validate based on selected key method
+    if (keyMethod.value === 'jwk') {
+        return isJwkValid.value;
     } else {
-        return !!passphrase.value;
+        // 'seedphrase' method
+        if (creationMethod.value === 'seed') {
+            return !!seed.value;
+        } else {
+            return !!passphrase.value;
+        }
     }
 });
 const isCreatingWallet = ref(false);
@@ -145,122 +189,38 @@ const goBack = () => {
 </script>
 
 <template>
-    <div class="max-w-2xl mx-auto">
+    <div class="max-w-2xl mx-auto space-y-6">
         <!-- Header -->
-        <div class="mb-8">
+        <div class="mb-2">
             <h1 class="text-3xl font-bold text-gray-900">Create a Wallet</h1>
             <p class="mt-2 text-sm text-gray-600">Set up a new wallet</p>
         </div>
 
-        <!-- Form Card -->
+        <!-- Section 1: Wallet Name -->
         <Card>
             <template #content>
-                <div class="space-y-6">
-                    <!-- Wallet Name -->
-                    <div>
-                        <label for="org-name" class="block text-sm font-medium text-gray-700 mb-2">
-                            Wallet Name
-                            <span class="text-red-500">*</span>
-                        </label>
-                        <InputText
-                            id="org-name"
-                            v-model="organizationName"
-                            placeholder="Enter wallet name"
-                            class="w-full"
-                        />
-                    </div>
+                <div>
+                    <label for="org-name" class="block text-sm font-medium text-gray-700 mb-2">
+                        Wallet Name
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <InputText
+                        id="org-name"
+                        v-model="organizationName"
+                        placeholder="Enter wallet name"
+                        class="w-full"
+                    />
+                </div>
+            </template>
+        </Card>
 
-
-                    <div class="flex justify-between">
-                        <!-- Creation Method Selection -->
-                        <div>
-                            <FieldNameAndDescription name="Creation Method" description="Method used to create the wallet." required/>
-                            <SelectButton
-                                v-model="creationMethod"
-                                :options="methodOptions"
-                                optionLabel="label"
-                                optionValue="value"
-                                class="w-full"
-                            />
-                        </div>
-
-                        <!-- Crypto Selection -->
-                        <div>
-                            <FieldNameAndDescription name="Scheme" description="Cryptographic scheme to use."/>
-                            <Select
-                                size="small"
-                                v-model="chosenSignatureScheme"
-                                :options="schemeOptions"
-                                optionLabel="label"
-                                optionValue="value"
-                                class="w-10rem"
-                            />
-                        </div>
-                    </div>
-
-                    <!-- Seed Phrase Input (shown when method is 'seed') -->
-                    <div v-if="creationMethod === 'seed'">
-                        <label for="seed" class="block text-sm font-medium text-gray-700 mb-2">
-                            Seed Phrase
-                            <span class="text-red-500">*</span>
-                        </label>
-                        <div class="space-y-2">
-                            <InputText
-                                id="seed"
-                                v-model="seed"
-                                placeholder="Enter or generate a seed phrase"
-                                :disabled="isGeneratingSeed"
-                                class="w-full"
-                            />
-                            <Button
-                                @click="generateSeed"
-                                label="Generate Seed"
-                                icon="pi pi-refresh"
-                                :loading="isGeneratingSeed"
-                                outlined
-                            />
-                        </div>
-                        <small class="text-gray-500 mt-1 block">
-                            <i class="pi pi-info-circle"></i>
-                            Keep your seed phrase secure and never share it
-                        </small>
-                    </div>
-
-                    <!-- Passphrase Input (shown when method is 'passphrase') -->
-                    <div v-if="creationMethod === 'passphrase'">
-                        <label for="passphrase" class="block text-sm font-medium text-gray-700 mb-2">
-                            Passphrase
-                            <span class="text-red-500">*</span>
-                        </label>
-                        <div class="space-y-2">
-                            <InputText
-                                id="passphrase"
-                                v-model="passphrase"
-                                placeholder="Enter or generate a passphrase"
-                                :disabled="isGeneratingPassphrase"
-                                toggleMask
-                                class="w-full"
-                            />
-                            <Button
-                                @click="generatePassphrase"
-                                label="Generate Passphrase"
-                                icon="pi pi-refresh"
-                                :loading="isGeneratingPassphrase"
-                                outlined
-                            />
-                        </div>
-                        <small class="text-gray-500 mt-1 block">
-                            <i class="pi pi-info-circle"></i>
-                            A seed will be derived from your passphrase. Use a strong, memorable passphrase.
-                        </small>
-                    </div>
-
-
-
-                    <!-- Network Selection -->
+        <!-- Section 2: Network Configuration -->
+        <Card>
+            <template #content>
+                <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Network Configuration
+                            Network
                             <span class="text-red-500">*</span>
                         </label>
                         <SelectButton
@@ -272,8 +232,27 @@ const goBack = () => {
                         />
                     </div>
 
+                    <!-- Compact network info for predefined networks (non-custom) -->
+                    <div v-if="!isCustomNetwork" class="border-t pt-4 space-y-2">
+                        <div class="text-sm text-gray-600">
+                            <span class="font-medium">Node:</span> {{ nodeEndpoint }}
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            <span class="font-medium">Indexer:</span> {{ indexer }}
+                        </div>
+                        <Button
+                            @click="showNetworkDetails = !showNetworkDetails"
+                            :label="showNetworkDetails ? 'Hide settings' : 'Customize'"
+                            severity="secondary"
+                            text
+                            size="small"
+                            icon="pi pi-pencil"
+                        />
+                    </div>
 
-                    <div v-if="isCustomNetwork || true">
+                    <!-- Detailed network settings (shown for custom or when customize is enabled) -->
+                    <div v-if="networkDetailsVisible" class="space-y-4">
+                        <div v-if="!isCustomNetwork" class="border-t pt-4"></div>
                         <!-- Node Endpoint -->
                         <div>
                             <label for="node-endpoint" class="block text-sm font-medium text-gray-700 mb-2">
@@ -302,19 +281,165 @@ const goBack = () => {
                     </div>
                 </div>
             </template>
+        </Card>
 
-            <template #footer>
-                <div class="flex justify-end gap-3">
-                    <Button @click="goBack" label="Cancel" icon="pi pi-times" severity="secondary" outlined />
-                    <Button
-                        @click="createWallet"
-                        label="Create Wallet"
-                        icon="pi pi-check"
-                        :disabled="!isFormValid"
-                        :loading="isCreatingWallet"
-                    />
-                </div>
+        <!-- Section 3: Private Key Creation (via Tabs) -->
+        <Card>
+            <template #content>
+                <Tabs v-model:value="keyMethod">
+                    <TabList>
+                        <Tab value="jwk">
+                            <span>JWK</span>
+                        </Tab>
+                        <Tab value="seedphrase">
+                            <span>Passphrase / Seed</span>
+                        </Tab>
+                    </TabList>
+
+                    <TabPanels>
+                        <!-- Tab: JWK -->
+                        <TabPanel value="jwk">
+                            <div class="space-y-3">
+                                <div>
+                                    <label for="jwk-input" class="block text-sm font-medium text-gray-700 mb-2">
+                                        JSON Web Key (JWK)
+                                        <span class="text-red-500">*</span>
+                                    </label>
+                                    <Textarea
+                                        id="jwk-input"
+                                        v-model="jwkInput"
+                                        placeholder='{"kty":"EC","crv":"P-256","x":"...","y":"...","d":"..."}'
+                                        :rows="8"
+                                        class="w-full font-mono text-sm"
+                                    />
+                                    <small v-if="jwkParseError" class="text-red-500 mt-1 block">
+                                        <i class="pi pi-exclamation-circle mr-1"></i>
+                                        {{ jwkParseError }}
+                                    </small>
+                                    <small v-else-if="isJwkValid" class="text-green-600 mt-1 block">
+                                        <i class="pi pi-check-circle mr-1"></i>
+                                        JWK is valid
+                                    </small>
+                                </div>
+                                <p class="text-xs text-gray-500">
+                                    Paste a valid JWK containing at least the <span class="font-mono">"kty"</span> field.
+                                </p>
+                            </div>
+                        </TabPanel>
+
+                        <!-- Tab: Seed / Passphrase -->
+                        <TabPanel value="seedphrase">
+                            <div class="space-y-4">
+                                <!-- Crypto Scheme Selection -->
+                                <div>
+                                    <FieldNameAndDescription
+                                        name="Signature Scheme"
+                                        description="Cryptographic scheme to use."
+                                    />
+                                    <Select
+                                        v-model="chosenSignatureScheme"
+                                        :options="schemeOptions"
+                                        optionLabel="label"
+                                        optionValue="value"
+                                        class="w-full"
+                                    />
+                                </div>
+
+                                <!-- Creation Method Selection -->
+                                <div>
+                                    <FieldNameAndDescription
+                                        name="Creation Method"
+                                        description="Method used to create the wallet."
+                                        required
+                                    />
+                                    <SelectButton
+                                        v-model="creationMethod"
+                                        :options="methodOptions"
+                                        optionLabel="label"
+                                        optionValue="value"
+                                        class="w-full"
+                                    />
+                                </div>
+
+                                <!-- Seed Phrase Input (shown when method is 'seed') -->
+                                <div v-if="creationMethod === 'seed'">
+                                    <label for="seed" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Seed Phrase
+                                        <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="space-y-2">
+                                        <InputText
+                                            id="seed"
+                                            v-model="seed"
+                                            placeholder="Enter or generate a seed phrase"
+                                            :disabled="isGeneratingSeed"
+                                            class="w-full"
+                                        />
+                                        <Button
+                                            @click="generateSeed"
+                                            label="Generate Seed"
+                                            icon="pi pi-refresh"
+                                            :loading="isGeneratingSeed"
+                                            outlined
+                                        />
+                                    </div>
+                                    <small class="text-gray-500 mt-1 block">
+                                        <i class="pi pi-info-circle"></i>
+                                        Keep your seed phrase secure and never share it
+                                    </small>
+                                </div>
+
+                                <!-- Passphrase Input (shown when method is 'passphrase') -->
+                                <div v-if="creationMethod === 'passphrase'">
+                                    <label for="passphrase" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Passphrase
+                                        <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="space-y-2">
+                                        <InputText
+                                            id="passphrase"
+                                            v-model="passphrase"
+                                            placeholder="Enter or generate a passphrase"
+                                            :disabled="isGeneratingPassphrase"
+                                            toggleMask
+                                            class="w-full"
+                                        />
+                                        <Button
+                                            @click="generatePassphrase"
+                                            label="Generate Passphrase"
+                                            icon="pi pi-refresh"
+                                            :loading="isGeneratingPassphrase"
+                                            outlined
+                                        />
+                                    </div>
+                                    <small class="text-gray-500 mt-1 block">
+                                        <i class="pi pi-info-circle"></i>
+                                        A seed will be derived from your passphrase. Use a strong, memorable passphrase.
+                                    </small>
+                                </div>
+                            </div>
+                        </TabPanel>
+                    </TabPanels>
+                </Tabs>
             </template>
         </Card>
+
+        <!-- Footer: Action buttons -->
+        <div class="flex justify-end gap-3">
+            <Button
+                @click="goBack"
+                label="Cancel"
+                icon="pi pi-times"
+                severity="secondary"
+                outlined
+            />
+            <Button
+                @click="createWallet"
+                label="Create Wallet"
+                icon="pi pi-check"
+                :disabled="!isFormValid"
+                :loading="isCreatingWallet"
+            />
+        </div>
     </div>
 </template>
