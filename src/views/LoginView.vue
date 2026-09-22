@@ -7,11 +7,11 @@ import Password from 'primevue/password';
 import Card from 'primevue/card';
 import Message from 'primevue/message';
 import { storeToRefs } from 'pinia';
+import {useAppStateStore} from "../stores/appState.ts";
 
 const router = useRouter();
 const route = useRoute();
-const sessionStore = useSessionStore();
-const { pseudo } = storeToRefs(sessionStore);
+const sessionStore = useAppStateStore();
 
 const password = ref('');
 const errorMessage = ref('');
@@ -43,7 +43,7 @@ async function handleSubmit() {
                 <div class="px-6 pt-6 text-center">
                     <img src="/carmentis-logo.png" alt="Carmentis" class="h-12 w-auto mx-auto mb-3" />
                     <h1 class="text-2xl font-bold text-gray-900">Unlock vault</h1>
-                    <p v-if="pseudo" class="text-sm text-gray-500 mt-1">Welcome back, {{ pseudo }}</p>
+                    <p class="text-sm text-gray-500 mt-1">Provide your password to access the secure vault.</p>
                 </div>
             </template>
             <template #content>

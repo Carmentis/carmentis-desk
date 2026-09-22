@@ -7,11 +7,11 @@ import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Card from 'primevue/card';
 import Message from 'primevue/message';
+import {useAppStateStore} from "../stores/appState.ts";
 
 const router = useRouter();
-const sessionStore = useSessionStore();
+const sessionStore = useAppStateStore();
 
-const pseudo = ref('');
 const password = ref('');
 const confirmPassword = ref('');
 const errorMessage = ref('');
@@ -20,10 +20,6 @@ const isLoading = ref(false);
 async function handleSubmit() {
     errorMessage.value = '';
 
-    if (!pseudo.value.trim()) {
-        errorMessage.value = 'Please enter a display name.';
-        return;
-    }
     if (password.value.length < 8) {
         errorMessage.value = 'Password must be at least 8 characters.';
         return;
@@ -35,7 +31,7 @@ async function handleSubmit() {
 
     isLoading.value = true;
     try {
-        await sessionStore.onboard(pseudo.value.trim(), password.value);
+        await sessionStore.onboard(password.value);
         await router.push('/');
     } catch (e) {
         console.error('Onboarding error:', e);
@@ -54,22 +50,12 @@ async function handleSubmit() {
                     <i class="pi pi-lock text-4xl text-primary mb-3"></i>
                     <h1 class="text-2xl font-bold text-gray-900">Welcome to Carmentis Desk</h1>
                     <p class="text-sm text-gray-500 mt-1">
-                        Set up your secure vault to protect your wallet keys.
+                        Set up your secure vault.
                     </p>
                 </div>
             </template>
             <template #content>
                 <form class="flex flex-col gap-4" @submit.prevent="handleSubmit">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Display name</label>
-                        <InputText
-                            v-model="pseudo"
-                            placeholder="e.g. Alice"
-                            class="w-full"
-                            autofocus
-                        />
-                    </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Vault password</label>
                         <Password
