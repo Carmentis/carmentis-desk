@@ -8,3 +8,5 @@ export async function getDb(): Promise<Database> {
     await _db.execute('PRAGMA foreign_keys = ON;');
     return _db;
 }
+
+

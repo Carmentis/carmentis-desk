@@ -1,23 +1,24 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import AppLayout from '../components/layout/AppLayout.vue';
-import Home from '../components/home/Home.vue';
-import CreateWallet from '../components/layout/CreateWallet.vue';
-import WalletLayout from '../components/home/wallet/WalletLayout.vue';
-import WalletDetail from '../components/home/wallet/WalletDetail.vue';
-import Organization from '../components/home/wallet/organization/Organization.vue';
-import Node from '../components/home/wallet/organization/node/Node.vue';
-import Application from '../components/home/wallet/organization/application/Application.vue';
-import WalletAppLedgerExplorer from '../components/home/wallet/appLedgers/WalletAppLedgerExplorer.vue';
-import WalletCredentials from '../components/home/wallet/credentials/WalletCredentials.vue';
+import Home from '../views/home/Home.vue';
+import CreateWallet from '../views/home/CreateWallet.vue';
+import WalletLayout from '../views/home/wallet/WalletLayout.vue';
+import WalletDetail from '../views/home/wallet/WalletDetail.vue';
+import Organization from '../views/home/wallet/organization/Organization.vue';
+import Node from '../views/home/wallet/organization/node/Node.vue';
+import Application from '../views/home/wallet/organization/application/Application.vue';
+import WalletAppLedgerExplorer from '../views/home/wallet/appLedgers/WalletAppLedgerExplorer.vue';
+import WalletCredentials from '../views/home/wallet/credentials/WalletCredentials.vue';
 import RpcSession from '../components/rpcSession/RpcSession.vue';
 import Help from '../components/help/Help.vue';
-import Settings from '../components/home/settings/Settings.vue';
+import Settings from '../views/home/settings/Settings.vue';
 import OnboardingView from '../views/OnboardingView.vue';
 import LoginView from '../views/LoginView.vue';
 import { useSessionStore } from '../stores/sessionStore';
 import {match, P} from "ts-pattern";
 import SplashscreenView from "../views/SplashscreenView.vue";
 import {storeToRefs} from "pinia";
+import {useAppStateStore} from "../stores/appState.ts";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -115,18 +116,16 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
     console.log("Navigating to", to.fullPath);
-    const session = useSessionStore();
-    const { isOnboarded, isUnlocked, isLoading } = storeToRefs(session);
-    return match({ to, isLoading: isLoading.value, isOnboarded: isOnboarded.value, isUnlocked: isUnlocked.value })
-        .with({  isLoading: true }, () => {
-            if (to.name === 'splash') return true;
-            return { name: 'splash' }
-        })
+    const session = useAppStateStore();
+    const { isOnboarded, isUnlocked } = storeToRefs(session);
+    const input = { to, isOnboarded: isOnboarded.value, isUnlocked: isUnlocked.value }
+    console.log("Input", input);
+    return match(input)
         .with({ to: { name: 'login' }, isOnboarded: true, isUnlocked: false }, () => true)
-        .with({ to: { name: 'onboarding' }, isOnboarded: false }, () => true)
+        .with({ to: { name: 'onboarding' }, isOnboarded: P.nullish }, () => true)
         .otherwise(() => {
-            if (!session.isOnboarded) return { name: 'onboarding' };
-            if (!session.isUnlocked) return { name: 'login', query: { redirect: to.fullPath } };
+            if (!isOnboarded.value) return { name: 'onboarding' };
+            if (!isUnlocked.value) return { name: 'login', query: { redirect: to.fullPath } };
             return true;
         });
     /*
