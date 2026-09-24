@@ -30,12 +30,18 @@ import WalletDetailOrganizationsCard from "./WalletDetailOrganizationsCard.vue";
 import WalletDetailApplicationLedgerParticipationsCard from "./WalletDetailApplicationLedgerParticipationsCard.vue";
 import WalletDetailConnectivity from "./WalletDetailConnectivity.vue";
 import WalletDetailVirtualBlockchains from "./WalletDetailVirtualBlockchains.vue";
+import {useAppStore} from "../../../stores/appStore.ts";
+import {useWalletStore} from "../../../stores/walletStore.ts";
+import {useCurrentWallet} from "../../../composables/useCurrentWallet.ts";
+import {storeToRefs} from "pinia";
+import Credentials from "./credentials/Credentials.vue";
+import WalletDetailCredentials from "./credentials/WalletDetailCredentials.vue";
 
 
 const toast = useToast();
 const route = useRoute();
 const router = useRouter();
-const storageStore = useStorageStore();
+const {deleteWalletById, shouldDisplayOrganizations} = useAppStore();
 const confirm = useConfirm();
 
 const goBack = () => {
@@ -52,7 +58,7 @@ const deleteWallet = () => {
         acceptLabel: 'Delete',
         acceptClass: 'p-button-danger',
         accept: async () => {
-            await storageStore.removeOrganizationById(walletId.value);
+            await deleteWalletById(walletId.value);
             toast.add({
                 severity: 'success',
                 summary: 'Wallet deleted',
@@ -66,22 +72,9 @@ const deleteWallet = () => {
 
 const walletId = computed(() => Number(route.params.walletId));
 
-const { state: wallet } = useAsyncState(
-    () => walletRepo.getWalletById(walletId.value),
-    null,
-    { immediate: true },
-);
+const {wallet} = useWalletStore(walletId.value);
 
 
-
-
-const accountStateQuery = useAccountStateQuery(walletId.value);
-const breakdownQuery = useAccountBreakdownQuery(walletId.value);
-
-watch(walletId, () => {
-    accountStateQuery.refetch()
-    breakdownQuery.refetch()
-})
 
 
 </script>
@@ -99,13 +92,7 @@ watch(walletId, () => {
                         </h1>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button
-                            @click="router.push(`/wallet/${walletId}/credentials`)"
-                            class="px-4 py-2 flex items-center gap-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                            <i class="pi pi-id-card" />
-                            <span class="hidden sm:inline">Credentials</span>
-                        </button>
+
                         <button
                             @click="deleteWallet"
                             class="px-4 py-2 flex items-center gap-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -124,9 +111,13 @@ watch(walletId, () => {
                             <i class="pi pi-key mr-2"></i>
                             Overview
                         </Tab>
-                        <Tab value="0">
+                        <Tab value="0" v-if="shouldDisplayOrganizations">
                             <i class="pi pi-building mr-2"></i>
                             Organizations
+                        </Tab>
+                        <Tab value="3">
+                            <i class="pi pi-id-card mr-2"></i>
+                            Credentials
                         </Tab>
                         <Tab value="1">
                             <i class="pi pi-box mr-2"></i>
@@ -153,6 +144,9 @@ watch(walletId, () => {
                         </TabPanel>
                         <TabPanel value="2">
                             <WalletDetailConnectivity/>
+                        </TabPanel>
+                        <TabPanel value="3">
+                            <WalletDetailCredentials/>
                         </TabPanel>
                     </TabPanels>
                 </Tabs>

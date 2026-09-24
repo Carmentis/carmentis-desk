@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
 import {computed, ref} from 'vue';
-import { useAccountTransactionsHistory, useHasAccountOnChainQuery } from '../../../../../composables/useAccountBreakdown.ts';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -11,21 +10,19 @@ import Button from 'primevue/button';
 import {computedAsync} from "@vueuse/core";
 import {Transaction} from "./Transaction.ts";
 import Dialog from 'primevue/dialog';
+import {useCurrentWallet} from "../../../../../composables/useCurrentWallet.ts";
 
-
-const route = useRoute();
-const walletId = computed(() => Number(route.params.walletId));
-
+const {useAccountTransactionsHistory, useHasAccountOnChainQuery} = useCurrentWallet();
 const isOpen = defineModel<boolean>('isOpen');
 
 // define the limit to use
 const limit = ref(5);
 const higherThanHeight = ref(0);
 const accountHistoryQuery = computed(() => {
-    const res = useAccountTransactionsHistory(walletId.value, higherThanHeight, limit);
+    const res = useAccountTransactionsHistory(higherThanHeight, limit);
     return res.accountHistoryQuery
 })
-const hasAccount = useHasAccountOnChainQuery(walletId.value);
+const hasAccount = useHasAccountOnChainQuery();
 const transactions = computed(() => {
     const data = accountHistoryQuery.value.data.value;
     if (!data) return [];

@@ -4,37 +4,23 @@ import Button from 'primevue/button';
 import type { NodeEntity } from '../../../../../stores/storage.ts';
 import NodeClaimDialog from "./NodeClaimDialog.vue";
 import {computed, inject, ref} from "vue";
-import {useRoute, useRouter} from "vue-router";
-import {useNode} from "../../../../../composables/useNode.ts";
+import {Node} from "../../../../../types/types.ts";
+import {useCurrentNode} from "../../../../../composables/useCurrentNode.ts";
 
 defineProps<{
-    node: NodeEntity;
+    node: Node;
     chainName?: string;
     nodePublicKey?: { pk: string; pkType: string } | null;
     isNodePublished?: boolean | null;
     isNodeClaimed?: boolean;
     hasAccountOnChain?: boolean;
 }>();
-const route = useRoute();
-
-const walletId = computed(() => Number(route.params.walletId));
-const orgId = computed(() => Number(route.params.orgId));
-const nodeId = computed(() => Number(route.params.nodeId));
-
 const {
     nodeVbId,
     organization,
-    /*
-    organization,
-    node,
-    nodePublicKey,
-    ,
-    isNodePublished,
-
-     */
     isNodeClaimed,
     isLoadingNode
-} = useNode(walletId, orgId, nodeId);
+} = useCurrentNode();
 
 const showClaimDialog = ref(false);
 </script>
@@ -50,7 +36,7 @@ const showClaimDialog = ref(false);
                     <span>Node Information</span>
                 </div>
                 <Button
-                    v-if="node && !node.vbId && !isNodePublished && !isNodeClaimed"
+                    v-if="node && !node.nodeVbId && !isNodePublished && !isNodeClaimed"
                     @click="() => showClaimDialog = true"
                     label="Claim Node"
                     icon="pi pi-lock"
@@ -99,10 +85,10 @@ const showClaimDialog = ref(false);
                     </div>
                 </div>
 
-                <div v-if="node.vbId">
+                <div v-if="node.nodeVbId">
                     <label class="block text-sm font-medium text-gray-700 mb-2"> Virtual Blockchain ID </label>
                     <code class="bg-gray-100 px-3 py-2 rounded text-sm block overflow-x-auto">
-                        {{ node.vbId }}
+                        {{ node.nodeVbId }}
                     </code>
                 </div>
             </div>

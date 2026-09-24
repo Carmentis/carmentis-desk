@@ -1,5 +1,6 @@
 import * as v from 'valibot';
 import { parseCompactSdJwt } from './parseSdJwtToken';
+import {CredentialType} from "../../types/types.ts";
 
 // ---------------------------------------------------------------------------
 // Shared primitive — a single SD-JWT disclosure entry.
@@ -64,14 +65,14 @@ export const SdJwtEnvelopeSchema = v.looseObject({
 
 export type SdJwtEnvelope = v.InferOutput<typeof SdJwtEnvelopeSchema>;
 
-export type CredentialType = 'sd-jwt' | 'unrecognized';
+export type ExtendedCredentialType = CredentialType | 'unrecognized';
 
-export function detectCredentialType(data: string): CredentialType {
+export function detectCredentialType(data: string): ExtendedCredentialType {
     // Compact SD-JWT token: first segment is a JWT (3 dot-separated parts), followed by ~
     const tildeIdx = data.indexOf('~');
     if (tildeIdx > 0) {
         const jwtPart = data.slice(0, tildeIdx);
-        if (jwtPart.split('.').length === 3) return 'sd-jwt';
+        return CredentialType.SDJWT;
     }
 
     // Legacy: JSON-encoded SdJwtCredential
@@ -83,7 +84,7 @@ export function detectCredentialType(data: string): CredentialType {
     }
 
     const jwtResult = v.safeParse(SdJwtSchema, parsed);
-    if (jwtResult.success) return 'sd-jwt';
+    if (jwtResult.success) return CredentialType.SDJWT;
 
     return 'unrecognized';
 }

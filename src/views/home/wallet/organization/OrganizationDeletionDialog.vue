@@ -6,6 +6,7 @@ import {useToast} from "primevue/usetoast";
 import {useRoute, useRouter} from "vue-router";
 import * as orgRepo from "../../../../db/repositories/organizationRepository.ts";
 import {useAsyncState} from "@vueuse/core";
+import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
 
 
 const walletId = computed(() => Number(route.params.walletId));
@@ -15,13 +16,8 @@ const toast = useToast();
 const showDeletionDialog = defineModel<boolean>('showDeletionDialog');
 const route = useRoute();
 const router = useRouter();
+const {organization} = useCurrentOrganization();
 
-
-const { state: organization } = useAsyncState(
-    () => orgRepo.getOrganizationById(orgId.value),
-    null,
-    { immediate: true },
-);
 
 async function confirmDeleteOrganization() {
     showDeletionDialog.value = false;

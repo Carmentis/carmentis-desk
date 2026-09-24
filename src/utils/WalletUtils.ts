@@ -16,6 +16,10 @@ export class WalletUtils {
         return createIndexerClient(wallet.indexer);
     }
 
+    static async getIndexerFromEndpoint(indexerEndpoint: string) {
+        return createIndexerClient(indexerEndpoint);
+    }
+
     static async getPublicKeyFromWalletId(walletId: number) {
         const sk = await this.getPrivateKeyFromWalletId(walletId);
         return await sk.getPublicKey();

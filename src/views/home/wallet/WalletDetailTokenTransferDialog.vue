@@ -8,6 +8,7 @@ import {CMTSToken, CryptoEncoderFactory} from "@cmts-dev/carmentis-sdk-core";
 import Dialog from "primevue/dialog";
 import InputText from "primevue/inputtext";
 import Button from "primevue/button";
+import {useCurrentWallet} from "../../../composables/useCurrentWallet.ts";
 
 const toast = useToast();
 const route = useRoute();
@@ -18,7 +19,7 @@ const walletId = computed(() => Number(route.params.walletId));
 
 // transfer dialog
 const isOpen = defineModel<boolean>('isOpen');
-const walletStore = useWalletStore();
+const {isAccountFoundByPublicKey}  = useCurrentWallet();
 const isCreatingNewAccount = ref<boolean | undefined>(undefined);
 const transferPublicKey = ref('');
 const transferAmount = ref('');
@@ -28,7 +29,7 @@ watch(transferPublicKey, async () => {
         // attempt to parse the public key
         const encoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
         const pk = await encoder.decodePublicKey(transferPublicKey.value);
-        isCreatingNewAccount.value = !(await walletStore.isAccountFoundByPublicKey(walletId.value, pk));
+        isCreatingNewAccount.value = !(await isAccountFoundByPublicKey(pk));
     } catch (e) {
         isCreatingNewAccount.value = undefined;
     }

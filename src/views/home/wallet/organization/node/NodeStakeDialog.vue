@@ -7,8 +7,8 @@ import { useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { CMTSToken } from '@cmts-dev/carmentis-sdk-core';
 import { useOnChainStore } from '../../../../../stores/onchain.ts';
-import {useNode} from "../../../../../composables/useNode.ts";
 import FieldNameAndDescription from "../../../../../components/utils/FieldNameAndDescription.vue";
+import {useCurrentNode} from "../../../../../composables/useCurrentNode.ts";
 
 const isOpen = defineModel<boolean>('isOpen');
 
@@ -20,7 +20,7 @@ const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 const nodeId = computed(() => Number(route.params.nodeId));
 
-const { currentStakedAmount } = useNode(walletId, orgId, nodeId);
+const { currentStakedAmount } = useCurrentNode();
 
 const MAX_STAKE = 10_000_000;
 
@@ -48,7 +48,6 @@ async function submitStake() {
 
     try {
         await onChainStore.stakeOnNode({
-            walletId: walletId.value,
             orgId: orgId.value,
             nodeId: nodeId.value,
             amount: CMTSToken.createCMTS(stakeAmount.value),

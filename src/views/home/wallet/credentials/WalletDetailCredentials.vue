@@ -16,26 +16,13 @@ import { useConfirm } from 'primevue/useconfirm';
 import type { MenuItem } from 'primevue/menuitem';
 import CredentialCard from './CredentialCard.vue';
 import { parseCompactSdJwt, SdJwtParseError } from '../../../../composables/credentials/parseSdJwtToken.ts';
+import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
+import {VerifiableCredential} from "../../../../types/types.ts";
 
-const route = useRoute();
 const router = useRouter();
-const walletStore = useWalletStore();
+const {wallet, walletCredentials, createSdJwtCredential, deleteCredential} = useCurrentWallet()
 const toast = useToast();
 const confirm = useConfirm();
-
-const walletId = computed(() => Number(route.params.walletId));
-
-const { state: wallet } = useAsyncState(
-    () => walletRepo.getWalletById(walletId.value),
-    null,
-    { immediate: true },
-);
-
-const { state: credentials, execute: fetchCredentials } = useAsyncState(
-    () => credentialRepo.getCredentialsByWalletId(walletId.value),
-    [] as CredentialEntity[],
-    { immediate: true },
-);
 
 // ---------------------------------------------------------------------------
 // Add credential dialog
@@ -81,9 +68,7 @@ async function handleAddSubmit() {
          */
 
         const name = sdJwtName.value.trim() || parsed.jwt.payload.vct;
-
-        await credentialRepo.insertCredential(walletId.value, { name, data: token });
-        await fetchCredentials();
+        await createSdJwtCredential(name, token)
         toast.add({
             severity: 'success',
             summary: 'Credential added',
@@ -110,7 +95,7 @@ async function handleAddSubmit() {
 // Delete credential (confirmation owned here)
 // ---------------------------------------------------------------------------
 function requestDelete(credentialId: number) {
-    const credential = credentials.value.find((c) => c.id === credentialId);
+    const credential = walletCredentials.value.find((c) => c.id === credentialId);
     if (!credential) return;
     confirm.require({
         message: `Are you sure you want to delete "${credential.name}"? This cannot be undone.`,
@@ -121,8 +106,7 @@ function requestDelete(credentialId: number) {
         acceptLabel: 'Delete',
         acceptClass: 'p-button-danger',
         accept: async () => {
-            await credentialRepo.deleteCredentialById(credentialId);
-            await fetchCredentials();
+            await deleteCredential(credentialId);
             toast.add({
                 severity: 'success',
                 summary: 'Credential deleted',
@@ -136,23 +120,23 @@ function requestDelete(credentialId: number) {
 // Browse credential (dialog owned here)
 // ---------------------------------------------------------------------------
 const showBrowseDialog = ref(false);
-const browsingCredential = ref<CredentialEntity | null>(null);
+const browsingCredential = ref<VerifiableCredential | null>(null);
 
 const MAX_BROWSE_LENGTH = 100_000;
 
 const prettyBrowseJson = computed(() => {
     if (!browsingCredential.value) return '';
     try {
-        const parsed = JSON.parse(browsingCredential.value.data);
+        const parsed = JSON.parse(browsingCredential.value.sdjwt);
         const full = JSON.stringify(parsed, null, 2);
         return full.length > MAX_BROWSE_LENGTH ? full.slice(0, MAX_BROWSE_LENGTH) + '\n\n… (truncated)' : full;
     } catch {
-        return browsingCredential.value.data;
+        return browsingCredential.value.sdjwt;
     }
 });
 
 function requestBrowse(credentialId: number) {
-    browsingCredential.value = credentials.value.find((c) => c.id === credentialId) ?? null;
+    browsingCredential.value = walletCredentials.value.find((c) => c.id === credentialId) ?? null;
     if (browsingCredential.value) showBrowseDialog.value = true;
 }
 
@@ -175,7 +159,7 @@ const menuItems = computed<MenuItem[]>(() => [
                 <MenuBar :model="menuItems" />
 
                 <!-- Empty state -->
-                <div v-if="credentials.length === 0" class="text-center py-12">
+                <div v-if="walletCredentials.length === 0" class="text-center py-12">
                     <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
                         <i class="pi pi-id-card text-2xl text-gray-400"></i>
                     </div>
@@ -186,7 +170,7 @@ const menuItems = computed<MenuItem[]>(() => [
                 <!-- Credentials grid -->
                 <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     <CredentialCard
-                        v-for="credential in credentials"
+                        v-for="credential in walletCredentials"
                         :key="credential.id"
                         :credential="credential"
                         @delete="requestDelete"

@@ -3,9 +3,10 @@ import { computed, ref } from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import type { CredentialEntity } from '../../../../stores/storage.ts';
+import {VerifiableCredential} from "../../../../types/types.ts";
 
 const props = defineProps<{
-    credential: CredentialEntity;
+    credential: VerifiableCredential;
 }>();
 
 const emit = defineEmits<{
@@ -42,9 +43,9 @@ interface PreviewEntry {
 
 const jsonPreview = computed<PreviewEntry[] | null>(() => {
     try {
-        const parsed = JSON.parse(props.credential.data);
+        const parsed = JSON.parse(props.credential.sdjwt);
         if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-            const s = String(props.credential.data);
+            const s = String(props.credential.sdjwt);
             return [
                 {
                     key: '(value)',
@@ -83,7 +84,7 @@ const jsonPreview = computed<PreviewEntry[] | null>(() => {
 
 const totalKeys = computed<number | null>(() => {
     try {
-        const parsed = JSON.parse(props.credential.data);
+        const parsed = JSON.parse(props.credential.sdjwt);
         if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
             return Object.keys(parsed).length;
         }

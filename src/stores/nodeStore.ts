@@ -1,57 +1,46 @@
-import { computed, toValue, type MaybeRefOrGetter } from 'vue';
-import { computedAsync, useAsyncState } from '@vueuse/core';
-import { Tendermint37Client } from '@cosmjs/tendermint-rpc';
-import {
-    CMTSToken,
-    EncoderFactory,
-    Hash,
-    LockType,
-    ProviderFactory,
-    Utils,
-} from '@cmts-dev/carmentis-sdk-core';
-import * as walletRepo from '../db/repositories/walletRepository';
-import * as orgRepo from '../db/repositories/organizationRepository';
-import * as nodeRepo from '../db/repositories/nodeRepository';
-import {createIndexerClient} from "../api/indexer/client.ts";
+import {from, useObservable} from "@vueuse/rxjs";
+import {liveQuery} from "dexie";
+import {DeskDatabase} from "../db/DeskDatabase.ts";
+import {useCurrentWallet} from "../composables/useCurrentWallet.ts";
+import {useCurrentOrganization} from "../composables/useCurrentOrganization.ts";
+import {computedAsync} from "@vueuse/core";
+import {Tendermint37Client} from "@cosmjs/tendermint-rpc";
 import {useQuery} from "@tanstack/vue-query";
+import {CMTSToken, EncoderFactory} from "@cmts-dev/carmentis-sdk-core";
+import {computed} from "vue";
 
-/**
- * Encapsulates the on-chain derived state of a node (publication, ownership,
- * validator status and staking information). The expensive RPC/provider calls
- * run once per call site, so this composable is intended to be used once in the
- * Node page and its derived values passed down to the presentation components.
- */
-export function useNode(
-    walletId: MaybeRefOrGetter<number>,
-    orgId: MaybeRefOrGetter<number>,
-    nodeId: MaybeRefOrGetter<number>,
-) {
-    const { data: wallet } = useQuery({
-        queryKey: ['wallet', walletId],
-        queryFn: () => walletRepo.getWalletById(toValue(walletId)),
-    })
+export const useNodeStore = (nodeId: number) => {
+    const {wallet, indexer: walletIndexer, useHasAccountOnChainQuery} = useCurrentWallet();
+    const {organization, organizationVbId} = useCurrentOrganization();
 
-    const { data: organization } = useQuery({
-        queryKey: ['organization', orgId],
-        queryFn: () => orgRepo.getOrganizationById(toValue(orgId)),
-    })
+    const node = useObservable(
+        from(liveQuery(() => DeskDatabase.getNodeById(nodeId))),
+        {initialValue: undefined}
+    );
+    const nodeRpcEndpoint = computed(() => node.value?.rpcEndpoint ?? undefined)
 
-    const { data: locallyStoredNode } = useQuery({
-        queryKey: ['node', nodeId],
-        queryFn: () => nodeRepo.getNodeById(toValue(nodeId)),
-    })
 
-    const indexer = computed(() => {
-        if (!wallet.value) return undefined;
-        return createIndexerClient(wallet.value.indexer)
-    });
+
+    function updateNode(updatedNode: Partial<Node>) {
+        if (!node.value) throw new Error('Node not found')
+        return DeskDatabase.updateNode(nodeId, {
+            ...node.value,
+            ...updatedNode
+        })
+    }
+
+    function deleteNode() {
+        return DeskDatabase.deleteNodeById(nodeId)
+    }
+
+
 
     // node chain status (the chain on which the node is running)
     const chainNameOnWhichNodeIsConnected = computedAsync(async () => {
-        if (!locallyStoredNode.value) {
+        if (!nodeRpcEndpoint.value) {
             return undefined;
         }
-        const endpoint = locallyStoredNode.value.rpcEndpoint;
+        const endpoint = nodeRpcEndpoint.value;
         const client = await Tendermint37Client.connect(endpoint);
         const status = await client.status();
         return status.nodeInfo.network;
@@ -59,13 +48,13 @@ export function useNode(
 
     // Node publication status
     const {data: nodePublicKey, isLoading: isLoadingNodePublicKey} = useQuery({
-        queryKey: ['node-public-key', locallyStoredNode],
+        queryKey: ['node-public-key', nodeId],
         refetchInterval: 10000,
         queryFn: async () =>  {
-            if (!locallyStoredNode.value) {
+            if (!nodeRpcEndpoint.value) {
                 return null;
             }
-            const endpoint = locallyStoredNode.value.rpcEndpoint;
+            const endpoint = nodeRpcEndpoint.value;
             const client = await Tendermint37Client.connect(endpoint);
             const status = await client.status();
             const pk = status.validatorInfo.pubkey;
@@ -80,10 +69,10 @@ export function useNode(
     });
 
     const { data: nodeVbId } = useQuery({
-        queryKey: ['node-vbid', locallyStoredNode],
+        queryKey: ['node-vbid', nodeId],
         queryFn: () => {
-            if (!locallyStoredNode.value) return null;
-            return locallyStoredNode.value.vbId;
+            if (!node.value) return null;
+            return node.value.nodeVbId;
         },
     })
 
@@ -95,11 +84,11 @@ export function useNode(
         enabled: computed(() => !!nodeVbId.value),
         queryKey: ['node', nodeVbId],
         queryFn: async () => {
-            if (!nodeVbId.value || !indexer.value) {
+            if (!nodeVbId.value || !walletIndexer.value) {
                 console.warn("Cannot fetch validator node: node vb id or indexer undefined")
                 return null
             };
-            const validatorNodesResponse = await indexer.value.getValidatorNodes({ vb_id: nodeVbId.value });
+            const validatorNodesResponse = await walletIndexer.value.getValidatorNodes({ vb_id: nodeVbId.value });
             const validatorNodes = validatorNodesResponse.items;
             if (validatorNodes.length === 0) return null;
             return validatorNodes[0];
@@ -107,17 +96,17 @@ export function useNode(
     })
 
     const {data: nodeOwnerOrganizationId} = useQuery({
-        enabled: computed(() => !!locallyStoredNode.value),
+        enabled: computed(() => !!node.value),
         queryKey: ['node-owner-organization-id', nodeVbId],
         queryFn: async () => {
 
-            if (!locallyStoredNode.value || !locallyStoredNode.value.vbId || !indexer.value) {
-                console.warn(`Cannot fetch node owner organization id: node vb id or indexer undefined: ${locallyStoredNode.value}`)
+            if (!node.value || !node.value.nodeVbId || !walletIndexer.value) {
+                console.warn(`Cannot fetch node owner organization id: node vb id or indexer undefined: ${node.value}`)
                 return null;
             };
 
-            const nodeVbId = locallyStoredNode.value.vbId;
-            const validatorNodesResponse = await indexer.value.getValidatorNodes({ vb_id: nodeVbId });
+            const nodeVbId = node.value.nodeVbId;
+            const validatorNodesResponse = await walletIndexer.value.getValidatorNodes({ vb_id: nodeVbId });
             const validatorNodes = validatorNodesResponse.items;
             if (validatorNodes.length === 0) {
                 console.warn(`Cannot fetch node owner organization id: no validator nodes found for node vb id: ${nodeVbId}`)
@@ -130,9 +119,9 @@ export function useNode(
     const {data: nodeOwnerOrganization, isLoading: isLoadingNodeOwnerOrganization} = useQuery({
         queryKey: ['node-owner-organization', nodeVbId],
         queryFn: async () => {
-            if (!nodeOwnerOrganizationId.value || !indexer.value) return null;
+            if (!nodeOwnerOrganizationId.value || !walletIndexer.value) return null;
             const organizationId = nodeOwnerOrganizationId.value;
-            const organization = await indexer.value.getOrganizations({ vb_id: organizationId });
+            const organization = await walletIndexer.value.getOrganizations({ vb_id: organizationId });
             return organization.items[0];
         }
     })
@@ -148,11 +137,11 @@ export function useNode(
     const { data: nodeOwnerAccount, isLoading: isLoadingNodeOwnerAccount } = useQuery({
         queryKey: ['nodeOwnerAccount', nodeOwnerAccountId],
         queryFn: async () => {
-            if (!nodeOwnerAccountId.value || !indexer.value) {
+            if (!nodeOwnerAccountId.value || !walletIndexer.value) {
                 console.warn("Cannot fetch node owner account: node owner account id or indexer undefined")
                 return null
             };
-            const accounts =  await indexer.value.getAccounts({ id: nodeOwnerAccountId.value });
+            const accounts =  await walletIndexer.value.getAccounts({ id: nodeOwnerAccountId.value });
             return accounts.items.length === 1 ? accounts.items[0] : null;
         }
     })
@@ -171,15 +160,9 @@ export function useNode(
         return nodeOwnerAccountId.value !== undefined;
     });
 
-    // Check if the wallet owns this node
-    const walletOrgId = computed( () => {
-        if (!organization.value?.vbId) return undefined;
-        return organization.value.vbId;
-    });
-
     const isOwnedByWallet = computed( () => {
-        if (!nodeOwnerOrganizationId.value || !walletOrgId.value) return undefined;
-        return nodeOwnerOrganizationId.value === walletOrgId.value;
+        if (!nodeOwnerOrganizationId.value || !organizationVbId.value) return undefined;
+        return nodeOwnerOrganizationId.value === organizationVbId.value;
     });
 
     // staking information
@@ -231,9 +214,10 @@ export function useNode(
     })
 
     return {
+        // states
         wallet,
         organization,
-        node: locallyStoredNode,
+        node,
         chainNameOnWhichNodeIsConnected,
         nodePublicKey,
         nodeVbId,
@@ -242,7 +226,7 @@ export function useNode(
         nodeOwnerName,
         isNodeValidator,
         isNodeClaimed,
-        walletOrgId,
+        organizationVbId,
         isOwnedByWallet,
         nodeStakeInformation,
         currentStakedAmount,
@@ -256,6 +240,14 @@ export function useNode(
         isLoadingNodeOwnerAccount,
         isLoadingNodeOwnerOrganization,
         isLoadingValidatorNode,
-        isLoadingNodePublicKey
-    };
+        isLoadingNodePublicKey,
+
+        // hooks
+        useHasAccountOnChainQuery,
+
+        // actions
+        updateNode,
+        deleteNode,
+    }
 }
+

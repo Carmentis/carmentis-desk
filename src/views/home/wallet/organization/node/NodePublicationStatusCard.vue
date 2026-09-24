@@ -2,9 +2,10 @@
 import Card from 'primevue/card';
 import type { Hash } from '@cmts-dev/carmentis-sdk-core';
 import type { NodeEntity } from '../../../../../stores/storage.ts';
+import {Node} from "../../../../../types/types.ts";
 
 defineProps<{
-    node: NodeEntity;
+    node: Node;
     isNodePublished?: boolean;
     isNodeValidator?: unknown;
     isNodeClaimed?: boolean;
@@ -23,7 +24,7 @@ defineProps<{
             </div>
         </template>
         <template #content>
-            <div v-if="!node.vbId" class="text-center py-8">
+            <div v-if="!node.nodeVbId" class="text-center py-8">
                 <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
                     <i class="pi pi-question-circle text-2xl text-gray-400"></i>
                 </div>

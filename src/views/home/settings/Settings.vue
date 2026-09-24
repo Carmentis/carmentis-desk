@@ -7,6 +7,7 @@ import TabPanel from 'primevue/tabpanel';
 import TabPanels from 'primevue/tabpanels';
 import Button from 'primevue/button';
 import Logs from './Logs.vue';
+import {ToggleSwitch} from "primevue";
 import { useTheme } from '../../../composables/useTheme.ts';
 import { ref, computed } from 'vue';
 import { check } from '@tauri-apps/plugin-updater';
@@ -14,8 +15,12 @@ import { relaunch } from '@tauri-apps/plugin-process';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import Oid4vp from "./oid4vp.vue";
+import {useAppStore} from "../../../stores/appStore.ts";
 
+const { hasDeveloperRole, hasNodeHolderRole, setNodeHolderRoleToUser, setDeveloperRoleToUser } = useAppStore();
 const { currentTheme, toggleTheme } = useTheme();
+
+
 
 const confirm = useConfirm();
 const toast = useToast();
@@ -97,6 +102,14 @@ async function checkForUpdate() {
                     <div class="flex flex-col gap-4 pt-2">
                         <Card>
                             <template #content>
+                                <div>
+                                    Developer {{hasDeveloperRole}}
+                                    <ToggleSwitch :model-value="hasDeveloperRole" @update:model-value="(value: boolean) => setDeveloperRoleToUser(value)" />
+                                </div>
+                                <div>
+                                    Node Holder {{hasNodeHolderRole}}
+                                    <ToggleSwitch :model-value="hasNodeHolderRole" @update:model-value="(value: boolean) => setNodeHolderRoleToUser(value)"  />
+                                </div>
                                 <div class="flex items-center justify-between">
                                     <div>
                                         <p class="text-sm font-semibold text-surface-800">Theme</p>

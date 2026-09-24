@@ -8,7 +8,7 @@ import Organization from '../views/home/wallet/organization/Organization.vue';
 import Node from '../views/home/wallet/organization/node/Node.vue';
 import Application from '../views/home/wallet/organization/application/Application.vue';
 import WalletAppLedgerExplorer from '../views/home/wallet/appLedgers/WalletAppLedgerExplorer.vue';
-import WalletCredentials from '../views/home/wallet/credentials/WalletCredentials.vue';
+import WalletDetailCredentials from '../views/home/wallet/credentials/WalletDetailCredentials.vue';
 import RpcSession from '../components/rpcSession/RpcSession.vue';
 import Help from '../components/help/Help.vue';
 import Settings from '../views/home/settings/Settings.vue';
@@ -18,7 +18,7 @@ import { useSessionStore } from '../stores/sessionStore';
 import {match, P} from "ts-pattern";
 import SplashscreenView from "../views/SplashscreenView.vue";
 import {storeToRefs} from "pinia";
-import {useAppStateStore} from "../stores/appState.ts";
+import {useAppStore} from "../stores/appStore.ts";
 
 const router = createRouter({
     history: createWebHistory(),
@@ -101,7 +101,7 @@ const router = createRouter({
                         {
                             path: 'credentials',
                             name: 'wallet-credentials',
-                            component: WalletCredentials,
+                            component: WalletDetailCredentials,
                         },
                     ],
                 },
@@ -116,7 +116,7 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
     console.log("Navigating to", to.fullPath);
-    const session = useAppStateStore();
+    const session = useAppStore();
     const { isOnboarded, isUnlocked } = storeToRefs(session);
     const input = { to, isOnboarded: isOnboarded.value, isUnlocked: isUnlocked.value }
     console.log("Input", input);

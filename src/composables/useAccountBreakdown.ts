@@ -13,7 +13,8 @@ const DEFAULT_REFETCH_INTERVAL = 3000;
 const logger = DeskLogger.getLogger().getChild("fetcher");
 
 export function useAccountIdQuery(walletId: MaybeRefOrGetter<number>) {
-    const store = useWalletStore();
+    /*
+    const store = useWalletStore(walletId);
     return useQuery({
         refetchOnWindowFocus: true,
         refetchOnMount: true,
@@ -27,9 +28,12 @@ export function useAccountIdQuery(walletId: MaybeRefOrGetter<number>) {
         },
         retry: 1,
     });
+
+     */
 }
 
 export function useAccountStateQuery(walletId: MaybeRefOrGetter<number>) {
+    /*
     const store = useWalletStore();
     const accountIdQuery = useAccountIdQuery(walletId);
     const enabled = computed(() => !!accountIdQuery.data.value);
@@ -52,9 +56,12 @@ export function useAccountStateQuery(walletId: MaybeRefOrGetter<number>) {
         refetchOnMount: true,
         refetchOnWindowFocus: true,
     });
+
+     */
 }
 
 export function useAccountTransactionsHistory(walletId: MaybeRefOrGetter<number>, fromHeight: Ref<number>, nbLimit: Ref<number>) {
+    /*
     const store = useWalletStore();
     const accountIdQuery = useAccountIdQuery(walletId);
 
@@ -95,6 +102,8 @@ export function useAccountTransactionsHistory(walletId: MaybeRefOrGetter<number>
 
 
     return { accountHistoryQuery };
+
+     */
 }
 
 export function getBalanceAvailability(account: AccountDto) {
@@ -143,6 +152,7 @@ export function getBalanceAvailability(account: AccountDto) {
 
 
 export function useAccountBreakdownQuery(walletId: MaybeRefOrGetter<number>) {
+    /*
     const accountStateQuery = useAccountStateQuery(walletId);
     const enabled = computed(() => !!accountStateQuery.data.value);
     return useQuery({
@@ -185,9 +195,16 @@ export function useAccountBreakdownQuery(walletId: MaybeRefOrGetter<number>) {
             };
         },
     });
+
+     */
 }
 
 export function useHasAccountOnChainQuery(walletId: MaybeRefOrGetter<number>) {
+    /*
     const accountIdQuery = useAccountIdQuery(walletId);
     return computed(() => accountIdQuery.isSuccess.value && accountIdQuery.data.value !== undefined);
+
+     */
 }
+
+

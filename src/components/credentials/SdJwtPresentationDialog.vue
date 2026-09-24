@@ -15,6 +15,7 @@ import { useOnChainStore } from '../../stores/onchain.ts';
 import { useSessionStore } from '../../stores/sessionStore.ts';
 import { computedAsync } from '@vueuse/core';
 import {WalletSdJwtSigner} from "../../utils/WalletSdJwtSigner.ts";
+import {VerifiableCredential} from "../../types/types.ts";
 
 // we search the wallet index
 const route = useRoute();
@@ -28,11 +29,11 @@ const { state: wallet } = useAsyncState(
 );
 
 const props = defineProps<{
-    credential: CredentialEntity | null;
+    credential: VerifiableCredential | null;
 }>();
 const visible = defineModel<boolean>('visible', { default: false });
 
-const envelope = computedAsync(async () => (props.credential ? await parseSdJwtEnvelope(props.credential.data) : null), null);
+const envelope = computedAsync(async () => (props.credential ? await parseSdJwtEnvelope(props.credential.sdjwt) : null), null);
 
 const compactToken = computed(() => {
     if (!envelope.value) return '';

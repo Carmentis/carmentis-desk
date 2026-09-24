@@ -7,9 +7,10 @@ import Tag from 'primevue/tag';
 import type { CredentialEntity } from '../../../../stores/storage.ts';
 import { parseSdJwt } from '../../../../composables/credentials/useCredentialType.ts';
 import SdJwtPresentationDialog from '../../../../components/credentials/SdJwtPresentationDialog.vue';
+import {VerifiableCredential} from "../../../../types/types.ts";
 
 const props = defineProps<{
-    credential: CredentialEntity;
+    credential: VerifiableCredential;
 }>();
 
 const emit = defineEmits<{
@@ -17,7 +18,7 @@ const emit = defineEmits<{
     (e: 'delete'): void;
 }>();
 
-const sdJwt = computedAsync(() => parseSdJwt(props.credential.data), null);
+const sdJwt = computedAsync(() => parseSdJwt(props.credential.sdjwt), null);
 const showPresentDialog = ref(false);
 
 // ---------------------------------------------------------------------------

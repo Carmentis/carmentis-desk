@@ -12,11 +12,14 @@ import TabList from 'primevue/tablist';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import { useStorageStore } from '../../stores/storage.ts';
-import {SeedEncoder, SignatureSchemeId, WalletCrypto} from '@cmts-dev/carmentis-sdk-core';
+import {JwkPrivateSignatureKey, SeedEncoder, SignatureSchemeId, WalletCrypto} from '@cmts-dev/carmentis-sdk-core';
 import { mnemonicToSeedSync, generateMnemonic } from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english.js';
 import FieldNameAndDescription from "../../components/utils/FieldNameAndDescription.vue";
 import Select from "primevue/select";
+import {KeyType, Network, WalletKey} from "../../types/types.ts";
+import {Bip39Utils} from "../../utils/Bip39Utils.ts";
+import {useAppStore} from "../../stores/appStore.ts";
 
 
 // we propose two methods to create a key for a wallet:
@@ -24,6 +27,7 @@ import Select from "primevue/select";
 // Method 2: by providing a JWK.
 
 const router = useRouter();
+const appStore = useAppStore()
 const storageStore = useStorageStore();
 
 // Key creation method: 'jwk' (selected via Tabs) or 'seedphrase' (Seed/Passphrase within the second tab)
@@ -63,7 +67,7 @@ const networkOptions = ref([
 const isCustomNetwork = computed(() => networkMethod.value === 'custom');
 const networkDetailsVisible = computed(() => isCustomNetwork.value || showNetworkDetails.value);
 
-const organizationName = ref('');
+const walletName = ref('');
 const seed = ref('');
 const passphrase = ref('');
 const nodeEndpoint = ref('');
@@ -122,7 +126,7 @@ const generatePassphrase = () => {
     isGeneratingPassphrase.value = true;
     try {
         // Generate a 12-word mnemonic passphrase
-        const mnemonic = generateMnemonic(wordlist, 128); // 128 bits = 12 words
+        const mnemonic = Bip39Utils.generateMnemonic();
         passphrase.value = mnemonic;
     } finally {
         isGeneratingPassphrase.value = false;
@@ -140,7 +144,7 @@ const deriveSeedFromPassphrase = (passphrase: string): string => {
 };
 
 const isFormValid = computed(() => {
-    if (!organizationName.value) return false;
+    if (!walletName.value) return false;
 
     // Validate based on selected key method
     if (keyMethod.value === 'jwk') {
@@ -156,27 +160,66 @@ const isFormValid = computed(() => {
 });
 const isCreatingWallet = ref(false);
 const createWallet = async () => {
-    /*
-    if (!organizationName.value) return;
 
-    let finalSeed = '';
     isCreatingWallet.value = true;
-    if (creationMethod.value === 'seed') {
-        if (!seed.value) return;
-        finalSeed = seed.value;
-    } else {
-        if (!passphrase.value) return;
-        // Derive seed from passphrase
-        finalSeed = deriveSeedFromPassphrase(passphrase.value);
+    if (!walletName.value) return;
+
+    // set the wallet network
+    const network: Network = {
+        indexer: indexer.value,
+        networkName: networkMethod.value,
+        node: nodeEndpoint.value
     }
 
+    // compute the private key
+    let walletKey: WalletKey;
+    if (keyMethod.value === 'seedphrase') {
+        let finalPassphrase = undefined;
+        let finalSeed = '';
+        if (creationMethod.value === 'seed') {
+            if (!seed.value) return;
+            finalSeed = seed.value;
+
+        } else {
+            if (!passphrase.value) return;
+            finalPassphrase = passphrase.value;
+            finalSeed = deriveSeedFromPassphrase(passphrase.value);
+        }
+        walletKey = {
+            keyType: KeyType.SEED,
+            passphrase: finalPassphrase,
+            seed: finalSeed,
+            schemeId: chosenSignatureScheme.value,
+        };
+    } else {
+        const sk = await JwkPrivateSignatureKey.fromJwk(JSON.parse(jwkInput.value));
+        const jwk = sk.getPrivateJwk();
+        walletKey = {
+            keyType: KeyType.JWK,
+            jwk: jwk
+        };
+    }
+
+    // ensure the wallet key is correctly defined
+    if (!walletKey) {
+        throw new Error('Wallet key is not defined');
+    }
+
+    // create the wallet
+    const createdWalletId = await appStore.createWallet(walletName.value, walletKey, network);
+    isCreatingWallet.value = false;
+    await router.push(`/wallet/${createdWalletId}`);
+
+
+    /*
     const createdWalletId = await storageStore.addOrganization({
-        name: organizationName.value,
+        name: walletName.value,
         seed: finalSeed,
         nodeEndpoint: nodeEndpoint.value,
         indexer: indexer.value,
         schemeId: chosenSignatureScheme.value,
     });
+
     isCreatingWallet.value = false;
     await router.push(`/wallet/${createdWalletId}`);
 
@@ -200,13 +243,15 @@ const goBack = () => {
         <Card>
             <template #content>
                 <div>
+                    <h1 class="text-lg font-bold">General</h1>
+                    <p class="mb-4">Configure the general wallet setting.</p>
                     <label for="org-name" class="block text-sm font-medium text-gray-700 mb-2">
                         Wallet Name
                         <span class="text-red-500">*</span>
                     </label>
                     <InputText
                         id="org-name"
-                        v-model="organizationName"
+                        v-model="walletName"
                         placeholder="Enter wallet name"
                         class="w-full"
                     />
@@ -219,6 +264,8 @@ const goBack = () => {
             <template #content>
                 <div class="space-y-4">
                     <div>
+                        <h1 class="text-lg font-bold">Network</h1>
+                        <p class="mb-4">Configure the network settings.</p>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             Network
                             <span class="text-red-500">*</span>
@@ -233,13 +280,7 @@ const goBack = () => {
                     </div>
 
                     <!-- Compact network info for predefined networks (non-custom) -->
-                    <div v-if="!isCustomNetwork" class="border-t pt-4 space-y-2">
-                        <div class="text-sm text-gray-600">
-                            <span class="font-medium">Node:</span> {{ nodeEndpoint }}
-                        </div>
-                        <div class="text-sm text-gray-600">
-                            <span class="font-medium">Indexer:</span> {{ indexer }}
-                        </div>
+                    <div v-if="!isCustomNetwork" class=" space-y-2">
                         <Button
                             @click="showNetworkDetails = !showNetworkDetails"
                             :label="showNetworkDetails ? 'Hide settings' : 'Customize'"
@@ -286,6 +327,9 @@ const goBack = () => {
         <!-- Section 3: Private Key Creation (via Tabs) -->
         <Card>
             <template #content>
+                <h1 class="text-lg font-bold">Private Key</h1>
+                <p class="mb-4">Configure your private key, stored securely in your vault.</p>
+
                 <Tabs v-model:value="keyMethod">
                     <TabList>
                         <Tab value="jwk">
