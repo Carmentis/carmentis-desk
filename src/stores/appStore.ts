@@ -24,11 +24,18 @@ function seedKey(walletId: number): string {
     return `wallet_seed_${walletId}`;
 }
 
-export const useAppStore = defineStore("appState", () => {
+export const useAppStore = () => {
     // we store the stronghold client.
     const strongholdStore = useStrongholdStore();
     const { isUnlocked } = storeToRefs(strongholdStore);
     const router = useRouter();
+
+    const deskState = useObservable(
+        from(liveQuery(() => {
+            console.log("Fetching desk state");
+            return db.deskState.toArray()
+        }))
+    );
 
     // onboarding variable
     const isOnboarded = useObservable(
@@ -37,14 +44,33 @@ export const useAppStore = defineStore("appState", () => {
     );
 
 
+
+
     // developper/node holder variables
+    const hasDeveloperRole = computed(() => {
+        return !!deskState.value && deskState.value.length > 0 && deskState.value[0]?.isDeveloper;
+    });
+
+    /*
     const hasDeveloperRole = useObservable(
-        from(liveQuery(() => DeskDatabase.isDeveloper())),
+        from(liveQuery(async () => {
+            const states = await db.deskState.toArray();
+            if (states.length !== 1) throw new Error('Desk state not found');
+            console.log("Found state:", states[0]);
+            return states[0].isDeveloper
+        })),
         { initialValue: true }
     );
 
+     */
+
     const hasNodeHolderRole = useObservable(
-        from(liveQuery(() => DeskDatabase.isNodeHolder())),
+        from(liveQuery(async () => {
+            const states = await db.deskState.toArray();
+            if (states.length !== 1) throw new Error('Desk state not found');
+            console.log("Found state:", states[0]);
+            return states[0].isNodeHolder
+        })),
         { initialValue: true }
     );
 
@@ -72,7 +98,7 @@ export const useAppStore = defineStore("appState", () => {
 
 
 
-    const isLoadingSetup = computed(() => {
+    const isStarting = computed(() => {
         return isOnboarded.value === undefined;
     });
 
@@ -80,6 +106,7 @@ export const useAppStore = defineStore("appState", () => {
 
     // we put here the logic to redirect the user to the correct page
     // automatically
+    /*
     watch([isLoadingSetup, isOnboarded], () => {
         if (isLoadingSetup.value === true) {
             router.push('/splash');
@@ -94,6 +121,8 @@ export const useAppStore = defineStore("appState", () => {
 
         }
     })
+
+     */
 
 
 
@@ -235,11 +264,12 @@ export const useAppStore = defineStore("appState", () => {
 
     return {
         // states
+        isStarting,
         isOnboarded,
         isUnlocked,
         wallets,
-        hasDeveloperRole: computed(()=> hasDeveloperRole.value),
-        hasNodeHolderRole: computed(()=> hasNodeHolderRole.value),
+        hasDeveloperRole,
+        hasNodeHolderRole,
         shouldDisplayApplications,
         shouldDisplayNodes,
         shouldDisplayOrganizations,
@@ -260,4 +290,4 @@ export const useAppStore = defineStore("appState", () => {
         getWalletById,
         deleteWalletById,
     };
-})
+}

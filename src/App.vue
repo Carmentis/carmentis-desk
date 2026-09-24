@@ -2,12 +2,13 @@
 import Toast from 'primevue/toast';
 import ConfirmDialog from 'primevue/confirmdialog';
 import ProgressSpinner from 'primevue/progressspinner';
-import { onMounted, ref } from 'vue';
+import {onMounted, ref, watch} from 'vue';
 import { useRouter } from 'vue-router';
 import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import OpenIdDeepLinkHandler from './components/openid/OpenIdDeepLinkHandler.vue';
 import OpenIdCredentialOfferDeepLinkHandler from './components/openid/OpenIdCredentialOfferDeepLinkHandler.vue';
+import {useAppStore} from "./stores/appStore.ts";
 
 const appWindow = getCurrentWindow();
 const router = useRouter();
@@ -50,6 +51,22 @@ onMounted(async () => {
         console.error("Erreur lors de l'initialisation du Deep Link:", error);
     }
 });
+
+const { isStarting, isOnboarded, isUnlocked} = useAppStore();
+watch([isOnboarded, isUnlocked], () => {
+    console.log(`App.vue: ${isOnboarded.value} ${isUnlocked.value}`)
+    if (isOnboarded.value === true) {
+        if (isUnlocked.value) {
+            router.push('/home');
+        } else {
+            router.push('/login');
+        }
+    }
+
+    if (isOnboarded.value === false) {
+        router.push('/onboarding');
+    }
+}, {immediate: true})
 </script>
 
 <template>
@@ -59,14 +76,22 @@ onMounted(async () => {
 
         <OpenIdDeepLinkHandler :uri="openidQuery" />
         <OpenIdCredentialOfferDeepLinkHandler :uri="openidCredentialOfferQuery" />
+        test {{isOnboarded}} {{isUnlocked}}
+        <div v-if="isStarting">
+            <div class="w-full h-full flex items-center justify-center">
+                <ProgressSpinner />
+            </div>
+        </div>
+        <div v-else>
+            <Suspense>
+                <router-view :key="$route.fullPath" />
+                <template #fallback>
+                    <div class="w-full h-full flex items-center justify-center">
+                        <ProgressSpinner />
+                    </div>
+                </template>
+            </Suspense>
+        </div>
 
-        <Suspense>
-            <router-view :key="$route.fullPath" />
-            <template #fallback>
-                <div class="w-full h-full flex items-center justify-center">
-                    <ProgressSpinner />
-                </div>
-            </template>
-        </Suspense>
     </div>
 </template>

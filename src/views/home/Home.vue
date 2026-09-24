@@ -6,8 +6,7 @@ import {useAppStore} from "../../stores/appStore.ts";
 import { capitalize } from 'vue';
 
 const store = useAppStore();
-
-const { wallets } = storeToRefs(store);
+const { wallets } = store;
 
 
 function visitWallet(orgId: number) {

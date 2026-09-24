@@ -116,13 +116,13 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
     console.log("Navigating to", to.fullPath);
-    const session = useAppStore();
-    const { isOnboarded, isUnlocked } = storeToRefs(session);
+    /*
+    const { isOnboarded, isUnlocked } = useAppStore();
     const input = { to, isOnboarded: isOnboarded.value, isUnlocked: isUnlocked.value }
     console.log("Input", input);
     return match(input)
         .with({ to: { name: 'login' }, isOnboarded: true, isUnlocked: false }, () => true)
-        .with({ to: { name: 'onboarding' }, isOnboarded: P.nullish }, () => true)
+        .with({ to: { name: 'onboarding' }, isOnboarded: false }, () => true)
         .otherwise(() => {
             if (!isOnboarded.value) return { name: 'onboarding' };
             if (!isUnlocked.value) return { name: 'login', query: { redirect: to.fullPath } };
