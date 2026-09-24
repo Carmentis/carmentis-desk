@@ -9,17 +9,6 @@ import {
 import {useSessionStore} from "../stores/sessionStore.ts";
 
 export class WalletUtils {
-    static async getIndexerFromWalletId(walletId: number) {
-        const storageStore = useStorageStore();
-        const wallet = await storageStore.getWalletById(walletId);
-        if (!wallet?.indexer) throw new Error('Indexer not configured for this wallet');
-        return createIndexerClient(wallet.indexer);
-    }
-
-    static async getIndexerFromEndpoint(indexerEndpoint: string) {
-        return createIndexerClient(indexerEndpoint);
-    }
-
     static async getPublicKeyFromWalletId(walletId: number) {
         const sk = await this.getPrivateKeyFromWalletId(walletId);
         return await sk.getPublicKey();
@@ -37,11 +26,6 @@ export class WalletUtils {
     static async encodePublicKey(publicKey: PublicSignatureKey) {
         const encoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
         return await encoder.encodePublicKey(publicKey);
-    }
-
-    static async getPublicKeyFromSeedAndSignatureScheme(rawSeed: string, signatureScheme: number) {
-        const sk = await this.getPrivateKeyFromSeedAndSignatureScheme(rawSeed, signatureScheme);
-        return await sk.getPublicKey();
     }
 
     static async getPrivateKeyFromSeedAndSignatureScheme(rawSeed: string, signatureScheme: number) {

@@ -5,6 +5,8 @@ import {useRoute, useRouter} from "vue-router";
 import {useToast} from "primevue/usetoast";
 import OrganizationApplicationCreationDialog from "./OrganizationApplicationCreationDialog.vue";
 import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
+import DataTable, {DataTableRowClickEvent} from "primevue/datatable";
+import Column from "primevue/column";
 
 const toast = useToast();
 const router = useRouter();
@@ -72,37 +74,17 @@ function visitApplication(appId: number) {
             <p class="text-gray-500 text-sm mb-4">No application yet</p>
         </div>
         <div v-else class="space-y-3">
-            <div
-                v-for="app in applications"
-                :key="app.id"
-                class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                @click="visitApplication(app.id)"
+            <DataTable
+                :value="applications"
+                stripedRows
+                showGridlines
+                responsiveLayout="scroll"
+                class="text-sm hover:cursor-pointer"
+                @rowClick=" (event: DataTableRowClickEvent<any>) => visitApplication(event.data.id)"
             >
-                <div class="flex items-start justify-between">
-                    <div class="space-y-2 flex-1">
-                        <div class="font-medium text-gray-900">
-                            {{ app.name }}
-                        </div>
-                        <div
-                            v-if="app.applicationVbId"
-                            class="text-xs text-gray-500 flex items-center gap-2"
-                        >
-                            <i class="pi pi-tag"></i>
-                            <code class="bg-gray-100 px-2 py-0.5 rounded">
-                                {{ app.applicationVbId }}
-                            </code>
-                        </div>
-                    </div>
-                    <Button
-                        @click.stop="deleteApplication(app.id)"
-                        icon="pi pi-trash"
-                        severity="danger"
-                        text
-                        rounded
-                        size="small"
-                    />
-                </div>
-            </div>
+                <Column field="name" header="name" sortable style="min-width: 150px"></Column>
+                <Column field="applicationVbId" header="Application ID" sortable style="min-width: 150px"/>
+            </DataTable>
         </div>
     </div>
 

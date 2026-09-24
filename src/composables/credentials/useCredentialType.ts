@@ -69,9 +69,9 @@ export type ExtendedCredentialType = CredentialType | 'unrecognized';
 
 export function detectCredentialType(data: string): ExtendedCredentialType {
     // Compact SD-JWT token: first segment is a JWT (3 dot-separated parts), followed by ~
-    const tildeIdx = data.indexOf('~');
-    if (tildeIdx > 0) {
-        const jwtPart = data.slice(0, tildeIdx);
+    console.log("SDJT", data)
+    const tildeIdx = data.startsWith('e');
+    if (tildeIdx ) {
         return CredentialType.SDJWT;
     }
 
