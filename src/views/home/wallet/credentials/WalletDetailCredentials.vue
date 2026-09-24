@@ -147,7 +147,12 @@ const menuItems = computed<MenuItem[]>(() => [
     {
         label: 'Add Credential',
         icon: 'pi pi-plus',
-        command: openAddDialog,
+        items: [
+            {
+                label: 'SD-JWT IETF Credential',
+                command: openAddDialog,
+            }
+        ]
     },
 ]);
 </script>

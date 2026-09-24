@@ -9,6 +9,7 @@ import { useUiStore } from '../../stores/uiStore.ts';
 import { useSessionStore } from '../../stores/sessionStore.ts';
 import { useNavbarData, buildExportData } from '../../composables/useNavbarData';
 import pkg from '../../../package.json';
+import {useCurrentWallet} from "../../composables/useCurrentWallet.ts";
 
 const router = useRouter();
 const sessionStore = useSessionStore();
@@ -22,6 +23,7 @@ const moreMenuOpen = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
 
+const {walletId} = useCurrentWallet();
 
 function navigate(path: string) {
     router.push(path);
@@ -255,6 +257,7 @@ function logout() {
                     <button
                         class="flex-1 flex items-center gap-2 px-2 py-1.5 rounded-l hover:bg-gray-100 text-gray-700 text-sm transition-colors text-left"
                         @click="navigate(`/wallet/${wallet.id}`)"
+                        :class="{ 'bg-blue-100': walletId === wallet.id }"
                     >
                         <i class="pi pi-wallet text-sm flex-shrink-0" />
                         <span class="truncate">{{ wallet.name }}</span>

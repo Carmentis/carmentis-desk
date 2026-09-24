@@ -86,11 +86,11 @@ async function checkForUpdate() {
                     <i class="pi pi-sliders-h mr-2"></i>
                     General
                 </Tab>
-                <Tab value="logs">
+                <Tab value="logs" v-if="hasDeveloperRole">
                     <i class="pi pi-list mr-2"></i>
                     Logs
                 </Tab>
-                <Tab value="Developer">
+                <Tab value="Developer" v-if="hasDeveloperRole">
                     <i class="pi pi-code mr-2"></i>
                     Developer
                 </Tab>
@@ -102,14 +102,35 @@ async function checkForUpdate() {
                     <div class="flex flex-col gap-4 pt-2">
                         <Card>
                             <template #content>
-                                <div>
-                                    Developer {{hasDeveloperRole}}
-                                    <ToggleSwitch :model-value="hasDeveloperRole" @update:model-value="(value: boolean) => setDeveloperRoleToUser(value)" />
+                                <div class="mb-4">
+                                    <p class="text-sm font-semibold text-surface-800">
+                                        User Roles
+                                    </p>
+                                    <p class="text-xs text-surface-500 mt-0.5">
+                                        Adapt the application based on your needs
+                                    </p>
                                 </div>
-                                <div>
-                                    Node Holder {{hasNodeHolderRole}}
-                                    <ToggleSwitch :model-value="hasNodeHolderRole" @update:model-value="(value: boolean) => setNodeHolderRoleToUser(value)"  />
+
+                                <div class="flex flex-col">
+                                    <div>
+                                        <p class="text-sm font-semibold text-surface-800">Developer</p>
+                                        <p class="text-xs text-surface-500 mt-0.5 mb-2">
+                                            If you are a developer, you can enable the management of application.
+                                        </p>
+                                        <ToggleSwitch :model-value="hasDeveloperRole" @update:model-value="(value: boolean) => setDeveloperRoleToUser(value)" />
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-semibold text-surface-800">Node Holder</p>
+                                        <p class="text-xs text-surface-500 mt-0.5 mb-2">
+                                           If you are the owner of a running node or if you want to set up one.
+                                        </p>
+                                        <ToggleSwitch :model-value="hasNodeHolderRole" @update:model-value="(value: boolean) => setNodeHolderRoleToUser(value)"  />
+                                    </div>
                                 </div>
+                            </template>
+                        </Card>
+                        <Card>
+                            <template #content>
                                 <div class="flex items-center justify-between">
                                     <div>
                                         <p class="text-sm font-semibold text-surface-800">Theme</p>
