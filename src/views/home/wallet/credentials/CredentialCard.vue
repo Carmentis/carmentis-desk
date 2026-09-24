@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { CredentialEntity } from '../../../../stores/storage.ts';
 import { detectCredentialType } from '../../../../composables/credentials/useCredentialType.ts';
 import CredentialCardUnrecognized from './CredentialCardUnrecognized.vue';
 import CredentialCardSdJwt from './CredentialCardSdJwt.vue';
+import {VerifiableCredential, CredentialType} from "../../../../types/types.ts";
 
 const props = defineProps<{
-    credential: CredentialEntity;
+    credential: VerifiableCredential;
 }>();
 
 const emit = defineEmits<{
@@ -14,12 +14,12 @@ const emit = defineEmits<{
     (e: 'browse', id: number): void;
 }>();
 
-const credentialType = computed(() => detectCredentialType(props.credential.data));
+const credentialType = computed(() => detectCredentialType(props.credential.credentialType));
 </script>
 
 <template>
     <CredentialCardSdJwt
-        v-if="credentialType === 'sd-jwt'"
+        v-if="credentialType === CredentialType.SDJWT"
         :credential="credential"
         @delete="emit('delete', credential.id)"
         @browse="emit('browse', credential.id)"

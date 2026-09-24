@@ -55,7 +55,6 @@ const customJsonError = computed(() => {
 async function publishCustomJson() {
     if (customJsonError.value) return;
     await onChainStore.publishCustomJson({
-        walletId: walletId.value,
         orgId: orgId.value,
         json: JSON.parse(customJsonInput.value),
     });

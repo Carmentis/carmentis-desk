@@ -6,12 +6,14 @@ import {
     Node,
     ApplicationLedger,
     SubmittedMicroblock,
-    DeskState
+    DeskState,
+    VerifiableCredential
 } from "../types/types.ts";
 
 // primary key "id" (for the typings only)
 const db = new Dexie('CarmentisDesk') as Dexie & {
     wallets: EntityTable<Wallet, 'id'>;
+    credentials: EntityTable<VerifiableCredential, 'id'>,
     organizations: EntityTable<Organization, 'id'>,
     applications: EntityTable<Application, 'id'>,
     nodes: EntityTable<Node, 'id'>,
@@ -25,6 +27,7 @@ db
     .stores({
         // primary key "id" (for the runtime!)
         wallets: '++id',
+        credentials: '++id, walletId',
         organizations: '++id, walletId, organizationVbId',
         applications: '++id, organizationId, applicationVbId',
         nodes: '++id, organizationId, nodeVbId',

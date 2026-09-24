@@ -22,19 +22,19 @@ import * as walletRepo from "../../../../db/repositories/walletRepository.ts";
 import InputText from "primevue/inputtext";
 import Dialog from "primevue/dialog";
 import FieldNameAndDescription from "../../../../components/utils/FieldNameAndDescription.vue";
+import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
+import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
 
 const toast = useToast();
 const route = useRoute();
 const router = useRouter();
 const sessionStore = useSessionStore();
 
+const {indexer} = useCurrentWallet();
+const {organizationNodes: nodes, createNode, deleteNode: deleteNodeById} = useCurrentOrganization();
+
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
-const { state: nodes, execute: fetchNodes } = useAsyncState(
-    () => nodeRepo.getNodesByOrgId(orgId.value),
-    [] as NodeEntity[],
-    { immediate: true },
-);
 
 const { state: wallet } = useAsyncState(
     () => walletRepo.getWalletById(walletId.value),
@@ -50,7 +50,7 @@ const manualNodeName = ref('');
 const manualNodeVbId = ref('');
 const manualNodeRpcEndpoint = ref('');
 watch(manualNodeRpcEndpoint, async () => {
-    if (!wallet.value) return;
+    if (!indexer.value) return;
     isSearchingForVbId.value = true;
     try {
         const endpoint = manualNodeRpcEndpoint.value;
@@ -60,8 +60,7 @@ watch(manualNodeRpcEndpoint, async () => {
             const pk = status.validatorInfo.pubkey;
             if (pk) {
                 const b64 = EncoderFactory.bytesToBase64Encoder();
-                if (!wallet.value.indexer) throw new Error('Indexer not configured for this wallet');
-                const nodeResult = await createIndexerClient(wallet.value.indexer).getValidatorNodes({
+                const nodeResult = await indexer.value.getValidatorNodes({
                     public_key: b64.encode(pk.data),
                 });
                 if (nodeResult.items.length === 0) throw new Error('Node not found in indexer');
@@ -102,9 +101,7 @@ async function submitManualNodeImport() {
     if (manualNodeVbId.value) {
         newNode.vbId = manualNodeVbId.value;
     }
-
-    await nodeRepo.insertManyNodes(orgId.value, [newNode]);
-    await fetchNodes();
+    await createNode(newNode.name, newNode.rpcEndpoint, newNode.vbId);
 
     // Reset form
     manualNodeName.value = '';
@@ -121,8 +118,7 @@ async function submitManualNodeImport() {
 }
 
 async function deleteNode(nodeId: number) {
-    await nodeRepo.deleteNodeById(nodeId);
-    await fetchNodes();
+    await deleteNodeById(nodeId);
     toast.add({
         severity: 'success',
         summary: 'Node deleted',
@@ -225,6 +221,7 @@ async function fetchNodesOnChain() {
 }
 
 async function importNewNodes() {
+    /*
     if (!wallet.value) return;
 
     // load new nodes
@@ -244,7 +241,6 @@ async function importNewNodes() {
 
     // import nodes
     await nodeRepo.insertManyNodes(orgId.value, newNodes);
-    await fetchNodes();
     showImportDialog.value = false;
     toast.add({
         severity: 'success',
@@ -252,6 +248,8 @@ async function importNewNodes() {
         detail: `${newNodes.length} node(s) imported successfully`,
         life: 3000,
     });
+
+     */
 }
 
 const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnChain');
@@ -315,10 +313,10 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
                             {{ node.name }}
                         </div>
                         <div class="text-xs text-gray-500 space-y-1">
-                            <div v-if="node.vbId" class="flex items-center gap-2">
+                            <div v-if="node.nodeVbId" class="flex items-center gap-2">
                                 <i class="pi pi-tag"></i>
                                 <code class="bg-gray-100 px-2 py-0.5 rounded">
-                                    {{ node.vbId }}
+                                    {{ node.nodeVbId }}
                                 </code>
                             </div>
                             <div class="flex items-center gap-2">

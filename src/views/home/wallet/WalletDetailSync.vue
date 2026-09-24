@@ -18,6 +18,7 @@ import Message from "primevue/message";
 import Card from "primevue/card";
 import Button from "primevue/button";
 import {ApplicationDto, OrganizationDto, ValidatorNodeDto} from "../../../api/indexer/model";
+import {useCurrentWallet} from "../../../composables/useCurrentWallet.ts";
 
 const toast = useToast();
 const route = useRoute();
@@ -25,7 +26,7 @@ const router = useRouter();
 const storageStore = useStorageStore();
 const onChainStore = useOnChainStore();
 const sessionStore = useSessionStore();
-const walletStore = useWalletStore();
+const {wallet} = useCurrentWallet();
 const confirm = useConfirm();
 const walletId = computed(() => Number(route.params.walletId));
 
@@ -35,12 +36,7 @@ interface WalletSyncOrganizationState {
     nodes: ValidatorNodeDto[],
 }
 
-const { state: wallet, execute: fetchWallet } = useAsyncState(
-    () => walletRepo.getWalletById(walletId.value),
-    null,
-    { immediate: true },
-);
-
+/*
 const refreshCount = ref(0);
 
 const knownOrgIdsInWallet = computedAsync(async () => {
@@ -175,9 +171,12 @@ async function importNewElements() {
     refreshCount.value++;
     toast.add({ severity: 'success', summary: 'Import complete', detail: 'New elements added to wallet.', life: 3000 });
 }
+
+ */
 </script>
 
 <template>
+    <!--
     <div v-if="hasNewElements">
 
         <Card class="bg-blue-400 border-blue-500">
@@ -227,4 +226,5 @@ async function importNewElements() {
             </template>
         </Card>
     </div>
+    -->
 </template>

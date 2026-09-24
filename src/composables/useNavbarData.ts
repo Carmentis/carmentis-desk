@@ -10,14 +10,15 @@ import * as credentialRepo from '../db/repositories/credentialRepository';
 import * as participationRepo from '../db/repositories/participationRepository';
 import type { WalletEntity } from '../stores/storage';
 import { useSessionStore } from '../stores/sessionStore';
+import {useAppStore} from "../stores/appStore.ts";
 
 /**
  * Loads org/node/app children for every wallet — used by the navbar to
  * build the full navigation tree. Re-runs whenever the wallet list changes.
  */
 export function useNavbarData() {
-    const store = useStorageStore();
-    const { wallets, operators } = storeToRefs(store);
+    const store = useAppStore();
+    const { wallets } = storeToRefs(store);
 
     const { state: navTree, execute } = useAsyncState(
         async () => {
@@ -63,7 +64,7 @@ export function useNavbarData() {
 
     watch(wallets, () => execute());
 
-    return { navTree, wallets, operators };
+    return { navTree, wallets };
 }
 
 /**

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ref, watch} from 'vue';
+import {computed, ref, watch} from 'vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
@@ -19,6 +19,8 @@ import {match, P} from "ts-pattern";
 import {WalletUtils} from "../../../../utils/WalletUtils.ts";
 import {DeskLogger} from "../../../../utils/DeskLogger.ts";
 import {SignJsonParams} from "./SignJsonRequestType.ts";
+import {useAppStore} from "../../../../stores/appStore.ts";
+import {useWalletStore} from "../../../../stores/walletStore.ts";
 
 const props = defineProps<{ params: SignJsonParams }>();
 
@@ -28,12 +30,10 @@ const emit = defineEmits<{
 }>();
 
 const params = props.params;
-const logger = DeskLogger.getLogger().getChild("authentication")
 const toast = useToast();
-const store = useStorageStore();
-const sessionStore = useSessionStore();
-const { wallets } = storeToRefs(store);
-const chosenWallet = ref(wallets.value[0]);
+const {wallets} = useAppStore();
+const chosenWallet = ref(wallets[0]);
+const chosenWalletStore = computed(() => chosenWallet.value ? useWalletStore(chosenWallet.value.id) : null)
 const isProcessing = ref(false);
 
 const context = params.context;
@@ -74,21 +74,22 @@ watch([props], async () => {
 
 
 async function approve() {
+    if (!chosenWalletStore.value) {
+        console.warn('No wallet chosen');
+        return;
+    }
     isProcessing.value = true;
     try {
-        const schemeId = chosenWallet.value.schemeId ?? SignatureSchemeId.SECP256K1;
-        const seed = await sessionStore.getWalletSeed(chosenWallet.value.id);
-        const wc = WalletCrypto.fromSeed(new SeedEncoder().decode(seed));
-        const sk = await wc.getDefaultAccountCrypto().getPrivateSignatureKey(schemeId);
-
-
+        const {walletPrivateKey: sk} = chosenWalletStore.value;
+        console.log("SK:", sk.value)
+        if (!sk.value) return;
         // create the json signer
         const context: SignatureContext = {
             signedAt: Date.now(),
             purpose: purpose.value,
         }
         const signature = await new JsonCanonicalUtf8Signer()
-            .sign(sk, context, payload)
+            .sign(sk.value, context, payload)
 
 
         toast.add({
@@ -198,6 +199,7 @@ async function approve() {
                             label="Authenticate"
                             severity="primary"
                             @click="approve"
+                            :disabled="!chosenWalletStore || !chosenWalletStore.walletPrivateKey.value"
                             :loading="isProcessing"
                             class="flex-1"
                         />

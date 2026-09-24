@@ -7,10 +7,10 @@ import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Card from 'primevue/card';
 import Message from 'primevue/message';
-import {useAppStateStore} from "../stores/appState.ts";
+import {useAppStore} from "../stores/appStore.ts";
 
 const router = useRouter();
-const sessionStore = useAppStateStore();
+const sessionStore = useAppStore();
 
 const password = ref('');
 const confirmPassword = ref('');

@@ -14,19 +14,14 @@ import * as orgRepo from '../../../../db/repositories/organizationRepository.ts'
 import { createIndexerClient } from '../../../../api/indexer/client.ts';
 import { useToast } from 'primevue/usetoast';
 import { useOnChainStore } from '../../../../stores/onchain.ts';
-import { useSessionStore } from '../../../../stores/sessionStore.ts';
 import { storeToRefs } from 'pinia';
-import { Tendermint37Client } from '@cosmjs/tendermint-rpc';
 import { useQuery } from '@tanstack/vue-query';
-import { useHasAccountOnChainQuery } from '../../../../composables/useAccountBreakdown.ts';
-import OrganizationApplicationCreationDialog from "./OrganizationApplicationCreationDialog.vue";
 import OrganizationDeletionDialog from "./OrganizationDeletionDialog.vue";
-import OrganizationApplications from "./OrganizationApplications.vue";
-import OrganizationNodes from "./OrganizationNodes.vue";
-import OrganizationCustomData from "./OrganizationCustomData.vue";
 import OrganizationPublicationDialog from "./OrganizationPublicationDialog.vue";
 import OrganizationStateCard from "./OrganizationStateCard.vue";
 import FieldNameAndDescription from "../../../../components/utils/FieldNameAndDescription.vue";
+import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
+import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
 
 const toast = useToast();
 const route = useRoute();
@@ -34,29 +29,9 @@ const router = useRouter();
 const onChainStore = useOnChainStore();
 const { isPublishingOrganization  } = storeToRefs(onChainStore);
 
-const walletId = computed(() => Number(route.params.walletId));
-const orgId = computed(() => Number(route.params.orgId));
-
-const { state: wallet } = useAsyncState(
-    () => walletRepo.getWalletById(walletId.value),
-    null,
-    { immediate: true },
-);
-
-// we search for the organization
-const {data: organization, refetch: fetchOrg} = useQuery({
-    queryKey: ['organization', orgId],
-    queryFn: async () => {
-        const org = await orgRepo.getOrganizationById(orgId.value);
-        if (!org) {
-            throw new Error('Organization not found');
-        }
-        return org;
-    },
-    refetchIntervalInBackground: true,
-    refetchInterval: 500,
-    enabled: !!orgId.value,
-})
+const { organization, organizationVbId, updateOrganization } = useCurrentOrganization();
+const {walletId, indexer, useHasAccountOnChainQuery} = useCurrentWallet();
+const hasAccountOnChain = useHasAccountOnChainQuery();
 
 
 const goBack = () => {
@@ -111,7 +86,7 @@ watch(
     { immediate: true },
 );
 
-async function updateOrganizationDetails() {
+async function updateOrganizationLocally() {
     if (!orgName.value.trim()) {
         toast.add({
             severity: 'error',
@@ -122,13 +97,13 @@ async function updateOrganizationDetails() {
         return;
     }
 
-    await orgRepo.updateOrganization(orgId.value, {
+    await updateOrganization({
         name: orgName.value.trim(),
         countryCode: orgCountryCode.value.trim() || undefined,
         city: orgCity.value.trim() || undefined,
         website: orgWebsite.value.trim() || undefined,
-    });
-    await fetchOrg();
+    })
+
 
     savedForm.name = orgName.value.trim();
     savedForm.countryCode = orgCountryCode.value.trim();
@@ -144,30 +119,25 @@ async function updateOrganizationDetails() {
 }
 
 
-// query used to identify if the organization is found online (via the indexer)
-const organizationVbId = computed(() =>
-    typeof organization.value?.vbId === 'string' ? organization.value.vbId : undefined,
-);
-const walletIndexer = computed(() => wallet.value?.indexer);
 
 // fetch the organization online using the indexer
 const { data: organizationFetchedOnline, isLoading: isFetchingOrganizationFromChain } = useQuery({
-    enabled: computed(() => !!organizationVbId.value && !!walletIndexer.value),
-    queryKey: ['organization-online', organizationVbId, walletIndexer],
+    enabled: computed(() => !!organizationVbId.value && !!indexer),
+    queryKey: ['organization-online', organizationVbId],
     refetchInterval: 2000,
     refetchIntervalInBackground: true,
     queryFn: async () => {
         const vbId = organizationVbId.value;
-        const indexer = walletIndexer.value;
-        if (!vbId || !indexer) {
+        if (!vbId || !indexer.value) {
             console.log('Organization not found online: vbId or indexer is undefined');
             return undefined;
         }
-        const foundsOrgs = await createIndexerClient(indexer).getOrganizations({ vb_id: vbId });
+        const foundsOrgs = await indexer.value.getOrganizations({ vb_id: vbId });
         if (foundsOrgs.items.length !== 1) return undefined;
         return foundsOrgs.items[0];
     }
 })
+
 
 // define some computed properties based on the fetched organization
 const isOrganizationFoundOnChain = computed(() => !!organizationFetchedOnline.value);
@@ -179,28 +149,28 @@ const isNameDifferent = computed(() => isOrganizationFoundOnChain.value && orgNa
 const isCountryCodeDifferent = computed(() => isOrganizationFoundOnChain.value &&  orgCountryCode.value.trim() !== fetchedOrganizationCountryCode.value);
 const isCityDifferent = computed(() => isOrganizationFoundOnChain.value && orgCity.value.trim() !== fetchedOrganizationCity.value);
 const isWebsiteDifferent = computed(() => isOrganizationFoundOnChain.value && orgWebsite.value.trim() !== fetchedOrganizationWebsite.value);
-
-
 const showDeletionDialog = ref(false);
 
-const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
 
 </script>
 
 <template>
     <div class="space-y-6">
-        <div v-if="wallet && organization">
+        <div v-if="organization">
             <!-- Organization Header -->
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-semibold text-gray-900">Organization - {{ organization.name }}</h2>
-                <Button
-                    @click="showDeletionDialog = true"
-                    icon="pi pi-trash"
-                    severity="danger"
-                    text
-                    rounded
-                    size="large"
-                />
+                <div class="flex gap-2">
+                    <Button
+                        variant="outlined"
+                        @click="goBack"
+                    >Back to wallet</Button>
+                    <Button
+                        variant="outlined"
+                        @click="showDeletionDialog = true"
+                        severity="danger"
+                    >Delete</Button>
+                </div>
             </div>
 
             <!-- Organization Cards Side-by-Side -->
@@ -227,7 +197,7 @@ const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
                             accurate helps partners and users identify and trust your organization when verifying
                             credentials or interacting with your applications.
                         </p>
-                        <form @submit.prevent="updateOrganizationDetails" class="space-y-4">
+                        <form @submit.prevent="updateOrganizationLocally" class="space-y-4">
                             <div>
                                 <FieldNameAndDescription name="Organization name" description="Name of your organization" required/>
                                 <InputText
@@ -278,7 +248,13 @@ const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
                                     severity="secondary"
                                     :hidden="!hasAccountOnChain"
                                 />
-                                <Button type="submit" label="Update Details" icon="pi pi-check" v-if="isFormDirty" />
+                                <Button
+                                    type="submit"
+                                    label="Update Details"
+                                    icon="pi pi-check"
+                                    v-if="isFormDirty"
+                                    @click="updateOrganizationLocally"
+                                />
                             </div>
                         </form>
                     </template>

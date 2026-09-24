@@ -1,21 +1,14 @@
 <script setup lang="ts">
-import { useStorageStore } from '../../stores/storage.ts';
 import { storeToRefs } from 'pinia';
 import Card from 'primevue/card';
-import InputText from 'primevue/inputtext';
 import router from '../../router';
-import { computed, ref } from 'vue';
+import {useAppStore} from "../../stores/appStore.ts";
+import { capitalize } from 'vue';
 
-const store = useStorageStore();
+const store = useAppStore();
 
-const { organizations } = storeToRefs(store);
-const searchQuery = ref('');
+const { wallets } = storeToRefs(store);
 
-const filteredOrganizations = computed(() => {
-    if (!searchQuery.value.trim()) return organizations.value;
-    const query = searchQuery.value.toLowerCase();
-    return organizations.value.filter((org) => org.name.toLowerCase().includes(query));
-});
 
 function visitWallet(orgId: number) {
     router.push(`/wallet/${orgId}`);
@@ -24,14 +17,12 @@ function visitWallet(orgId: number) {
 
 <template>
     <div class="space-y-6">
-        <!-- Search -->
         <div class="flex items-center justify-between">
             <p class="text-sm text-gray-500">Manage your wallets</p>
-            <InputText v-model="searchQuery" placeholder="Search..." size="small" class="w-64" />
-        </div>
+            </div>
 
         <!-- Empty State -->
-        <div v-if="organizations.length === 0" class="text-center py-12">
+        <div v-if="wallets.length === 0" class="text-center py-12">
             <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
                 <i class="pi pi-wallet text-3xl text-gray-400"></i>
             </div>
@@ -41,7 +32,7 @@ function visitWallet(orgId: number) {
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <!-- Wallets Grid -->
             <Card
-                v-for="org in filteredOrganizations"
+                v-for="org in wallets"
                 :key="org.id"
                 class="border-0 shadow-sm hover:shadow-xl transition-all cursor-pointer bg-surface-0"
                 @click="visitWallet(org.id)"
@@ -61,18 +52,8 @@ function visitWallet(orgId: number) {
                                 </div>
                             </div>
                             <span class="px-2 py-1 text-xs font-semibold text-blue-600 bg-blue-100 rounded-md">
-                                WALLET
+                                {{ capitalize(org.network.networkName)  }}
                             </span>
-                        </div>
-                        <div class="space-y-2.5 text-sm border-t border-surface-100 pt-4">
-                            <div class="flex items-center gap-2.5 text-surface-600">
-                                <i class="pi pi-server text-surface-400 text-xs"></i>
-                                <span class="truncate text-xs">Node: {{ org.nodeEndpoint }}</span>
-                            </div>
-                            <div class="flex items-center gap-2.5 text-surface-600">
-                                <i class="pi pi-server text-surface-400 text-xs"></i>
-                                <span class="truncate text-xs">Indexer: {{ org.indexer }}</span>
-                            </div>
                         </div>
                         <div class="pt-2 flex items-center justify-between text-surface-500 hover:text-primary-600 transition-colors text-sm font-medium">
                             <span>View details</span>

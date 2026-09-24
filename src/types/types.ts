@@ -7,12 +7,8 @@ export enum KeyType {
     // any other key types should be represented here
 }
 
-const SharedKeyEntries = v.object({
-    id: v.number(),
-})
 
 export const SeedableKeySchema = v.object({
-    ...SharedKeyEntries.entries,
     keyType: v.literal(KeyType.SEED),
 
 
@@ -22,28 +18,31 @@ export const SeedableKeySchema = v.object({
     schemeId: v.number(),
 
     /**
-     * The stronghold identifier in which the seed is stored.
+     * The passphrase from which the seed is derived (using BIP39).
+     *
+     * The passphrase is optional.
      */
-    strongholdId: v.string(),
+    passphrase: v.optional(v.string()),
+
+    /**
+     * The seed from which the private key is derived.
+     */
+    seed: v.string(),
 });
 
 export const JwkKeySchema = v.object({
-    ...SharedKeyEntries.entries,
     keyType: v.literal(KeyType.JWK),
 
-    /**
-     * The stronghold identifier in which the (encoded JWK) is stored.
-     */
-    strongholdId: v.string(),
+    jwk: v.unknown(),
 })
 
 
-export const KeySchema = v.variant("keyType", [
+export const WalletKeySchema = v.variant("keyType", [
     SeedableKeySchema,
     JwkKeySchema,
 ])
 
-export type Key = v.InferOutput<typeof KeySchema>
+export type WalletKey = v.InferOutput<typeof WalletKeySchema>
 
 
 export const NetworkSchema = v.object({
@@ -87,12 +86,39 @@ export const WalletSchema = v.object({
     network: NetworkSchema,
 
     /**
-     * The private key of the wallet.
+     * The identifier of the Stronghold file containing the wallet private key.
      */
-    privateKey: KeySchema,
+    privateKeyStrongholdId: v.string(),
+
+    /**
+     * The identifier of the Stronghold file containing the actor keys seed.
+     *
+     * This seed is used to generate the actor keys.
+     */
+    actorKeysMnemonicStrongholdId: v.string(),
 });
 
 export type Wallet = v.InferOutput<typeof WalletSchema>;
+
+export enum CredentialType {
+    SDJWT = "SDJWT",
+}
+
+const SharedCredentialSchemaEntries = v.object({
+    id: v.number(),
+    name: v.string(),
+    walletId: v.number(),
+    createdAt: v.date(),
+})
+export const CredentialSchema = v.variant("credentialType", [
+    v.object({
+        credentialType: v.literal(CredentialType.SDJWT),
+        sdjwt: v.string(),
+        ...SharedCredentialSchemaEntries.entries,
+    })
+])
+export type VerifiableCredential = v.InferOutput<typeof CredentialSchema>
+
 
 export const OrganizationSchema = v.object({
     /**
@@ -148,9 +174,14 @@ export const ApplicationSchema = v.object({
     id: v.number(),
 
     /**
+     * Name of the application.
+     */
+    name: v.string(),
+
+    /**
      * The virtual blockchain identifier of the application.
      */
-    applicationVbId: v.string(),
+    applicationVbId: v.optional(v.string()),
 
     /**
      * The identifier of the organization owning the application.
@@ -202,7 +233,13 @@ export const NodeSchema = v.object({
     /**
      * The endpoint of the node.
      */
-    nodeEndpoint: v.string(),
+    nodeEndpoint: v.optional(v.string()),
+
+
+    /**
+     * The RPC endpoint of the node.
+     */
+    rpcEndpoint: v.optional(v.string()),
 
     /**
      * Creation date of the node.
@@ -233,6 +270,7 @@ export const ApplicationLedgerSchema = v.object({
     applicationId: v.optional(v.number()),
 })
 export type ApplicationLedger = v.InferOutput<typeof ApplicationLedgerSchema>
+
 
 
 export const SubmittedMicroblockSchema = v.object({
@@ -296,6 +334,20 @@ export type SubmittedMicroblock = v.InferOutput<typeof SubmittedMicroblockSchema
 export const DeskStateSchema = v.object({
     id: v.literal(0),
     onboarded: v.boolean(),
+
+    /**
+     * A boolean indicating whether the user is a developer.
+     *
+     * A developer should have access to more features like managing applications.
+     */
+    isDeveloper: v.optional(v.boolean(), false),
+
+    /**
+     * A boolean indicating whether the user is a node holder.
+     *
+     * A node holder should have access to the node management features.
+     */
+    isNodeHolder: v.optional(v.boolean(), false),
 })
 
 export type DeskState = v.InferOutput<typeof DeskStateSchema>;

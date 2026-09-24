@@ -364,7 +364,6 @@ const anchorCertificate = async () => {
         }
 
         await onChainStore.publishCustomJson({
-            walletId: walletId.value,
             orgId: orgId.value,
             json: customData,
         });

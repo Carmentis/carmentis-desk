@@ -1,46 +1,20 @@
 <script setup lang="ts">
-import InputText from "primevue/inputtext";
 import Card from "primevue/card";
-import SplitButton from "primevue/splitbutton";
-import Password from "primevue/password";
 import Button from "primevue/button";
-import {
-    useAccountBreakdownQuery,
-    useAccountIdQuery,
-    useAccountStateQuery
-} from "../../../composables/useAccountBreakdown.ts";
-import {computed, ref, watch} from "vue";
-import {useToast} from "primevue/usetoast";
-import {useRoute, useRouter} from "vue-router";
-import {useStorageStore} from "../../../stores/storage.ts";
-import {useOnChainStore} from "../../../stores/onchain.ts";
-import {useSessionStore} from "../../../stores/sessionStore.ts";
-import {useConfirm} from "primevue/useconfirm";
-import {computedAsync, useAsyncState} from "@vueuse/core";
-import {
-    CMTSToken,
-    CryptoEncoderFactory, EncoderFactory,
-    SeedEncoder,
-    SignatureSchemeId,
-    WalletCrypto
-} from "@cmts-dev/carmentis-sdk-core";
-import {useWalletStore} from "../../../stores/walletStore.ts";
+import {computed, ref} from "vue";
 import {useClipboard} from "../../../composables/useClipboard.ts";
-import * as walletRepo from "../../../db/repositories/walletRepository.ts";
-import Message from "primevue/message";
-import Dialog from "primevue/dialog";
 import WalletDetailTransactionsHistoryDialog
     from "./components/transactionsHistory/WalletDetailTransactionsHistoryDialog.vue";
 import WalletDetailTokenTransferDialog from "./WalletDetailTokenTransferDialog.vue";
-import ProgressSpinner from "primevue/progressspinner";
 import WalletDetailBreakdownDetailsDialog from "./WalletDetailBreakdownDetailsDialog.vue";
+import {useCurrentWallet} from "../../../composables/useCurrentWallet.ts";
 
-const route = useRoute();
 const clipboard = useClipboard();
-const walletId = computed(() => Number(route.params.walletId));
 
-const accountIdQuery = useAccountIdQuery(walletId.value);
-const breakdownQuery = useAccountBreakdownQuery(walletId.value);
+const {useAccountBreakdownQuery, useAccountIdQuery} = useCurrentWallet();
+
+const breakdownQuery = useAccountBreakdownQuery();
+const accountIdQuery = useAccountIdQuery();
 
 const showBreakdownDetailsDialog = ref(false);
 const showTokenTransferDialog = ref(false);
@@ -50,7 +24,6 @@ const hasError = computed(() => breakdownQuery.error.value || accountIdQuery.err
 const isLoading = computed(() => accountIdQuery.isLoading.value || breakdownQuery.isLoading.value)
 </script>
 <template>
-
 
     <!-- No account found on chain Card -->
     <Card v-if="isLoading || hasError || !breakdownQuery.data.value" class="w-full">
@@ -115,14 +88,6 @@ const isLoading = computed(() => accountIdQuery.isLoading.value || breakdownQuer
                             @click.stop
                         >
                             <button
-                                v-if="!!accountIdQuery.data && !!accountIdQuery.data.value"
-                                class="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left flex items-center gap-2 transition-colors"
-                                @click="clipboard.copyToClipboard(accountIdQuery.data.value, 'Account ID'); moreMenuOpen = false"
-                            >
-                                <i class="pi pi-copy text-xs" />
-                                Copy Account ID
-                            </button>
-                            <button
                                 class="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left flex items-center gap-2 transition-colors"
                                 @click="showBreakdownDetailsDialog = true; moreMenuOpen = false"
                             >
@@ -141,6 +106,12 @@ const isLoading = computed(() => accountIdQuery.isLoading.value || breakdownQuer
         </template>
         <template #content>
             <div class="flex flex-col grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="border-2 border-gray-50 rounded-lg p-4">
+                    <div class="text-sm text-gray-600 font-medium mb-1">Account ID</div>
+                    <div class="font-bold text-gray-900 text-sm">
+                        {{ accountIdQuery.data.value }}
+                    </div>
+                </div>
                 <div class="bg-gray-50 rounded-lg p-4">
                     <div class="text-sm text-gray-600 font-medium mb-1">Spendable</div>
                     <div class="text-2xl font-bold text-gray-900">

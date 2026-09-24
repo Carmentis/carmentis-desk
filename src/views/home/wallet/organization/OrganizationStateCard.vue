@@ -19,16 +19,12 @@ import * as orgRepo from "../../../../db/repositories/organizationRepository.ts"
 import {useQuery} from "@tanstack/vue-query";
 import OrganizationCertificate from "./OrganizationCertificate.vue";
 import { useStorage } from '@vueuse/core'
+import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
+import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
+import {useAppStore} from "../../../../stores/appStore.ts";
 
-const route = useRoute();
-
-const orgId = computed(() => Number(route.params.orgId));
-
-const { data: organization } = useQuery({
-    queryKey: ['organization', orgId.value],
-    queryFn: () => orgRepo.getOrganizationById(orgId.value),
-})
-
+const {shouldDisplayApplications, shouldDisplayNodes} = useAppStore();
+const { organization } = useCurrentOrganization();
 const activeTab = useStorage('activeOrganizationTab', '0', sessionStorage)
 const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnChain');
 </script>
@@ -37,25 +33,28 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
         <template #title>
             <div class="flex items-center gap-2">
                 <i class="pi pi-info-circle text-xl"></i>
-                <span>Organization State</span>
+                <span>Organization</span>
             </div>
         </template>
         <template #subtitle>
             On-chain status of this organization and its associated nodes and applications.
         </template>
         <template #content>
-            <div v-if="organization && organization.vbId">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Virtual Blockchain ID</label>
-                <code class="bg-gray-100 px-3 py-2 rounded text-sm block">
-                    {{ organization.vbId }}
-                </code>
+            <div v-if="organization && organization.organizationVbId">
+                <div class="border-2 border-gray-50 rounded-lg p-4">
+                    <div class="text-sm text-gray-600 font-medium mb-1">Organization ID</div>
+                    <div class="font-bold text-gray-900 text-sm">
+                        {{ organization.organizationVbId }}
+                    </div>
+                </div>
+
 
                 <div
                     v-if="isOrganizationFoundOnChain === true"
                     class="mt-4 flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg"
                 >
                     <i class="pi pi-check-circle text-green-600"></i>
-                    <span class="text-sm text-green-800">Organization confirmed on-chain</span>
+                    <span class="text-sm text-green-800">Organization found on-chain</span>
                 </div>
                 <div
                     v-else-if="isOrganizationFoundOnChain === false"
@@ -86,8 +85,8 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
             <div class="mt-6">
                 <Tabs v-model:value="activeTab">
                     <TabList>
-                        <Tab value="0">Nodes</Tab>
-                        <Tab value="1">Applications</Tab>
+                        <Tab value="0" v-if="shouldDisplayNodes">Nodes</Tab>
+                        <Tab value="1" v-if="shouldDisplayApplications">Applications</Tab>
                         <Tab value="2">Certificate</Tab>
                         <Tab value="3">Custom Data</Tab>
                     </TabList>

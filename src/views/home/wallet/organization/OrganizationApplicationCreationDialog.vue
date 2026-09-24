@@ -3,11 +3,9 @@ import InputText from "primevue/inputtext";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import {computed, ref} from "vue";
-import * as appRepo from "../../../../db/repositories/applicationRepository.ts";
 import {useToast} from "primevue/usetoast";
 import {useRoute, useRouter} from "vue-router";
-import {useAsyncState} from "@vueuse/core";
-import {ApplicationEntity} from "../../../../stores/storage.ts";
+import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
 
 const toast = useToast();
 const showAppDialog = defineModel<boolean>('showAppDialog');
@@ -15,14 +13,9 @@ const appName = ref('');
 const route = useRoute();
 const router = useRouter();
 
+const {organization, organizationApplications, createApplication} = useCurrentOrganization();
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
-
-const { execute: fetchApplications } = useAsyncState(
-    () => appRepo.getApplicationsByOrgId(orgId.value),
-    [] as ApplicationEntity[],
-    { immediate: true },
-);
 
 
 async function submitAppDialog() {
@@ -35,10 +28,7 @@ async function submitAppDialog() {
         });
         return;
     }
-    const createdAppId = await appRepo.insertApplication(orgId.value, {
-        name: appName.value,
-    });
-    await fetchApplications();
+    const createdAppId = await createApplication(appName.value)
     toast.add({
         severity: 'success',
         summary: 'Application created',

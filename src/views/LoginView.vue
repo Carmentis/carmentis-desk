@@ -7,11 +7,11 @@ import Password from 'primevue/password';
 import Card from 'primevue/card';
 import Message from 'primevue/message';
 import { storeToRefs } from 'pinia';
-import {useAppStateStore} from "../stores/appState.ts";
+import {useAppStore} from "../stores/appStore.ts";
 
 const router = useRouter();
 const route = useRoute();
-const sessionStore = useAppStateStore();
+const sessionStore = useAppStore();
 
 const password = ref('');
 const errorMessage = ref('');

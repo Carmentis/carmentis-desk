@@ -17,8 +17,6 @@ const isOpen = defineModel<boolean>('isOpen');
 const route = useRoute();
 const onChainStore = useOnChainStore();
 const { isClaimingNode } = storeToRefs(onChainStore);
-
-const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 const nodeId = computed(() => Number(route.params.nodeId));
 
@@ -31,7 +29,6 @@ async function submitClaim() {
 
     try {
         await onChainStore.claimNode({
-            walletId: walletId.value,
             orgId: orgId.value,
             nodeId: nodeId.value,
         });

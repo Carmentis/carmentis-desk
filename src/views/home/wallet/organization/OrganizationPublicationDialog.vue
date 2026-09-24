@@ -7,15 +7,10 @@ import {computed} from "vue";
 import {storeToRefs} from "pinia";
 
 const showPublishConfirmDialog = defineModel<boolean>('showPublishConfirmDialog');
-const orgName = defineModel<string>('orgName');
-const orgCountryCode = defineModel<string>('orgCountryCode');
-const orgCity = defineModel<string>('orgCity');
-const orgWebsite = defineModel<string>('orgWebsite');
 const emits = defineEmits(['updateOrganizationDetails'])
 
 const route = useRoute();
 const onChainStore = useOnChainStore();
-const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 const { isPublishingOrganization } = storeToRefs(onChainStore);
 
@@ -27,12 +22,7 @@ async function confirmPublishOrganization() {
 
     // publish information on-chain
     await onChainStore.publishOrganization({
-        walletId: walletId.value,
         orgId: orgId.value,
-        organizationName: orgName.value!!.trim(),
-        countryCode: orgCountryCode.value!!.trim(),
-        city: orgCity.value!!.trim(),
-        website: orgWebsite.value!!.trim(),
     });
 }
 </script>

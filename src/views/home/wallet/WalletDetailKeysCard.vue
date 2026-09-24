@@ -5,7 +5,7 @@ import SplitButton from "primevue/splitbutton";
 import Password from "primevue/password";
 import Divider from "primevue/divider";
 import Checkbox from "primevue/checkbox";
-import {computed, ref} from "vue";
+import {capitalize, computed, ref} from "vue";
 import {useClipboard} from "../../../composables/useClipboard.ts";
 import {computedAsync, useAsyncState} from "@vueuse/core";
 import * as walletRepo from "../../../db/repositories/walletRepository.ts";
@@ -21,23 +21,12 @@ import {useWalletStore} from "../../../stores/walletStore.ts";
 import {useToast} from "primevue/usetoast";
 import Button from "primevue/button";
 import {match, P} from "ts-pattern";
-import {Secp256k1JsonWebKeyConverter} from "../../../utils/jwk/Secp256k1JsonWebKeyConverter.ts";
 import FieldNameAndDescription from "../../../components/utils/FieldNameAndDescription.vue";
-import {base64url} from "jose";
-import {MenuItem} from "@tauri-apps/api/menu/menuItem";
-import {JsonWebKeyFactory} from "../../../utils/jwk/JsonWebKeyFactory.ts";
 
 
-const walletStore = useWalletStore();
-const clipboard = useClipboard();
-const sessionStore = useSessionStore();
 const route = useRoute();
-
-enum KeyFormat {
-    CMTS = 'cmts',
-    DID_CMTS = "did:cmts"
-}
-
+const walletStore = useWalletStore(Number(route.params.walletId));
+const clipboard = useClipboard();
 
 const walletIdString = ref(route.params.walletId);
 const walletId = computed(() => Number(walletIdString.value));
@@ -58,34 +47,40 @@ const { state: organizations, execute: fetchOrgs } = useAsyncState(
 const toast = useToast();
 const {execute: checkKeyPair} = useAsyncState(
     async () => {
-        if (!wallet.value) return undefined;
         let verified = false;
         const message = "Hello world!"
         try {
-            const walletId = wallet.value.id;
-            const {sk, pk} = await walletStore.getKeyPair(walletId);
-            const textEncoder = new TextEncoder();
-            const rawMessage = textEncoder.encode(message);
-            const sign = await sk.sign(rawMessage);
-            verified = await pk.verify(rawMessage, sign);
+            const {sk, pk} = walletStore.walletKeyPair.value;
+            if (sk && pk) {
+                const textEncoder = new TextEncoder();
+                const rawMessage = textEncoder.encode(message);
+                const sign = await sk.sign(rawMessage);
+                verified = await pk.verify(rawMessage, sign);
+                if (verified) {
+                    toast.add({
+                        severity: 'success',
+                        summary: `Key pair is valid`,
+                        detail: `Message "${message}" has been signed and verified successfully (type ${signatureScheme.value.toString()})`,
+                        life: 3000,
+                    })
+                } else {
+                    toast.add({
+                        severity: 'error',
+                        summary: 'Key pair check failed',
+                        detail: 'The key pair is invalid',
+                        life: 3000,
+                    });
+                }
+            }
+
         } catch (e) {
             console.error('Failed to verify key pair:', e);
-        } finally {
-            if (verified) {
-                toast.add({
-                    severity: 'success',
-                    summary: `Key pair is valid`,
-                    detail: `Message "${message}" has been signed and verified successfully (type ${signatureScheme.value.toString()})`,
-                    life: 3000,
-                })
-            } else {
-                toast.add({
-                    severity: 'error',
-                    summary: 'Key pair check failed',
-                    detail: 'The key pair is invalid',
-                    life: 3000,
-                });
-            }
+            toast.add({
+                severity: 'error',
+                summary: 'Key pair check failed',
+                detail: 'The key pair is invalid',
+                life: 3000,
+            });
         }
     },
     undefined,
@@ -99,93 +94,7 @@ const signatureScheme = computed(() => {
 });
 
 
-// chosen format
-const keyFormatOptions = ref([
-    {
-        label: "CMTS",
-        value: KeyFormat.CMTS
-    },
-    {
-        label: "DID CMTS",
-        value: KeyFormat.DID_CMTS
-    }
-])
-
-const chosenKeyFormatOption = ref(keyFormatOptions.value[0]);
-
-const chosenKeyFormatName = computed(() => chosenKeyFormatOption.value.label)
-const chosenKeyFormat = computed(() => chosenKeyFormatOption.value.value)
-
-
-
-
-// compute the key pair
-const walletKeyPair = computedAsync(async () => {
-    return match(wallet.value)
-        .with(P.nullish, () => undefined)
-        .otherwise(async (wallet) => {
-            const {sk, pk} = await walletStore.getKeyPair(
-                wallet.id
-            );
-
-            return {sk, pk};
-        });
-})
-
-
-const walletSeed = computedAsync(async () => {
-    if (!wallet.value) return '';
-    return sessionStore.getWalletSeed(wallet.value.id);
-}, '');
-
-// compute CMTS format
-const keyPairCmtsFormat = computedAsync(async () => {
-    if (!walletKeyPair.value) return { sk: '', pk: '' }
-    const kp = walletKeyPair.value;
-    const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
-    return {
-        sk: await sigEncoder.encodePrivateKey(kp.sk),
-        pk: await sigEncoder.encodePublicKey(kp.pk),
-    };
-});
-
-const sk = computed(() => keyPairCmtsFormat.value?.sk);
-const pk = computed(() => keyPairCmtsFormat.value?.pk);
-
-
-// compute the JWK
-const shouldDisplayPrivateKeyInJwk = ref(false);
-const keyInJwk = computedAsync(async () => {
-    return match({ kp: walletKeyPair.value, shouldDisplayPrivateKeyInJwk: shouldDisplayPrivateKeyInJwk.value })
-        .with({ kp: P.nullish }, async () => undefined)
-        .with({ kp: P.not(P.nullish) }, async ({ kp, shouldDisplayPrivateKeyInJwk }) => {
-            return match(shouldDisplayPrivateKeyInJwk)
-                .with(true, () => {
-                    return JsonWebKeyFactory.fromCarmentisPrivateSignatureKey(kp.sk);
-                })
-                .with(false, () => {
-                    return JsonWebKeyFactory.fromCarmentisPublicSignatureKey(kp.pk)
-                })
-                .exhaustive();
-        })
-        .otherwise(async () => undefined)
-})
-
-
-
-// compute the DID CMTS
-const didCmtsFormat = computed(() => {
-    return match(pk.value)
-        .with(P.not(P.nullish), (pk) => {
-            return `did:cmts:${pk}`;
-        })
-        .otherwise(() => undefined)
-})
-
-
-
-
-
+/*
 // Copy menu items
 const copyMenuItems = computed(() => {
     const alwaysAvailableItems = {
@@ -226,6 +135,8 @@ const copyMenuItems = computed(() => {
 
     return [alwaysAvailableItems, ...extraOptions];
 });
+
+ */
 </script>
 <template>
     <!-- Wallet Keys Card -->
@@ -234,7 +145,12 @@ const copyMenuItems = computed(() => {
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <i class="pi pi-key text-xl"></i>
-                    <span>Wallet Keys</span>
+                    <span>
+                        Wallet Keys
+                           <span class="px-2 py-1 text-xs font-semibold text-blue-600 bg-blue-100 rounded-md">
+                                {{walletStore.walletKeyType}}
+                            </span>
+                    </span>
                 </div>
                 <div class="flex gap-2">
 
@@ -252,75 +168,37 @@ const copyMenuItems = computed(() => {
         </template>
         <template #subtitle>
             <p class="text-sm text-surface-500">
-                Your cryptographic key pair and seed. Keep the private key and seed strictly
+                Your cryptographic keys. Keep the private key strictly
                 confidential — anyone with access to them can control this wallet.
             </p>
         </template>
         <template #content>
             <div class="space-y-4">
                 <div class="w-full">
-                    <FieldNameAndDescription name="Private seed" description="Random from which the private key is derived"/>
+                    <FieldNameAndDescription name="Private key" description="Your private key"/>
                     <Password
-                        v-model="walletSeed"
+                        v-model="walletStore.encodedWalletPrivateKey.value"
                         :feedback="false"
                         toggleMask
                         class="w-full"
-                        width="100%"
                         input-class="w-full"
                     />
                 </div>
-                <div class="flex cols gap-2">
-                    <div>
-                        <FieldNameAndDescription name="Format" description="Format of the keys"/>
-                        <Select
-                            required
-                            v-model="chosenKeyFormatOption"
-                            :options="keyFormatOptions"
-                            optionLabel="label"
-                            checkmark
-                            placeholder="Select a language"
-                            size="small"
-                        />
-                    </div>
-
+                <div class="w-full">
+                    <FieldNameAndDescription name="Public key" description="Your public key"/>
+                    <InputText :value="walletStore.encodedWalletPublicKey.value" readonly class="w-full" />
                 </div>
-                <Divider />
-                <div class="flex items-center justify-between">
-                    <p class="font-bold"> Displaying your keys in {{chosenKeyFormatName}} format</p>
-                    <div class="flex flex-row items-center gap-2">
-                        <SplitButton
-                            label="Copy"
-                            icon="pi pi-copy"
-                            :model="copyMenuItems"
-                            size="small"
-                        />
-                    </div>
-
+                <div class="w-full">
+                    <FieldNameAndDescription name="Actor keys passphrase" description="Your generated passphrase used to generate technical access keys on-demand"/>
+                    <Password
+                        v-model="walletStore.walletKeyActorKeysPassphrase.value"
+                        :feedback="false"
+                        toggleMask
+                        class="w-full"
+                        input-class="w-full"
+                    />
                 </div>
 
-                <div v-if="chosenKeyFormat === KeyFormat.CMTS">
-
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Public Key</label>
-                        <InputText v-model="pk" :disabled="true" class="w-full" />
-                    </div>
-                    <div class="w-full">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Private Key</label>
-                        <Password
-                            v-model="sk"
-                            :feedback="false"
-                            toggleMask
-                            class="w-full"
-                            input-class="w-full"
-                        />
-                    </div>
-                </div>
-                <div v-if="chosenKeyFormat === KeyFormat.DID_CMTS">
-                    <div v-if="didCmtsFormat">
-                        <InputText v-model="didCmtsFormat" readonly class="w-full" />
-                    </div>
-                </div>
             </div>
         </template>
     </Card>

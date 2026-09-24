@@ -2,14 +2,13 @@
 import { computed, inject, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Button from 'primevue/button';
-import { useHasAccountOnChainQuery } from '../../../../../composables/useAccountBreakdown.ts';
-import { useNode } from '../../../../../composables/useNode.ts';
 import NodeInformationCard from './NodeInformationCard.vue';
 import NodePublicationStatusCard from './NodePublicationStatusCard.vue';
 import NodeStakingCard from './NodeStakingCard.vue';
 import NodeStakeDialog from './NodeStakeDialog.vue';
 import NodeUnstakeDialog from './NodeUnstakeDialog.vue';
 import NodeClaimDialog from './NodeClaimDialog.vue';
+import {useCurrentNode} from "../../../../../composables/useCurrentNode.ts";
 
 const route = useRoute();
 const router = useRouter();
@@ -36,9 +35,10 @@ const {
     unstakingAmountInProgress,
     hasUnstakingOperationInProgress,
     unstakingAtTimestamp,
-} = useNode(walletId, orgId, nodeId);
+    useHasAccountOnChainQuery,
+} = useCurrentNode();
 
-const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
+const hasAccountOnChain = useHasAccountOnChainQuery();
 
 
 /*
@@ -122,7 +122,7 @@ watch(
                 />
 
                 <NodeStakingCard
-                    v-if="node.vbId"
+                    v-if="node.nodeVbId"
                     :node-stake-information="nodeStakeInformation"
                     :current-staked-amount="currentStakedAmount"
                     :has-unstaking-operation-in-progress="hasUnstakingOperationInProgress"

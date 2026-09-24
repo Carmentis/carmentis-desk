@@ -10,13 +10,13 @@ import TabPanel from "primevue/tabpanel";
 import TabPanels from "primevue/tabpanels";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
-import {useAccountStateQuery} from "../../../composables/useAccountBreakdown.ts";
+import {useCurrentWallet} from "../../../composables/useCurrentWallet.ts";
 
 const route = useRoute();
-const walletId = computed(() => Number(route.params.walletId));
 const isOpen = defineModel<boolean>('isOpen');
+const {useAccountStateQuery} = useCurrentWallet();
 
-const accountStateQuery = useAccountStateQuery(walletId.value);
+const accountStateQuery = useAccountStateQuery();
 const accountState = computed(() => accountStateQuery.data.value);
 const stakingLocks = computed(() => accountState.value ? accountState.value.stakingLocks : []);
 const vestingLocks = computed(() => accountState.value ? accountState.value.vestingLocks : []);

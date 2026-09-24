@@ -17,8 +17,6 @@ const isOpen = defineModel<boolean>('isOpen');
 const route = useRoute();
 const onChainStore = useOnChainStore();
 const { isUnstakingFromNode } = storeToRefs(onChainStore);
-
-const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 const nodeId = computed(() => Number(route.params.nodeId));
 
@@ -49,7 +47,6 @@ async function submitUnstake() {
 
     try {
         await onChainStore.unstakeFromNode({
-            walletId: walletId.value,
             orgId: orgId.value,
             nodeId: nodeId.value,
             amount: CMTSToken.createCMTS(unstakeAmount.value),

@@ -10,15 +10,14 @@ import Textarea from 'primevue/textarea';
 import { useOnChainStore } from '../../../../../stores/onchain.ts';
 import { storeToRefs } from 'pinia';
 import { useAsyncState } from '@vueuse/core';
-import * as walletRepo from '../../../../../db/repositories/walletRepository.ts';
-import * as orgRepo from '../../../../../db/repositories/organizationRepository.ts';
-import * as appRepo from '../../../../../db/repositories/applicationRepository.ts';
 import { useToast } from 'primevue/usetoast';
 import { createIndexerClient } from '../../../../../api/indexer/client.ts';
 import { useQuery } from '@tanstack/vue-query';
-import { useHasAccountOnChainQuery } from '../../../../../composables/useAccountBreakdown.ts';
 import Message from "primevue/message";
 import {useAsyncFn} from "../../../../../composables/useAsyncFn.ts";
+import {useCurrentApplication} from "../../../../../composables/useCurrentApplication.ts";
+import {useCurrentWallet} from "../../../../../composables/useCurrentWallet.ts";
+import {useCurrentOrganization} from "../../../../../composables/useCurrentOrganization.ts";
 
 const toast = useToast();
 const route = useRoute();
@@ -31,24 +30,10 @@ const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 const appId = computed(() => Number(route.params.appId));
 
-const { state: wallet } = useAsyncState(
-    () => walletRepo.getWalletById(walletId.value),
-    null,
-    { immediate: true },
-);
 
-const { state: organization } = useAsyncState(
-    () => orgRepo.getOrganizationById(orgId.value),
-    null,
-    { immediate: true },
-);
-
-// fetch the application
-const { data: application } = useQuery({
-    queryKey: ['application', appId.value],
-    queryFn: () => appRepo.getApplicationById(appId.value),
-    enabled: !!appId.value,
-})
+const {wallet, indexer: walletIndexer} = useCurrentWallet();
+const {organization, deleteApplication: deleteApplicationById} = useCurrentOrganization();
+const {application, updateApplication} = useCurrentApplication();
 const storedApplicationName = computed(() => application.value?.name ?? '');
 const storedApplicationDescription = computed(() => application.value?.description ?? '');
 const storedApplicationWebsite = computed(() => application.value?.website ?? '');
@@ -88,7 +73,7 @@ const showDeleteConfirmDialog = ref(false);
 
 async function confirmDeleteApplication() {
     showDeleteConfirmDialog.value = false;
-    await appRepo.deleteApplicationById(appId.value);
+    await deleteApplicationById(appId.value);
     toast.add({
         severity: 'success',
         summary: 'Application deleted',
@@ -112,6 +97,7 @@ watch(
 );
 
 const {execute: updateApplicationDetails, isLoading: isUpdating} = useAsyncFn(async () => {
+    if (!application.value) return;
     if (!appName.value.trim()) {
         toast.add({
             severity: 'error',
@@ -122,7 +108,8 @@ const {execute: updateApplicationDetails, isLoading: isUpdating} = useAsyncFn(as
         return;
     }
 
-    await appRepo.updateApplication(appId.value, {
+    await updateApplication({
+        ...application.value,
         name: appName.value.trim(),
         description: appDescription.value.trim() || undefined,
         website: appWebsite.value.trim() || undefined,
@@ -140,7 +127,7 @@ const {execute: updateApplicationDetails, isLoading: isUpdating} = useAsyncFn(as
 async function confirmPublishApplication() {
     showPublishConfirmDialog.value = false;
 
-    if (!organization.value?.vbId) {
+    if (!organization.value?.organizationVbId) {
         toast.add({
             severity: 'error',
             summary: 'Organization not published',
@@ -155,7 +142,6 @@ async function confirmPublishApplication() {
 
     // update application details on-chain
     await onchainStore.publishApplication({
-        walletId: walletId.value,
         orgId: orgId.value,
         appId: appId.value,
         name: appName.value.trim(),
@@ -166,9 +152,8 @@ async function confirmPublishApplication() {
 
 // query used to identify if the application is found online (via the indexer)
 const applicationVbId = computed(() =>
-    typeof application.value?.vbId === 'string' ? application.value.vbId : undefined,
+    typeof application.value?.applicationVbId === 'string' ? application.value.applicationVbId : undefined,
 );
-const walletIndexer = computed(() => wallet.value?.indexer);
 
 
 const { data: applicationFoundOnChain, isLoading: isFetchingApplicationFromChain } = useQuery({
@@ -179,7 +164,7 @@ const { data: applicationFoundOnChain, isLoading: isFetchingApplicationFromChain
         const indexer = walletIndexer.value;
         if (!vbId || !indexer) return undefined;
         try {
-            const foundApplicationsOnChain = await createIndexerClient(indexer).getApplications({ vb_id: vbId });
+            const foundApplicationsOnChain = await walletIndexer.value.getApplications({ vb_id: vbId });
             if (foundApplicationsOnChain.items.length !== 1) return undefined;
             return foundApplicationsOnChain.items[0];
         } catch (e) {
@@ -188,6 +173,8 @@ const { data: applicationFoundOnChain, isLoading: isFetchingApplicationFromChain
         }
     },
 })
+
+const {useHasAccountOnChainQuery} = useCurrentWallet();
 const isApplicationFoundOnChain = computed(() => !!applicationFoundOnChain.value);
 const fetchedApplicationName = computed(() => applicationFoundOnChain.value?.name);
 const fetchedApplicationDescription = computed(() => applicationFoundOnChain.value?.description);
@@ -195,7 +182,7 @@ const fetchedApplicationWebsite = computed(() => applicationFoundOnChain.value?.
 const isNameDifferentFromForm = computed(() => isApplicationFoundOnChain.value && fetchedApplicationName.value !== appName.value);
 const isDescriptionDifferentFromForm = computed(() => isApplicationFoundOnChain.value && fetchedApplicationDescription.value !== appDescription.value);
 const isWebsiteDifferentFromForm = computed(() => isApplicationFoundOnChain.value && fetchedApplicationWebsite.value !== appWebsite.value);
-const hasAccountOnChain = useHasAccountOnChainQuery(walletId.value);
+const hasAccountOnChain = useHasAccountOnChainQuery();
 
 // Register navbar actions
 onMounted(() => {
@@ -228,7 +215,7 @@ onMounted(() => {
 
 <template>
     <div class="space-y-6">
-        <div v-if="wallet && organization && application">
+        <div v-if="application">
             <!-- Application Header -->
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-semibold text-gray-900">Application - {{ application.name }}</h2>
@@ -253,7 +240,7 @@ onMounted(() => {
                         </div>
                     </template>
                     <template #content>
-                        <div v-if="application.vbId" class="space-y-4">
+                        <div v-if="application.applicationVbId" class="space-y-4">
                             <!-- Virtual Blockchain ID -->
                             <div class="bg-gray-50 rounded-lg p-4">
                                 <div class="flex items-center gap-2 mb-2">
@@ -261,7 +248,7 @@ onMounted(() => {
                                     <label class="text-sm font-semibold text-gray-700">Virtual Blockchain ID</label>
                                 </div>
                                 <p class="text-gray-700 text-sm leading-relaxed">
-                                    {{ application.vbId }}
+                                    {{ application.applicationVbId }}
                                 </p>
                             </div>
 

@@ -5,8 +5,7 @@ import type { CMTSToken } from '@cmts-dev/carmentis-sdk-core';
 import NodeStakeDialog from "./NodeStakeDialog.vue";
 import {computed, ref, watch} from "vue";
 import NodeUnstakeDialog from "./NodeUnstakeDialog.vue";
-import {useNode} from "../../../../../composables/useNode.ts";
-import {useRoute} from "vue-router";
+import {useCurrentNode} from "../../../../../composables/useCurrentNode.ts";
 
 defineProps<{
     currentStakedAmount?: CMTSToken;
@@ -16,12 +15,7 @@ defineProps<{
     isOwnedByWallet?: boolean;
 }>();
 
-const route = useRoute();
-const walletId = computed(() => Number(route.params.walletId));
-const orgId = computed(() => Number(route.params.orgId));
-const nodeId = computed(() => Number(route.params.nodeId));
-
-const {currentStakedAmount, nodeStakeInformation, hasNodeStakeInformation} = useNode(walletId, orgId, nodeId);
+const {currentStakedAmount, nodeStakeInformation, hasNodeStakeInformation} = useCurrentNode();
 const showStakeDialog = ref(false);
 const showUnstakeDialog = ref(false);
 

@@ -1,16 +1,10 @@
 <script setup lang="ts">
 import Button from "primevue/button";
-import {useQuery} from "@tanstack/vue-query";
 import {computed, ref} from "vue";
-import {createIndexerClient} from "../../../../api/indexer/client.ts";
-import {useAsyncState} from "@vueuse/core";
-import * as orgRepo from "../../../../db/repositories/organizationRepository.ts";
 import {useRoute, useRouter} from "vue-router";
-import * as walletRepo from "../../../../db/repositories/walletRepository.ts";
-import * as appRepo from "../../../../db/repositories/applicationRepository.ts";
-import {ApplicationEntity} from "../../../../stores/storage.ts";
 import {useToast} from "primevue/usetoast";
 import OrganizationApplicationCreationDialog from "./OrganizationApplicationCreationDialog.vue";
+import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
 
 const toast = useToast();
 const router = useRouter();
@@ -21,16 +15,10 @@ const openCreateAppDialog = ref(false);
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 
-const { state: applications, execute: fetchApplications } = useAsyncState(
-    () => appRepo.getApplicationsByOrgId(orgId.value),
-    [] as ApplicationEntity[],
-    { immediate: true },
-);
-
+const {organizationApplications: applications, createApplication, deleteApplication: deleteApplicationById} = useCurrentOrganization();
 
 async function deleteApplication(appId: number) {
-    await appRepo.deleteApplicationById(appId);
-    await fetchApplications();
+    await deleteApplicationById(appId);
     toast.add({
         severity: 'success',
         summary: 'Application deleted',
@@ -81,16 +69,7 @@ function visitApplication(appId: number) {
             >
                 <i class="pi pi-box text-2xl text-gray-400"></i>
             </div>
-            <p class="text-gray-500 text-sm mb-4">No applications configured yet</p>
-            <div class="flex gap-2 justify-center">
-                <Button
-                    @click="openCreateAppDialog = true"
-                    label="Create Application"
-                    icon="pi pi-plus"
-                    size="small"
-                />
-
-            </div>
+            <p class="text-gray-500 text-sm mb-4">No application yet</p>
         </div>
         <div v-else class="space-y-3">
             <div
@@ -105,12 +84,12 @@ function visitApplication(appId: number) {
                             {{ app.name }}
                         </div>
                         <div
-                            v-if="app.vbId"
+                            v-if="app.applicationVbId"
                             class="text-xs text-gray-500 flex items-center gap-2"
                         >
                             <i class="pi pi-tag"></i>
                             <code class="bg-gray-100 px-2 py-0.5 rounded">
-                                {{ app.vbId }}
+                                {{ app.applicationVbId }}
                             </code>
                         </div>
                     </div>

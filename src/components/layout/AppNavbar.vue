@@ -16,35 +16,12 @@ const confirm = useConfirm();
 const toast = useToast();
 const store = useStorageStore();
 const uiStore = useUiStore();
-const { navTree: organizations, operators } = useNavbarData();
+const { navTree: organizations } = useNavbarData();
 
 const moreMenuOpen = ref(false);
-const expandedWallets = ref<Set<number>>(new Set());
-const expandedOrgs = ref<Set<number>>(new Set());
-const showOperatorDialog = ref(false);
-const newOperatorName = ref('');
-const newOperatorEndpoint = ref('');
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
-function toggleWallet(id: number) {
-    const expanded = new Set(expandedWallets.value);
-    if (expanded.has(id)) {
-        expanded.delete(id);
-    } else {
-        expanded.add(id);
-    }
-    expandedWallets.value = expanded;
-}
 
-function toggleOrg(id: number) {
-    const expanded = new Set(expandedOrgs.value);
-    if (expanded.has(id)) {
-        expanded.delete(id);
-    } else {
-        expanded.add(id);
-    }
-    expandedOrgs.value = expanded;
-}
 
 function navigate(path: string) {
     router.push(path);
@@ -110,47 +87,10 @@ async function handleImportFile(event: Event) {
         },
     });
 }
-
-function confirmClearAllOrganizations() {
-    confirm.require({
-        message: 'Are you sure you want to clear all wallets? This action cannot be undone.',
-        header: 'Clear All Wallets',
-        icon: 'pi pi-exclamation-triangle',
-        rejectClass: 'p-button-secondary p-button-outlined',
-        rejectLabel: 'Cancel',
-        acceptLabel: 'Clear All',
-        acceptClass: 'p-button-danger',
-        accept: () => store.clearOrganizations(),
-    });
-}
-
-function openOperatorDialog() {
-    newOperatorName.value = '';
-    newOperatorEndpoint.value = '';
-    showOperatorDialog.value = true;
-}
-
-async function createOperator() {
-    if (!newOperatorName.value.trim() || !newOperatorEndpoint.value.trim()) {
-        toast.add({ severity: 'error', summary: 'Validation Error', detail: 'Please fill in all fields', life: 3000 });
-        return;
-    }
-    try {
-        await store.addOperator({
-            name: newOperatorName.value.trim(),
-            httpEndpoint: newOperatorEndpoint.value.trim(),
-        });
-        toast.add({ severity: 'success', summary: 'Success', detail: 'Operator created successfully', life: 3000 });
-        showOperatorDialog.value = false;
-    } catch {
-        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to create operator', life: 3000 });
-    }
-}
-
 async function exportData() {
     try {
         const fullWallets = await buildExportData();
-        const payload = { organizations: fullWallets, operators: operators.value };
+        const payload = { organizations: fullWallets, operators: [] };
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
@@ -164,18 +104,7 @@ async function exportData() {
     }
 }
 
-function confirmClearAllOperators() {
-    confirm.require({
-        message: 'Are you sure you want to clear all operators? This action cannot be undone.',
-        header: 'Clear All Operators',
-        icon: 'pi pi-exclamation-triangle',
-        rejectClass: 'p-button-secondary p-button-outlined',
-        rejectLabel: 'Cancel',
-        acceptLabel: 'Clear All',
-        acceptClass: 'p-button-danger',
-        accept: () => store.clearOperators(),
-    });
-}
+
 
 function logout() {
     sessionStore.lock();
@@ -330,74 +259,6 @@ function logout() {
                         <i class="pi pi-wallet text-sm flex-shrink-0" />
                         <span class="truncate">{{ wallet.name }}</span>
                     </button>
-                    <button
-                        class="px-2 py-1.5 rounded-r hover:bg-gray-100 text-gray-400 hover:text-gray-700 text-sm transition-colors flex-shrink-0"
-                        @click.stop="toggleWallet(wallet.id)"
-                    >
-                        <i
-                            :class="expandedWallets.has(wallet.id) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                            class="text-xs"
-                        />
-                    </button>
-                </div>
-
-                <!-- Wallet submenu -->
-                <div v-if="expandedWallets.has(wallet.id)" class="ml-4 border-l border-gray-200 pl-2 space-y-0.5">
-                    <!-- Credentials -->
-                    <button
-                        class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 text-gray-700 text-sm transition-colors"
-                        @click="navigate(`/wallet/${wallet.id}/credentials`)"
-                    >
-                        <i class="pi pi-shield text-sm flex-shrink-0" />
-                        <span class="truncate text-left">Credentials</span>
-                    </button>
-
-                    <!-- Organizations -->
-                    <div v-for="org in wallet.organizations" :key="org.id" class="space-y-0.5">
-                        <div class="flex items-center gap-0">
-                            <button
-                                class="flex-1 flex items-center gap-2 px-2 py-1.5 rounded-l hover:bg-gray-100 text-gray-700 text-sm transition-colors text-left"
-                                @click="navigate(`/wallet/${wallet.id}/organization/${org.id}`)"
-                            >
-                                <i class="pi pi-building text-sm flex-shrink-0" />
-                                <span class="truncate">{{ org.name }}</span>
-                            </button>
-                            <button
-                                class="px-2 py-1.5 rounded-r hover:bg-gray-100 text-gray-400 hover:text-gray-700 text-sm transition-colors flex-shrink-0"
-                                @click.stop="toggleOrg(org.id)"
-                            >
-                                <i
-                                    :class="expandedOrgs.has(org.id) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                                    class="text-xs"
-                                />
-                            </button>
-                        </div>
-
-                        <!-- Org submenu (apps + nodes) -->
-                        <div v-if="expandedOrgs.has(org.id)" class="ml-4 border-l border-gray-200 pl-2 space-y-0.5">
-                            <!-- Applications -->
-                            <button
-                                v-for="app in org.applications"
-                                :key="app.id"
-                                class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 text-gray-700 text-sm transition-colors"
-                                @click="navigate(`/wallet/${wallet.id}/organization/${org.id}/application/${app.id}`)"
-                            >
-                                <i class="pi pi-desktop text-sm flex-shrink-0" />
-                                <span class="truncate text-left">{{ app.name }}</span>
-                            </button>
-
-                            <!-- Nodes -->
-                            <button
-                                v-for="node in org.nodes"
-                                :key="node.id"
-                                class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 text-gray-700 text-sm transition-colors"
-                                @click="navigate(`/wallet/${wallet.id}/organization/${org.id}/node/${node.id}`)"
-                            >
-                                <i class="pi pi-sitemap text-sm flex-shrink-0" />
-                                <span class="truncate text-left">{{ node.name }}</span>
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -412,50 +273,6 @@ function logout() {
             v{{ pkg.version }}
         </div>
     </aside>
-
-    <!-- Modal: Add Operator -->
-    <div v-if="showOperatorDialog" class="fixed inset-0 z-50 flex items-center justify-center">
-        <div class="absolute inset-0 bg-black/50" @click="showOperatorDialog = false" />
-        <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Add Operator</h2>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Operator Name</label>
-                    <input
-                        v-model="newOperatorName"
-                        type="text"
-                        placeholder="Enter operator name"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        @keyup.enter="createOperator"
-                    />
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">HTTP Endpoint</label>
-                    <input
-                        v-model="newOperatorEndpoint"
-                        type="text"
-                        placeholder="https://example.com/api"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        @keyup.enter="createOperator"
-                    />
-                </div>
-            </div>
-            <div class="flex justify-end gap-3 mt-6">
-                <button
-                    class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                    @click="showOperatorDialog = false"
-                >
-                    Cancel
-                </button>
-                <button
-                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                    @click="createOperator"
-                >
-                    Create
-                </button>
-            </div>
-        </div>
-    </div>
 
     <!-- Hidden file input -->
     <input

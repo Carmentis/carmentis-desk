@@ -2,35 +2,454 @@ import { defineStore } from 'pinia';
 import { useStorageStore } from './storage.ts';
 import { useSessionStore } from './sessionStore.ts';
 import {
-    CryptoEncoderFactory,
-    PrivateSignatureKey,
+    BalanceAvailability,
+    CryptoEncoderFactory, Hash, JwkPrivateSignatureKey, Lock, LockType,
+    PrivateSignatureKey, ProviderFactory,
     PublicSignatureKey,
-    SeedEncoder,
-    SignatureSchemeId,
+    SeedEncoder, SignatureJwk,
+    SignatureSchemeId, TokenUnit,
     Utils,
     WalletCrypto,
 } from '@cmts-dev/carmentis-sdk-core';
-import { ref } from 'vue';
+import {computed, type MaybeRefOrGetter, Ref, ref, toValue} from 'vue';
 import { JwkSignatureKeyExporter } from '../utils/jwk-signature-key-exporter.ts';
-import {AppControllerGetAccountHistoryParams} from "../api/indexer/model";
+import {AccountDto, AppControllerGetAccountHistoryParams} from "../api/indexer/model";
 import {match, P} from "ts-pattern";
 import {DeskLogger} from "../utils/DeskLogger.ts";
 import {WalletUtils} from "../utils/WalletUtils.ts";
+import {from, useObservable} from "@vueuse/rxjs";
+import {InsertType, liveQuery} from "dexie";
+import {DeskDatabase} from "../db/DeskDatabase.ts";
+import {useStrongholdStore} from "./strongholdStore.ts";
+import {computedAsync} from "@vueuse/core";
+import {CredentialType, KeyType, Network, Organization} from "../types/types.ts";
+import {db} from "../db/db.ts";
+import {useQuery} from "@tanstack/vue-query";
+import {createIndexerClient} from "../api/indexer/client.ts";
 
-interface WalletState {
-    isLoadingAccount: boolean;
-    accountId?: undefined | Uint8Array;
-    sk?: PrivateSignatureKey;
-    pk?: PublicSignatureKey;
+
+
+
+export const useWalletStore = (walletId: number) => {
+    const strongholdStore = useStrongholdStore();
+
+    const walletIdRef = computed(() => walletId);
+
+    // the wallet object
+    const wallet = useObservable(
+        from(liveQuery(() => DeskDatabase.getWalletById(walletId))),
+        { initialValue: undefined }
+    );
+
+    // the credentials contained in the wallet
+    const walletCredentials = useObservable(
+        from(liveQuery(() => DeskDatabase.getAllCredentialsInWallet(walletId))),
+        { initialValue: [] }
+    );
+
+    // organizations contained in the wallet
+    const walletOrganizations = useObservable(
+        from(liveQuery(() => DeskDatabase.getAllOrganizationsInWallet(walletId))),
+        { initialValue: [] }
+    );
+
+    // network of the wallet
+    const walletNetwork = computed(() => {
+        if (!wallet.value) return undefined;
+        return wallet.value.network;
+    })
+
+    // create the provider
+    const walletProvider = computed(() => {
+        if (!walletNetwork.value) return undefined;
+        return ProviderFactory.createInMemoryProviderWithExternalProvider(walletNetwork.value.node);
+    })
+
+    // create the indexer
+    const walletIndexer = computed(() => {
+        console.log("Create wallet indexer", walletNetwork.value)
+        if (!walletNetwork.value) return undefined;
+        return createIndexerClient(walletNetwork.value.indexer);
+    })
+
+    // the private key of the wallet
+    const walletKeyObject = computedAsync(async () => {
+        if (!wallet.value) return undefined;
+        return strongholdStore.getWalletPrivateKeyFromStronghold(wallet.value.privateKeyStrongholdId);
+    })
+
+    // the actor keys passphrase
+    const walletKeyActorKeysPassphrase = computedAsync(async () => {
+        if (!wallet.value) return undefined;
+        const strongholdId = wallet.value.actorKeysMnemonicStrongholdId;
+        return strongholdStore.getMnemonicFromStronghold(strongholdId);
+    })
+
+    // the type of the wallet key
+    const walletKeyType = computed(() => {
+        if (!walletKeyObject.value) return undefined;
+        return walletKeyObject.value.keyType;
+    })
+
+
+    // private key of the wallet
+    const walletPrivateKey = computedAsync(async () => {
+        if (!walletKeyObject.value) return undefined;
+        const key = walletKeyObject.value;
+        if (key.keyType === KeyType.SEED) {
+            return await WalletUtils.getPrivateKeyFromSeedAndSignatureScheme(
+                key.seed,
+                key.schemeId
+            );
+        } else {
+            return JwkPrivateSignatureKey.fromJwk(key.jwk as SignatureJwk);
+        }
+    })
+
+    // public key of the wallet
+    const walletPublicKey = computedAsync(async () => {
+        if (!walletPrivateKey.value) return undefined;
+        return await walletPrivateKey.value.getPublicKey();
+    })
+
+    // key pair of the wallet (mainly used when both sk and pk should be used)
+    const walletKeyPair = computed(() => ({
+        sk: walletPrivateKey.value,
+        pk: walletPublicKey.value
+    }))
+
+
+    // encoded private and public key
+    const encoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
+    const encodedWalletPrivateKey = computedAsync(async () => {
+        if (!walletPrivateKey.value) return undefined;
+        return encoder.encodePrivateKey(walletPrivateKey.value);
+    })
+    const encodedWalletPublicKey = computedAsync(() => {
+        if (!walletPublicKey.value) return undefined;
+        return encoder.encodePublicKey(walletPublicKey.value);
+    })
+
+    async function createSdJwtCredential(name: string, sdjwt: string) {
+        return await DeskDatabase.createCredential({
+            walletId,
+            credentialType: CredentialType.SDJWT,
+            name,
+            sdjwt,
+            createdAt: new Date(),
+        })
+    }
+
+    async function deleteCredential(credentialId: number) {
+        return await DeskDatabase.deleteCredentialById(credentialId);
+    }
+
+
+    async function updateNetwork(network: Network) {
+        if (wallet.value) {
+            wallet.value.network = network;
+            await DeskDatabase.updateWallet(wallet.value);
+        }
+        throw new Error("Wallet not found");
+    }
+
+    async function createOrganization(organizationName: string) {
+        console.log("Creating organization", organizationName);
+        return db.organizations.add({
+            walletId,
+            city: '',
+            createdAt: new Date(),
+            website: '',
+            name: organizationName,
+            countryCode: ''
+        })
+    }
+
+    async function importExistingOrganization(organization: InsertType<Organization, 'id' | 'walletId'>) {
+        // we reject if the provided existed organization does not have virtual blockchain yet
+        if (!organization.organizationVbId) {
+            throw new Error("Organization does not have virtual blockchain id");
+        }
+
+        // we allow import only if no existing organizatino with the same virtual blockchain id exists
+        const existingOrganization = await db.organizations
+            .where('organizationVbId')
+            .equals(organization.organizationVbId)
+            .first();
+        if (existingOrganization) {
+            throw new Error("Organization with the same virtual blockchain id already exists");
+        }
+
+        return db.organizations.add({
+            ...organization,
+            walletId
+        })
+    }
+
+    async function deleteOrganization(organizationId: number) {
+        return DeskDatabase.deleteOrganizationById(organizationId);
+    }
+
+
+
+    // Refetch interval in milliseconds
+    const logger = DeskLogger.getLogger().getChild("fetcher");
+    const DEFAULT_REFETCH_INTERVAL = 3000;
+
+    function useAccountIdQuery() {
+        return useQuery({
+            refetchOnWindowFocus: true,
+            refetchOnMount: true,
+            refetchOnReconnect: true,
+            refetchInterval: DEFAULT_REFETCH_INTERVAL,
+            queryKey: computed(() => ['account-id', walletId]),
+            queryFn: async () => {
+                logger.info(`Searching account id for wallet id ${walletId}`)
+                console.log(walletProvider.value, walletPublicKey.value)
+                if (!walletProvider.value || !walletPublicKey.value) return undefined;
+                logger.info(`Searching account id for wallet id ${walletId}`)
+                const accountId = await walletProvider.value.getAccountIdByPublicKey(walletPublicKey.value);
+                console.log(`Found account id: ${accountId}`)
+                return Hash.from(accountId).encode();
+            },
+            retry: 1,
+        });
+    }
+
+    function useAccountStateQuery() {
+        const accountIdQuery = useAccountIdQuery();
+        const enabled = computed(() => !!accountIdQuery.data.value);
+        return useQuery({
+            enabled,
+            queryKey: computed(() => ['account-state', toValue(walletId), accountIdQuery.data.value]),
+            queryFn: async () => {
+                const accountId = accountIdQuery.data.value;
+                logger.info(`Searching account state for account id ${accountId}`)
+                if (accountId) {
+                    if (!walletIndexer.value) throw new Error('Indexer not found');
+                    const result = await walletIndexer.value.getAccounts({ id: accountId });
+                    const account = result.items[0];
+                    if (!account) throw new Error('Account not found');
+                    return account;
+                } else {
+                    throw new Error('Account ID is undefined');
+                }
+            },
+            staleTime: 1000,
+            refetchIntervalInBackground: true,
+            refetchInterval: DEFAULT_REFETCH_INTERVAL,
+            refetchOnReconnect: true,
+            refetchOnMount: true,
+            refetchOnWindowFocus: true,
+        });
+    }
+
+    function useAccountTransactionsHistory(fromHeight: Ref<number>, nbLimit: Ref<number>) {
+        const accountIdQuery = useAccountIdQuery();
+        const enabled = computed(() => !!accountIdQuery.data.value);
+        const accountHistoryQuery = useQuery({
+            enabled,
+            refetchInterval: DEFAULT_REFETCH_INTERVAL,
+            refetchIntervalInBackground: true,
+            refetchOnWindowFocus: true,
+            refetchOnMount: true,
+            refetchOnReconnect: true,
+            queryKey: computed(() => [
+                'account-transactions-history',
+                toValue(walletId),
+                accountIdQuery.data.value,
+                fromHeight,
+                nbLimit
+            ]),
+            queryFn: async () => {
+                const accountId = accountIdQuery.data.value;
+                logger.info(`Searching account transactions for account id ${accountId}`)
+                if (!!accountIdQuery.data.value && !!walletIndexer.value) {
+                    return await walletIndexer
+                        .value
+                        .getAccountHistory({
+                            account_id: accountId,
+                            order: 'DESC',
+                            sort: 'height',
+                        });
+                } else {
+                    console.warn("No account id or indexer")
+                    return undefined;
+                }
+            },
+        });
+
+        return { accountHistoryQuery };
+    }
+
+    function getBalanceAvailability(account: AccountDto) {
+        const locks: Lock[] = []
+        for (const lock of account.escrowLocks) {
+            locks.push({
+                type: LockType.Escrow,
+                lockedAmountInAtomics: lock.amount,
+                parameters: {
+                    escrowIdentifier: Utils.binaryFromHexa(lock.escrowIdentifier),
+                    fundEmitterAccountId: Utils.binaryFromHexa(lock.fundEmitterAccountId),
+                    transferAuthorizerAccountId: Utils.binaryFromHexa(lock.transferAuthorizerAccountId),
+                    startTimestamp: lock.startTimestamp,
+                    durationDays: lock.durationDays,
+                }
+            });
+        }
+        for (const lock of account.stakingLocks) {
+            locks.push({
+                type: LockType.NodeStaking,
+                lockedAmountInAtomics: lock.amount,
+                parameters: {
+                    validatorNodeId: Utils.binaryFromHexa(lock.validatorNodeId),
+                    plannedUnlockAmountInAtomics: lock.plannedSlashingAmountInAtomics,
+                    plannedUnlockTimestamp: lock.plannedUnlockTimestamp,
+                    slashed: lock.slashed,
+                    plannedSlashingAmountInAtomics: lock.plannedUnlockAmountInAtomics,
+                    plannedSlashingTimestamp: lock.plannedUnlockTimestamp,
+                }
+            });
+        }
+        for (const lock of account.vestingLocks) {
+            locks.push({
+                type: LockType.Vesting,
+                lockedAmountInAtomics: lock.amount,
+                parameters: {
+                    initialVestedAmountInAtomics: lock.initialVestedAmountInAtomics,
+                    cliffStartTimestamp: lock.cliffStartTimestamp,
+                    cliffDurationDays: lock.cliffDurationDays,
+                    vestingDurationDays: lock.vestingDurationDays,
+                }
+            });
+        }
+        return new BalanceAvailability(account.balance, locks);
+    }
+
+    function useAccountBreakdownQuery() {
+        const accountStateQuery = useAccountStateQuery();
+        const enabled = computed(() => !!accountStateQuery.data.value);
+        return useQuery({
+            enabled,
+            refetchIntervalInBackground: true,
+            refetchInterval: DEFAULT_REFETCH_INTERVAL,
+            refetchOnWindowFocus: true,
+            refetchOnMount: true,
+            refetchOnReconnect: true,
+            queryKey: computed(() => ['account-breakdown', toValue(walletId), accountStateQuery.data.value]),
+            queryFn: async () => {
+                const acc = accountStateQuery.data.value;
+                if (!acc) throw new Error('Account state is undefined');
+                const breakdown = getBalanceAvailability(acc);
+                return {
+                    getSpendable: () => {
+                        return breakdown.getSpendable().toString(
+                            TokenUnit.TOKEN,
+                            { locale: "system", grouping: true, decimalPlaces: 2 }
+                        )
+                    },
+                    getStaked:    () => {
+                        return breakdown.getStaked().toString(
+                            TokenUnit.TOKEN,
+                            { locale: "system", grouping: true, decimalPlaces: 2 }
+                        )
+                    },
+                    getVested:    () => {
+                        return breakdown.getVested().toString(
+                            TokenUnit.TOKEN,
+                            { locale: "system", grouping: true, decimalPlaces: 2 }
+                        )
+                    },
+                    getEscrowed: () => {
+                        return breakdown.getEscrowed().toString(
+                            TokenUnit.TOKEN,
+                            { locale: "system", grouping: true, decimalPlaces: 2 }
+                        )
+                    },
+                };
+            },
+        });
+    }
+
+    function useHasAccountOnChainQuery() {
+        const accountIdQuery = useAccountIdQuery();
+        return computed(() => accountIdQuery.isSuccess.value && accountIdQuery.data.value !== undefined);
+    }
+
+
+    function useFoundOrganizationsOnchain() {
+        const accountIdQuery = useAccountIdQuery();
+        return useQuery({
+            queryKey: computed(() => [
+                'account-organizations-onchain',
+                toValue(walletId),
+            ]),
+            queryFn: async () => {
+                const indexer = walletIndexer.value
+                if (!indexer) return [];
+                if (!accountIdQuery.data.value) return [];
+                const accountId = accountIdQuery.data.value;
+                const items = await indexer.getOrganizations({
+                    account_id: accountId,
+                })
+                return items.items;
+            },
+        });
+
+    }
+
+
+
+    async function isAccountFoundByPublicKey( pk: PublicSignatureKey) {
+        try {
+            if (!walletProvider.value) return undefined;
+            const accountId = await walletProvider.value.getAccountIdByPublicKey(pk);
+            return true
+        } catch {
+            return false;
+        }
+    }
+
+
+    return {
+        walletId: walletIdRef,
+        wallet,
+        walletCredentials,
+        walletNetwork,
+        walletPrivateKey,
+        walletPublicKey,
+        walletKeyType,
+        walletKeyPair,
+        walletKeyActorKeysPassphrase,
+        encodedWalletPrivateKey,
+        encodedWalletPublicKey,
+        walletOrganizations,
+        indexer: walletIndexer,
+        walletProvider,
+
+        // methods
+        createSdJwtCredential,
+        deleteCredential,
+        updateNetwork,
+        createOrganization,
+        deleteOrganization,
+        importExistingOrganization,
+
+        // on-chain queries
+        useFoundOrganizationsOnchain,
+        isAccountFoundByPublicKey,
+        useAccountIdQuery,
+        useAccountBreakdownQuery,
+        useAccountTransactionsHistory,
+        useAccountStateQuery,
+        useHasAccountOnChainQuery,
+    }
 }
 
-export const useWalletStore = defineStore('wallet', () => {
+/*
+const useWalletStore = defineStore('wallet', () => {
     const logger = DeskLogger.getLogger().getChild("wallet-store")
 
-    const state = ref<WalletState>({
-        // account
-        isLoadingAccount: false,
-    });
 
     const storageStore = useStorageStore();
 
@@ -111,7 +530,6 @@ export const useWalletStore = defineStore('wallet', () => {
     }
 
     return {
-        state,
         fetchAccountStateByAccountId,
         getAccountId,
         getAccountIdFromPublicKey,
@@ -122,3 +540,5 @@ export const useWalletStore = defineStore('wallet', () => {
         getNodeEndpointFromWalletId
     };
 });
+
+ */
