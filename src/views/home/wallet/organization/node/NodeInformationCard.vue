@@ -48,6 +48,14 @@ const showClaimDialog = ref(false);
         </template>
         <template #content>
             <div class="space-y-4">
+
+                <div v-if="node.nodeVbId" class="border-2 border-gray-50 rounded-lg p-4">
+                    <div class="text-sm text-gray-600 font-medium mb-1">Node ID</div>
+                    <div class="font-bold text-gray-900 text-sm">
+                        {{ node.nodeVbId }}
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Node Name</label>
@@ -85,12 +93,6 @@ const showClaimDialog = ref(false);
                     </div>
                 </div>
 
-                <div v-if="node.nodeVbId">
-                    <label class="block text-sm font-medium text-gray-700 mb-2"> Virtual Blockchain ID </label>
-                    <code class="bg-gray-100 px-3 py-2 rounded text-sm block overflow-x-auto">
-                        {{ node.nodeVbId }}
-                    </code>
-                </div>
             </div>
         </template>
     </Card>

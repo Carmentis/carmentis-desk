@@ -10,7 +10,6 @@ const query = route.query;
 const symKey: string = query.symKey as string;
 const relay: string = query.relay as string;
 const sessionId: string = query.sessionId as string;
-console.log('Relay: ', relay, symKey, sessionId);
 const responder = Responder.create(relay, sessionId, symKey);
 
 const message = ref('');
@@ -21,7 +20,7 @@ function sendMessage() {
 
 responder.onClose(() => {
     console.log('Connection closed');
-    router.push('/');
+    router.back()
 });
 
 responder.onMessage((message) => {
@@ -40,7 +39,7 @@ onMounted(async () => {
 });
 </script>
 <template>
-    <Button label="Home" @click="$router.push('/')" />
+    <Button label="Home" @click="$router.back()" />
     Connection attempted {{ query }}
 
     <InputText v-model="message" placeholder="Type a message" />

@@ -1,21 +1,18 @@
 <script setup lang="ts">
-import { computed, inject, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import {useRoute, useRouter} from 'vue-router';
 import Button from 'primevue/button';
 import NodeInformationCard from './NodeInformationCard.vue';
 import NodePublicationStatusCard from './NodePublicationStatusCard.vue';
 import NodeStakingCard from './NodeStakingCard.vue';
-import NodeStakeDialog from './NodeStakeDialog.vue';
-import NodeUnstakeDialog from './NodeUnstakeDialog.vue';
-import NodeClaimDialog from './NodeClaimDialog.vue';
 import {useCurrentNode} from "../../../../../composables/useCurrentNode.ts";
+import {capitalize, computed} from "vue";
+import {useNavigation} from "../../../../../composables/useNavigation.ts";
 
 const route = useRoute();
 const router = useRouter();
 
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
-const nodeId = computed(() => Number(route.params.nodeId));
 
 const {
     wallet,
@@ -23,7 +20,6 @@ const {
     node,
     chainNameOnWhichNodeIsConnected,
     nodePublicKey,
-    nodeVbId,
     isNodePublished,
     nodeOwnerAccountId,
     nodeOwnerName,
@@ -39,67 +35,19 @@ const {
 } = useCurrentNode();
 
 const hasAccountOnChain = useHasAccountOnChainQuery();
-
-
-/*
-// Register navbar actions - needs to be reactive to node state changes
-watch(
-    [isNodePublished, isNodeClaimed, isOwnedByWallet, nodeStakeInformation, hasUnstakingOperationInProgress],
-    () => {
-        if (registerNavbarActions) {
-            const actions = [];
-
-            if (!node.value?.vbId && !isNodePublished.value && !isNodeClaimed.value) {
-                actions.push({
-                    label: 'Claim Node',
-                    icon: 'pi pi-lock',
-                    command: openClaimDialog,
-                    outlined: true,
-                });
-            }
-
-            if (isOwnedByWallet.value && !nodeStakeInformation.value) {
-                actions.push({
-                    label: 'Stake Tokens',
-                    icon: 'pi pi-wallet',
-                    command: () => showStakeDialog.value = true,
-                    outlined: true,
-                });
-            }
-            console.log("Node stake infos:", nodeStakeInformation)
-            if (isOwnedByWallet.value && nodeStakeInformation.value) {
-
-                actions.push({
-                    label: 'Stake More',
-                    icon: 'pi pi-plus',
-                    command: openStakeDialog,
-                    outlined: true,
-                });
-
-
-                if (!hasUnstakingOperationInProgress.value) {
-                    actions.push({
-                        label: 'Unstake',
-                        icon: 'pi pi-minus',
-                        severity: 'secondary',
-                        command: openUnstakeDialog,
-                        outlined: true,
-                    });
-                }
-            }
-
-            registerNavbarActions(actions);
-        }
-    },
-    { immediate: true },
-);
-
- */
+const nav = useNavigation();
 </script>
 
 <template>
     <div class="space-y-6">
         <div v-if="node && wallet && organization">
+
+            <!-- Application Header -->
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-gray-900">Node - {{ capitalize(node.name) }}</h2>
+                <Button @click="nav.goToOrganization(walletId, orgId)">Back to organization</Button>
+            </div>
+
             <!-- Node Information and Status Cards -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <NodeInformationCard

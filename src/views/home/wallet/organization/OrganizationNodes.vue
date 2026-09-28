@@ -24,6 +24,17 @@ import Dialog from "primevue/dialog";
 import FieldNameAndDescription from "../../../../components/utils/FieldNameAndDescription.vue";
 import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
 import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
+import TabPanel from "primevue/tabpanel";
+import Tab from "primevue/tab";
+import TabList from "primevue/tablist";
+import Tabs from "primevue/tabs";
+import TabPanels from "primevue/tabpanels";
+import DataTable, {DataTableRowClickEvent} from "primevue/datatable";
+import Column from "primevue/column";
+import {InsertType} from "dexie";
+import {ValidatorNodeDto} from "../../../../api/indexer/model";
+import {useNavigation} from "../../../../composables/useNavigation.ts";
+import {useCurrentDate} from "../../../../stores/useCurrentDate.ts";
 
 const toast = useToast();
 const route = useRoute();
@@ -31,16 +42,11 @@ const router = useRouter();
 const sessionStore = useSessionStore();
 
 const {indexer} = useCurrentWallet();
-const {organizationNodes: nodes, createNode, deleteNode: deleteNodeById} = useCurrentOrganization();
+const {organizationNodes: nodes, createNode, deleteNode: deleteNodeById, useFoundNodesOnChain} = useCurrentOrganization();
 
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 
-const { state: wallet } = useAsyncState(
-    () => walletRepo.getWalletById(walletId.value),
-    null,
-    { immediate: true },
-);
 
 // Nodes management (reactive via nodes state from useAsyncState)
 
@@ -137,89 +143,6 @@ function visitNode(nodeId: number) {
 const showImportDialog = ref(false);
 const nodesToImport = ref<string[]>([]);
 
-// wallet key pair (needed for account state)
-const walletKeyPair = computedAsync(async () => {
-    if (!wallet.value) return undefined;
-    const seedEncoder = new SeedEncoder();
-    const rawSeed = await sessionStore.getWalletSeed(wallet.value.id);
-    const walletSeed = WalletCrypto.fromSeed(seedEncoder.decode(rawSeed));
-    const accountCrypto = walletSeed.getDefaultAccountCrypto();
-    const sk = await accountCrypto.getPrivateSignatureKey(SignatureSchemeId.SECP256K1);
-    const pk = await sk.getPublicKey();
-    const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
-    return {
-        sk: await sigEncoder.encodePrivateKey(sk),
-        pk: await sigEncoder.encodePublicKey(pk),
-    };
-});
-const pk = computed(() => walletKeyPair.value?.pk);
-
-// wallet account id and state
-const walletAccountId = computedAsync(async () => {
-    if (wallet.value === null) return undefined;
-    if (!pk.value) return undefined;
-    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
-    try {
-        const sigEncoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
-        return await provider.getAccountIdByPublicKey(await sigEncoder.decodePublicKey(pk.value));
-    } catch (e) {
-        if (CarmentisError.isCarmentisError(e)) {
-            return Utils.getNullHash();
-        }
-        console.error(e);
-        return undefined;
-    }
-});
-
-const walletAccountState = computedAsync(async () => {
-    if (wallet.value === null) return undefined;
-    if (!pk.value) return undefined;
-    if (walletAccountId.value === undefined) return undefined;
-    const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
-    const accountId = await walletAccountId.value;
-    const accountState = await provider.getAccountState(accountId);
-    return accountState;
-}, undefined, { shallow: true });
-
-
-
-async function fetchNodesOnChain() {
-    const accountState = walletAccountState.value;
-    if (!accountState) {
-        toast.add({
-            severity: 'info',
-            summary: 'No nodes',
-            detail: 'No node to import',
-            life: 3000,
-        });
-        return;
-    }
-
-    const locks = accountState.locks;
-    const stakingLocks = locks.filter((lock) => lock.type === LockType.NodeStaking);
-    const nodesIds = stakingLocks.map((sl) => Hash.from(sl.parameters.validatorNodeId as Uint8Array));
-    const newNodesIds = [];
-    for (const nodeId of nodesIds) {
-        const isAlreadyDeclared = await nodeRepo.isNodeDeclared(orgId.value, nodeId.encode());
-        if (isAlreadyDeclared) {
-        } else {
-            newNodesIds.push(nodeId.encode());
-        }
-    }
-    if (newNodesIds.length === 0) {
-        toast.add({
-            severity: 'info',
-            summary: 'No nodes',
-            detail: 'No node to import',
-            life: 3000,
-        });
-        return;
-    }
-
-    nodesToImport.value = newNodesIds;
-    showImportDialog.value = true;
-}
-
 async function importNewNodes() {
     /*
     if (!wallet.value) return;
@@ -253,6 +176,31 @@ async function importNewNodes() {
 }
 
 const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnChain');
+const foundNodesOnChain = useFoundNodesOnChain();
+const activeTab = ref<string>('local');
+const now = useCurrentDate();
+const onChainNodesCounter = computed(() => {
+    if (foundNodesOnChain.isLoading.value) {
+        return '.'.repeat(now.value.getSeconds() % 3 + 1);
+    }
+
+    if (foundNodesOnChain.error.value) {
+        return ':(';
+    }
+
+    if (foundNodesOnChain.data.value) {
+        return `(${foundNodesOnChain.data.value.length})`
+    }
+
+    return 0;
+})
+
+
+const navigation = useNavigation();
+async function importNode(existingNode: ValidatorNodeDto) {
+    const nodeId = await createNode(existingNode.moniker, existingNode.rpcEndpoint, existingNode.virtualBlockchainId);
+    await navigation.goToNode(walletId.value, orgId.value, nodeId);
+}
 </script>
 <template>
     <div
@@ -272,16 +220,9 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
         <!-- Nodes Header Actions -->
         <div class="flex justify-between items-center">
             <h3 class="text-lg font-semibold text-gray-900">
-                Nodes ({{ nodes.length }})
+                Nodes
             </h3>
             <div class="flex gap-2">
-                <Button
-                    @click="fetchNodesOnChain"
-                    label="Fetch On-Chain"
-                    icon="pi pi-cloud-download"
-                    size="small"
-                    outlined
-                />
                 <Button
                     @click="showManualImportForm = true"
                     label="Add Node"
@@ -291,53 +232,124 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
             </div>
         </div>
 
-        <!-- Nodes Content -->
-        <div v-if="nodes.length === 0" class="text-center py-8">
-            <div
-                class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
-            >
-                <i class="pi pi-sitemap text-2xl text-gray-400"></i>
-            </div>
-            <p class="text-gray-500 text-sm">No nodes configured yet</p>
-        </div>
-        <div v-else class="space-y-3">
-            <div
-                v-for="node of nodes"
-                :key="node.id"
-                class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                @click="() => visitNode(node.id)"
-            >
-                <div class="flex items-start justify-between">
-                    <div class="space-y-2 flex-1">
-                        <div class="font-medium text-gray-900">
-                            {{ node.name }}
+        <Tabs v-model:value="activeTab">
+            <TabList>
+                <Tab value="local">Local Nodes ({{ nodes.length }})</Tab>
+                <Tab value="on-chain">On-Chain Nodes {{onChainNodesCounter}}</Tab>
+            </TabList>
+            <TabPanels>
+                <TabPanel value="local">
+                    <div class="mb-4">
+                        <span class="font-bold">Below are displayed the nodes associated with this wallet, found locally.</span>
+
+                        <div>
+                            If a node is displayed here, then its configuration is stored in the local database.
+                            If a node is displayed here but is not available on the network, it means that
+                            the node has been configured locally but is not currently registered or reachable.
                         </div>
-                        <div class="text-xs text-gray-500 space-y-1">
-                            <div v-if="node.nodeVbId" class="flex items-center gap-2">
-                                <i class="pi pi-tag"></i>
-                                <code class="bg-gray-100 px-2 py-0.5 rounded">
-                                    {{ node.nodeVbId }}
-                                </code>
+
+
+                        <!-- Nodes Content -->
+                        <div v-if="nodes.length === 0" class="text-center py-8">
+                            <div
+                                class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
+                            >
+                                <i class="pi pi-sitemap text-2xl text-gray-400"></i>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <i class="pi pi-globe"></i>
-                                <span>
+                            <p class="text-gray-500 text-sm">No nodes configured yet</p>
+                        </div>
+                        <div v-else class="space-y-3">
+                            <DataTable
+                                :value="nodes"
+                                stripedRows
+                                showGridlines
+                                responsiveLayout="scroll"
+                                class="text-sm hover:cursor-pointer"
+                                @rowClick=" (event: DataTableRowClickEvent<any>) => visitNode(event.data.id)"
+                            >
+                                <Column field="name" header="Name" sortable style="min-width: 150px"></Column>
+                                <Column field="rpcEndpoint" header="RPC Endpoint" sortable/>
+                                <Column field="nodeVbId" header="Node ID" sortable style="min-width: 150px"/>
+
+                            </DataTable>
+
+                            <!--div
+                                v-for="node of nodes"
+                                :key="node.id"
+                                class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                                @click="() => (node.id)"
+                            >
+                                <div class="flex items-start justify-between">
+                                    <div class="space-y-2 flex-1">
+                                        <div class="font-medium text-gray-900">
+                                            {{ node.name }}
+                                        </div>
+                                        <div class="text-xs text-gray-500 space-y-1">
+                                            <div v-if="node.nodeVbId" class="flex items-center gap-2">
+                                                <i class="pi pi-tag"></i>
+                                                <code class="bg-gray-100 px-2 py-0.5 rounded">
+                                                    {{ node.nodeVbId }}
+                                                </code>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <i class="pi pi-globe"></i>
+                                                <span>
                                                                         {{ node.rpcEndpoint }}
                                                                     </span>
-                            </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        @click.stop="deleteNode(node.id)"
+                                        icon="pi pi-trash"
+                                        severity="danger"
+                                        text
+                                        rounded
+                                        size="small"
+                                    />
+                                </div>
+                            </div-->
                         </div>
+
                     </div>
-                    <Button
-                        @click.stop="deleteNode(node.id)"
-                        icon="pi pi-trash"
-                        severity="danger"
-                        text
-                        rounded
-                        size="small"
-                    />
-                </div>
-            </div>
-        </div>
+                </TabPanel>
+
+                <TabPanel value="on-chain">
+                    <div class="mb-4">
+                        <span class="font-bold">Below are the nodes associated with this wallet that were found on-chain.</span>
+
+                        <div>
+                            If a node is displayed here but is not present in the local database,
+                            it means that the node has been registered on the blockchain but has not yet been synchronized
+                            with the local database. To import it, click on the node.
+                        </div>
+
+                    </div>
+                    <div>
+                    <DataTable
+                        :value="foundNodesOnChain.data.value"
+                        stripedRows
+                        showGridlines
+                        responsiveLayout="scroll"
+                        class="text-sm hover:cursor-pointer"
+                        @rowClick=" (event: DataTableRowClickEvent<any>) => importNode(event.data)"
+                    >
+                        <Column field="moniker" header="Name" sortable style="min-width: 150px"></Column>
+                        <Column field="rpcEndpoint" header="RPC Endpoint" sortable/>
+                        <Column field="virtualBlockchainId" header="Virtual Blockchain ID" sortable style="min-width: 150px"/>
+                        <Column>
+                            <template #body>
+                                <Button icon="pi pi-download" title="Import"/>
+                            </template>
+                        </Column>
+                    </DataTable>
+                    </div>
+                </TabPanel>
+            </TabPanels>
+        </Tabs>
+
+
+
     </div>
 
 

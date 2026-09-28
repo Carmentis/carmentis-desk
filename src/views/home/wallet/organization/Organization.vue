@@ -22,10 +22,10 @@ import OrganizationStateCard from "./OrganizationStateCard.vue";
 import FieldNameAndDescription from "../../../../components/utils/FieldNameAndDescription.vue";
 import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
 import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
+import {useNavigation} from "../../../../composables/useNavigation.ts";
 
 const toast = useToast();
-const route = useRoute();
-const router = useRouter();
+const nav = useNavigation();
 const onChainStore = useOnChainStore();
 const { isPublishingOrganization  } = storeToRefs(onChainStore);
 
@@ -35,7 +35,7 @@ const hasAccountOnChain = useHasAccountOnChainQuery();
 
 
 const goBack = () => {
-    router.push(`/wallet/${walletId.value}`);
+    nav.goToWallet(walletId.value);
 };
 
 

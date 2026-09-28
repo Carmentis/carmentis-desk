@@ -119,7 +119,7 @@ const {wallet} = useWalletStore(walletId.value);
                             <i class="pi pi-id-card mr-2"></i>
                             Credentials
                         </Tab>
-                        <Tab value="1">
+                        <Tab value="1" v-if="false">
                             <i class="pi pi-box mr-2"></i>
                             Application ledgers
                         </Tab>
@@ -138,7 +138,7 @@ const {wallet} = useWalletStore(walletId.value);
                         <TabPanel value="0">
                             <WalletDetailOrganizationsCard/>
                         </TabPanel>
-                        <TabPanel value="1">
+                        <TabPanel value="1" v-if="false">
                             <WalletDetailApplicationLedgerParticipationsCard/>
                             <WalletDetailVirtualBlockchains/>
                         </TabPanel>

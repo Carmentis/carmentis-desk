@@ -9,9 +9,11 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import OpenIdDeepLinkHandler from './components/openid/OpenIdDeepLinkHandler.vue';
 import OpenIdCredentialOfferDeepLinkHandler from './components/openid/OpenIdCredentialOfferDeepLinkHandler.vue';
 import {useAppStore} from "./stores/appStore.ts";
+import {useNavigation} from "./composables/useNavigation.ts";
 
 const appWindow = getCurrentWindow();
 const router = useRouter();
+const nav = useNavigation();
 const openidQuery = ref<string>('');
 const openidCredentialOfferQuery = ref<string>('');
 
@@ -24,7 +26,7 @@ async function handleDeepLink(urls: string[]) {
             await appWindow.show();
             await appWindow.setFocus();
             const path = url.replace('cmts://connect/carmentis-relay', '');
-            await router.push(`/connect/rpc${path}`);
+            await nav.goToRpc(path)
         }
         if (url.startsWith('openid://')) {
             console.log('Handling OpenID URL:', url);
@@ -51,20 +53,20 @@ onMounted(async () => {
         console.error("Erreur lors de l'initialisation du Deep Link:", error);
     }
 });
-
+const navigation = useNavigation();
 const { isStarting, isOnboarded, isUnlocked} = useAppStore();
 watch([isOnboarded, isUnlocked], () => {
     console.log(`App.vue: ${isOnboarded.value} ${isUnlocked.value}`)
     if (isOnboarded.value === true) {
         if (isUnlocked.value) {
-            router.push('/home');
+            navigation.goToHome()
         } else {
-            router.push('/login');
+            navigation.goToLogin()
         }
     }
 
     if (isOnboarded.value === false) {
-        router.push('/onboarding');
+        navigation.goToOnboarding()
     }
 }, {immediate: true})
 </script>
