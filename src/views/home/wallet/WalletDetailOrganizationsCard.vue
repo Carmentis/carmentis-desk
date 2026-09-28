@@ -164,43 +164,12 @@ const onChainOrganizationsCounter = computed(() => {
                         class="text-sm hover:cursor-pointer"
                         @rowClick=" (event: DataTableRowClickEvent<any>) => visitOrganization(event.data.id)"
                     >
-                        <Column field="name" header="name" sortable style="min-width: 150px"></Column>
+                        <Column field="name" header="name" sortable style="min-width: 150px"/>
                         <Column field="city" header="City" sortable/>
                         <Column field="countryCode" header="Country Code" sortable/>
                         <Column field="website" header="Website" sortable/>
-                        <Column field="organizationVbId" header="Virtual Blockchain ID" sortable style="min-width: 150px"/>
+                        <Column field="organizationVbId" header="Organization ID" sortable style="min-width: 150px"/>
                     </DataTable>
-
-
-
-                    <!--div
-                        v-for="org in organizations"
-                        :key="org.id"
-                        class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                        @click="visitOrganization(org.id)"
-                    >
-                        <div class="flex items-start justify-between">
-                            <div class="space-y-2 flex-1">
-                                <div class="flex items-center gap-3">
-                                    <div class="font-medium text-gray-900">
-                                        {{ org.name }}
-                                    </div>
-                                    <div
-                                        v-if="org.vbId"
-                                        class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded"
-                                    >
-                                        <i class="pi pi-tag"></i>
-                                        {{ org.vbId }}
-                                    </div>
-                                </div>
-                                <div class="text-sm text-gray-600 space-y-1">
-                                    <div class="flex items-center gap-4">
-                                    </div>
-                                </div>
-                            </div>
-                            <i class="pi pi-chevron-right text-gray-400"></i>
-                        </div>
-                    </div-->
                 </div>
 
 
@@ -230,7 +199,7 @@ const onChainOrganizationsCounter = computed(() => {
                         <Column field="city" header="City" sortable/>
                         <Column field="countryCode" header="Country Code" sortable/>
                         <Column field="website" header="Website" sortable/>
-                        <Column field="virtualBlockchainId" header="Virtual Blockchain ID" sortable style="min-width: 150px"/>
+                        <Column field="virtualBlockchainId" header="Organization ID" sortable style="min-width: 150px"/>
                         <Column>
                             <template #body>
                                 <Button icon="pi pi-download" title="Import"/>

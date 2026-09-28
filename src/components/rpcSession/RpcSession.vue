@@ -89,6 +89,12 @@ responder.onMessage((message) => {
         return;
     }
 
+    // Inline method: discover available methods
+    if (method === 'discover') {
+        responder.send(JsonRpc.success(id, { methods: Object.keys(rpcMethodRegistry) }));
+        return;
+    }
+
     const methodDef = rpcMethodRegistry[method];
     if (!methodDef) {
         responder.send(JsonRpc.methodNotFound(id, 'Method not found'));

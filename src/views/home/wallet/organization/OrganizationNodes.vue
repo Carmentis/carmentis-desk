@@ -336,7 +336,7 @@ async function importNode(existingNode: ValidatorNodeDto) {
                     >
                         <Column field="moniker" header="Name" sortable style="min-width: 150px"></Column>
                         <Column field="rpcEndpoint" header="RPC Endpoint" sortable/>
-                        <Column field="virtualBlockchainId" header="Virtual Blockchain ID" sortable style="min-width: 150px"/>
+                        <Column field="virtualBlockchainId" header="Node ID" sortable style="min-width: 150px"/>
                         <Column>
                             <template #body>
                                 <Button icon="pi pi-download" title="Import"/>

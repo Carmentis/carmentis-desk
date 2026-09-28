@@ -4,7 +4,7 @@
  * The wallet signs `b64Challenge` with the Ed25519 key derived from the chosen
  *
  * Registered in: rpcMethodRegistry.ts → '/v1/auth/pk'
- * Handler component: AuthByPublicKey.vue
+ * Handler component: AuthByPublicKeyV2.vue
  */
 import * as v from 'valibot';
 
@@ -46,9 +46,9 @@ export const CanonicalJsonAuthMethod = v.object({
     sigEncoding: v.optional(v.picklist(['b64', 'base64', 'hex', 'hexa']), 'base64'),
 })
 
-export const AuthByPublicKeyParamsSchema = v.variant(
+export const AuthByPublicKeyV1ParamsSchema = v.variant(
     'sigMethod',
     [ CanonicalJsonAuthMethod ]
 )
 
-export type AuthByPublicKeyParams = v.InferOutput<typeof AuthByPublicKeyParamsSchema>;
+export type AuthByPublicKeyV1Params = v.InferOutput<typeof AuthByPublicKeyV1ParamsSchema>;

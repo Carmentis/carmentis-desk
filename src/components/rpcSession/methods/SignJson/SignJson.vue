@@ -32,7 +32,7 @@ const emit = defineEmits<{
 const params = props.params;
 const toast = useToast();
 const {wallets} = useAppStore();
-const chosenWallet = ref(wallets[0]);
+const chosenWallet = ref(wallets.value[0]);
 const chosenWalletStore = computed(() => chosenWallet.value ? useWalletStore(chosenWallet.value.id) : null)
 const isProcessing = ref(false);
 
