@@ -4,13 +4,14 @@ import Card from 'primevue/card';
 import router from '../../router';
 import {useAppStore} from "../../stores/appStore.ts";
 import { capitalize } from 'vue';
+import {useNavigation} from "../../composables/useNavigation.ts";
 
 const store = useAppStore();
 const { wallets } = store;
 
-
-function visitWallet(orgId: number) {
-    router.push(`/wallet/${orgId}`);
+const navigation = useNavigation();
+function visitWallet(walletId: number) {
+    navigation.goToWallet(walletId);
 }
 </script>
 
@@ -31,10 +32,10 @@ function visitWallet(orgId: number) {
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <!-- Wallets Grid -->
             <Card
-                v-for="org in wallets"
-                :key="org.id"
+                v-for="wallet in wallets"
+                :key="wallet.id"
                 class="border-0 shadow-sm hover:shadow-xl transition-all cursor-pointer bg-surface-0"
-                @click="visitWallet(org.id)"
+                @click="visitWallet(wallet.id)"
             >
                 <template #content>
                     <div class="p-2 space-y-4">
@@ -46,12 +47,12 @@ function visitWallet(orgId: number) {
                                     <i class="pi pi-wallet text-2xl text-surface-600"></i>
                                 </div>
                                 <div>
-                                    <h3 class="text-base font-semibold text-surface-900 truncate">{{ org.name }}</h3>
-                                    <span class="text-xs text-surface-400 font-mono">ID: {{ org.id }}</span>
+                                    <h3 class="text-base font-semibold text-surface-900 truncate">{{ wallet.name }}</h3>
+                                    <span class="text-xs text-surface-400 font-mono">ID: {{ wallet.id }}</span>
                                 </div>
                             </div>
                             <span class="px-2 py-1 text-xs font-semibold text-blue-600 bg-blue-100 rounded-md">
-                                {{ capitalize(org.network.networkName)  }}
+                                {{ capitalize(wallet.network.networkName)  }}
                             </span>
                         </div>
                         <div class="pt-2 flex items-center justify-between text-surface-500 hover:text-primary-600 transition-colors text-sm font-medium">

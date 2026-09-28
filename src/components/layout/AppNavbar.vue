@@ -10,6 +10,7 @@ import { useSessionStore } from '../../stores/sessionStore.ts';
 import { useNavbarData, buildExportData } from '../../composables/useNavbarData';
 import pkg from '../../../package.json';
 import {useCurrentWallet} from "../../composables/useCurrentWallet.ts";
+import {useNavigation} from "../../composables/useNavigation.ts";
 
 const router = useRouter();
 const sessionStore = useSessionStore();
@@ -18,7 +19,7 @@ const toast = useToast();
 const store = useStorageStore();
 const uiStore = useUiStore();
 const { navTree: organizations } = useNavbarData();
-
+const navigation = useNavigation();
 const moreMenuOpen = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
@@ -111,7 +112,7 @@ async function exportData() {
 function logout() {
     sessionStore.lock();
     moreMenuOpen.value = false;
-    router.push('/login');
+    navigation.goToLogin()
 }
 </script>
 

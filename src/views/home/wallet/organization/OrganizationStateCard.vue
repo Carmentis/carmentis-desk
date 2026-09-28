@@ -23,7 +23,7 @@ import {useCurrentOrganization} from "../../../../composables/useCurrentOrganiza
 import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
 import {useAppStore} from "../../../../stores/appStore.ts";
 
-const {shouldDisplayApplications, shouldDisplayNodes} = useAppStore();
+const {shouldDisplayApplications, shouldDisplayNodes, hasDeveloperRole} = useAppStore();
 const { organization } = useCurrentOrganization();
 const activeTab = useStorage('activeOrganizationTab', '0', sessionStorage)
 const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnChain');
@@ -88,7 +88,7 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
                         <Tab value="0" v-if="shouldDisplayNodes">Nodes</Tab>
                         <Tab value="1" v-if="shouldDisplayApplications">Applications</Tab>
                         <Tab value="2">Certificate</Tab>
-                        <Tab value="3">Custom Data</Tab>
+                        <Tab value="3" v-if="hasDeveloperRole">Custom Data</Tab>
                     </TabList>
                     <TabPanels>
                         <TabPanel value="0">
@@ -103,7 +103,7 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
                             <OrganizationCertificate
                                 v-model:is-organization-found-on-chain="isOrganizationFoundOnChain"/>
                         </TabPanel>
-                        <TabPanel value="3">
+                        <TabPanel value="3" v-if="hasDeveloperRole">
                             <OrganizationCustomData
                                 v-model:is-organization-found-on-chain="isOrganizationFoundOnChain"/>
                         </TabPanel>

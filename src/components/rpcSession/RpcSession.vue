@@ -45,7 +45,7 @@ function closeConnect() {
     setTimeout(() => {
         wantsToClose.value = true;
         responder.close();
-        router.push('/');
+        router.back();
     }, 300);
 }
 
@@ -57,7 +57,7 @@ responder.onClose(() => {
             detail: 'The connection with the relay was lost unexpectedly.',
         });
     }
-    router.push('/');
+    router.back();
 });
 
 // ── Message handling ───────────────────────────────────────────────────────────

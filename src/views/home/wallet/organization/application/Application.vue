@@ -242,14 +242,11 @@ onMounted(() => {
                     <template #content>
                         <div v-if="application.applicationVbId" class="space-y-4">
                             <!-- Virtual Blockchain ID -->
-                            <div class="bg-gray-50 rounded-lg p-4">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <i class="pi pi-tag text-gray-600 text-sm"></i>
-                                    <label class="text-sm font-semibold text-gray-700">Virtual Blockchain ID</label>
-                                </div>
-                                <p class="text-gray-700 text-sm leading-relaxed">
+                            <div class="border-2 border-gray-50 rounded-lg p-4">
+                                <div class="text-sm text-gray-600 font-medium mb-1">Application ID</div>
+                                <div class="font-bold text-gray-900 text-sm">
                                     {{ application.applicationVbId }}
-                                </p>
+                                </div>
                             </div>
 
                             <!-- On-Chain Status -->
@@ -324,7 +321,7 @@ onMounted(() => {
                     <template #title>
                         <div class="flex items-center gap-2">
                             <i class="pi pi-pencil text-xl"></i>
-                            <span>Application Details</span>
+                            <span>Edit your application</span>
                         </div>
                     </template>
                     <template #content>
