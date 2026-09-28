@@ -25,16 +25,16 @@
 import type { Component } from 'vue';
 import type { GenericSchema } from 'valibot';
 
-import AuthByPublicKey from './methods/AuthByPublicKey/AuthByPublicKey.vue';
-import { AuthByPublicKeyParamsSchema } from './methods/AuthByPublicKey/AuthByPublicKeyRequestType.ts';
-
+import AuthByPublicKeyV1 from './methods/AuthByPublicKey/v1/AuthByPublicKeyV1.vue';
+import { AuthByPublicKeyV1ParamsSchema } from './methods/AuthByPublicKey/v1/AuthByPublicKeyRequestTypeV1.ts';
 import DataApproval from './methods/DataApproval/DataApproval.vue';
 import { DataApprovalParamsSchema } from './methods/DataApproval/DataApprovalRequestType.ts';
-
 import CredentialPresentation from './methods/CredentialPresentation/CredentialPresentation.vue';
 import { CredentialPresentationSchema } from './methods/CredentialPresentation/CredentialPresentationRequestType.ts';
 import {SignJsonParamsSchema} from "./methods/SignJson/SignJsonRequestType.ts";
 import SignJson from "./methods/SignJson/SignJson.vue";
+import {AuthByPublicKeyV2ParamsSchema} from "./methods/AuthByPublicKey/v2/AuthByPublicKeyRequestTypeV2.ts";
+import AuthByPublicKeyV2 from "./methods/AuthByPublicKey/v2/AuthByPublicKeyV2.vue";
 
 export interface RpcMethodDefinition {
     /** Valibot schema — validates and parses incoming JSON-RPC `params` */
@@ -46,8 +46,14 @@ export interface RpcMethodDefinition {
 export const rpcMethodRegistry: Record<string, RpcMethodDefinition> = {
     // Public key authentication (v1)
     '/v1/auth/pk': {
-        schema: AuthByPublicKeyParamsSchema,
-        component: AuthByPublicKey,
+        schema: AuthByPublicKeyV1ParamsSchema,
+        component: AuthByPublicKeyV1,
+    },
+
+    // Public key authentication (v1)
+    '/v2/auth/pk': {
+        schema: AuthByPublicKeyV2ParamsSchema,
+        component: AuthByPublicKeyV2,
     },
 
     // SD-JWT credential presentation via DCQL query
