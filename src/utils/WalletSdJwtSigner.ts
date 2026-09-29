@@ -1,4 +1,10 @@
-import {SeedEncoder, WalletCrypto, SignatureSchemeId} from "@cmts-dev/carmentis-sdk-core";
+import {
+    SeedEncoder,
+    WalletCrypto,
+    SignatureSchemeId,
+    PrivateSignatureKey,
+    JwkPrivateSignatureKey
+} from "@cmts-dev/carmentis-sdk-core";
 import {Ed25519PrivateSignatureKey} from "@cmts-dev/carmentis-sdk-core";
 import {JwkSignatureKeyExporter} from "./jwk-signature-key-exporter.ts";
 import * as jose from "jose";
@@ -92,6 +98,31 @@ export class WalletSdJwtSigner {
 
     getSdJwtInstance() {
         return this.sdjwt;
+    }
+
+    static async createFromPrivateKey(privateKey: PrivateSignatureKey) {
+        if (privateKey instanceof JwkPrivateSignatureKey) {
+            const privateJwk = privateKey.getPrivateJwk();
+            const publicJwk = privateKey.getPublicJwk();
+            const privateCryptoKey = await jose.importJWK(privateJwk) as CryptoKey;
+            const publicCryptoKey = await jose.importJWK(publicJwk) as CryptoKey;
+
+            const sdJwt = await WalletSdJwtSigner.createFromCryptoKeyGenerator(async () => ({privateKey: privateCryptoKey, publicKey: publicCryptoKey}));
+            return sdJwt.getSdJwtInstance();
+        } else {
+            const publicKey = await privateKey.getPublicKey();
+
+            // compute the signer
+            const signer = SdJwtUtils.createSdJwtSignerFromPrivateKey(privateKey);
+            const verifier = SdJwtUtils.createSdJwtVerifierFromPublicKey(publicKey);
+            return new SDJwtVcInstance({
+                hasher: digest,
+                saltGenerator: generateSalt,
+                kbSigner: signer,
+                kbSignAlg: 'ES256K',
+                kbVerifier: verifier,
+            });
+        }
     }
 }
 

@@ -21,6 +21,8 @@ import Message from 'primevue/message';
 import Dropdown from 'primevue/dropdown';
 import {DeskLogger} from "../../../../utils/DeskLogger.ts";
 import {WalletUtils} from "../../../../utils/WalletUtils.ts";
+import {useAppStore} from "../../../../stores/appStore.ts";
+import {useWalletStore} from "../../../../stores/walletStore.ts";
 
 const logger = DeskLogger.getLogger().getChild('presentation');
 const props = defineProps<{ params: CredentialPresentation }>();
@@ -59,9 +61,10 @@ const desiredClaims = computed(() => {
     return claims.map((claim) => claim['path']).flat();
 });
 
-const store = useStorageStore();
-const { wallets } = storeToRefs(store);
+
+const {wallets} = useAppStore();
 const chosenWallet = ref(wallets.value[0]);
+const chosenWalletStore = computed(() => chosenWallet.value ? useWalletStore(chosenWallet.value.id) : null)
 
 const { state: credentialsInWallet, execute: fetchCredentials } = useAsyncState(
     async () => {
@@ -209,13 +212,13 @@ const isPresenting = ref(false);
 async function handlePresent() {
     const credential = selectedCredential.value;
     if (!credential) return;
+    if (!chosenWalletStore.value) return;
+    const {walletPrivateKey: sk} = chosenWalletStore.value;
+    if (!sk.value) return;
 
     isPresenting.value = true;
     try {
-        const wallet = chosenWallet.value;
-        const seed = await sessionStore.getWalletSeed(wallet.id);
-        const schemeId = wallet.schemeId;
-        const sdjwt = await WalletSdJwtSigner.createSdJwtInstanceFromSeed(seed, schemeId);
+        const sdjwt = await WalletSdJwtSigner.createFromPrivateKey(sk.value);
 
         const claims: Record<string, boolean> = {};
         for (const claim of desiredClaims.value) {
@@ -417,7 +420,7 @@ async function handlePresent() {
                             label="Present"
                             icon="pi pi-send"
                             :loading="isPresenting"
-                            :disabled="!canBeSatisfied || !selectedCredential"
+                            :disabled="!canBeSatisfied || !selectedCredential || !chosenWalletStore"
                             @click="handlePresent"
                         />
                     </div>
