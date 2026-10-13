@@ -23,6 +23,7 @@ import {DeskLogger} from "../../../../utils/DeskLogger.ts";
 import {WalletUtils} from "../../../../utils/WalletUtils.ts";
 import {useAppStore} from "../../../../stores/appStore.ts";
 import {useWalletStore} from "../../../../stores/walletStore.ts";
+import {VerifiableCredential} from "../../../../types/types.ts";
 
 const logger = DeskLogger.getLogger().getChild('presentation');
 const props = defineProps<{ params: CredentialPresentation }>();
@@ -65,7 +66,16 @@ const desiredClaims = computed(() => {
 const {wallets} = useAppStore();
 const chosenWallet = ref(wallets.value[0]);
 const chosenWalletStore = computed(() => chosenWallet.value ? useWalletStore(chosenWallet.value.id) : null)
-
+const credentialsInWallet = computed(() => {
+    if (chosenWalletStore.value) {
+        const {walletCredentials: credentials} = chosenWalletStore.value;
+        return credentials.value;
+    } else {
+        return [
+        ];
+    }
+})
+/*
 const { state: credentialsInWallet, execute: fetchCredentials } = useAsyncState(
     async () => {
         const wallet = chosenWallet.value;
@@ -77,7 +87,8 @@ const { state: credentialsInWallet, execute: fetchCredentials } = useAsyncState(
     { immediate: true },
 );
 
-watch(chosenWallet, () => fetchCredentials());
+ */
+
 watch([props], async () => {
     // if the public key is not indicated in the parameter, then skip it
     const indicatedPublicKey = props.params.publicKey;
@@ -102,9 +113,12 @@ watch([props], async () => {
 })
 
 const sdJwtCredentials = computedAsync(async () => {
+    if (!credentialsInWallet.value)
+        return [];
     try {
         // extract credentials from credential objects
-        const rawCredentials = credentialsInWallet.value.map((credential) => credential.data);
+        const credentials = credentialsInWallet.value;
+        const rawCredentials = credentials.map((credential) => credential.sdjwt);
         logger.info(`Found ${rawCredentials.length} credentials in this wallet`)
 
         // performing checks

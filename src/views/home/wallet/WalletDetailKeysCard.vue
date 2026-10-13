@@ -20,6 +20,8 @@ import Select from "primevue/select";
 import {useWalletStore} from "../../../stores/walletStore.ts";
 import {useToast} from "primevue/usetoast";
 import Button from "primevue/button";
+import Textarea from "primevue/textarea";
+import {KeyType} from "../../../types/types.ts";
 import {match, P} from "ts-pattern";
 import FieldNameAndDescription from "../../../components/utils/FieldNameAndDescription.vue";
 
@@ -87,6 +89,16 @@ const {execute: checkKeyPair} = useAsyncState(
 )
 
 // chosen signature scheme
+// JWK representations, only displayed for JWK wallets
+const privateJwkText = computed(() => {
+    const jwk = walletStore.walletPrivateJwk.value;
+    return jwk ? JSON.stringify(jwk, null, 2) : '';
+});
+const publicJwkText = computed(() => {
+    const jwk = walletStore.walletPublicJwk.value;
+    return jwk ? JSON.stringify(jwk, null, 2) : '';
+});
+
 const signatureScheme = computed(() => {
     return match(wallet.value)
         .with(P.nullish, () => SignatureSchemeId.SECP256K1)
@@ -199,6 +211,38 @@ const copyMenuItems = computed(() => {
                     />
                 </div>
 
+                <!-- JWK-specific section -->
+                <template v-if="walletStore.walletKeyType.value === KeyType.JWK">
+                    <Divider />
+                    <div class="w-full">
+                        <div class="flex items-end justify-between gap-2">
+                            <FieldNameAndDescription name="Private JWK" description="Your private key in JWK format. Keep it strictly confidential."/>
+                            <Button
+                                icon="pi pi-copy"
+                                outlined
+                                type="button"
+                                :disabled="!privateJwkText"
+                                @click="clipboard.copyToClipboard(privateJwkText, 'Private JWK')"
+                                aria-label="Copy private JWK"
+                            />
+                        </div>
+                        <Textarea :value="privateJwkText" readonly rows="8" class="w-full font-mono text-xs" />
+                    </div>
+                    <div class="w-full">
+                        <div class="flex items-end justify-between gap-2">
+                            <FieldNameAndDescription name="Public JWK" description="Your public key in JWK format."/>
+                            <Button
+                                icon="pi pi-copy"
+                                outlined
+                                type="button"
+                                :disabled="!publicJwkText"
+                                @click="clipboard.copyToClipboard(publicJwkText, 'Public JWK')"
+                                aria-label="Copy public JWK"
+                            />
+                        </div>
+                        <Textarea :value="publicJwkText" readonly rows="5" class="w-full font-mono text-xs" />
+                    </div>
+                </template>
             </div>
         </template>
     </Card>

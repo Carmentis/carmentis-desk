@@ -1,5 +1,5 @@
 import {db} from "./db.ts";
-import {Application, DeskState, Organization, Wallet, Node, VerifiableCredential} from "../types/types.ts";
+import {Application, DeskState, Organization, Wallet, Node, Network, VerifiableCredential} from "../types/types.ts";
 import {InsertType} from "dexie";
 export class DeskDatabase {
     // set tables
@@ -117,6 +117,10 @@ export class DeskDatabase {
         return this.applicationTable.where({organizationId}).toArray();
     }
 
+    static async updateWalletNetwork(walletId: number, network: Network) {
+        return this.walletTable.update(walletId, { network: { ...network } });
+    }
+
     static async updateWallet(wallet: Wallet) {
         return this.walletTable.update(wallet.id, wallet);
     }
@@ -135,5 +139,17 @@ export class DeskDatabase {
 
     static async updateNode(nodeId: number, node: Node) {
         return this.nodeTable.update(nodeId, node);
+    }
+
+    static getAllOrganizations() {
+        return this.organizationTable.toArray();
+    }
+
+    static getAllNodes() {
+        return this.nodeTable.toArray();
+    }
+
+    static getAllApplications() {
+        return this.applicationTable.toArray();
     }
 }
