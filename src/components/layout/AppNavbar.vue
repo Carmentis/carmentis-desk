@@ -47,7 +47,15 @@ async function openDebug() {
     }
 }
 
-async function handleImportFile(event: Event) {
+async function handleImportFile() {
+    toast.add({
+        severity: "warn",
+        summary: "Import not available",
+        detail: "The import feature is not available in this version.",
+        life: 4000
+    })
+
+    /*
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!fileInputRef.value) return;
     fileInputRef.value.value = '';
@@ -88,12 +96,11 @@ async function handleImportFile(event: Event) {
                 toast.add({ severity: 'error', summary: 'Import failed', detail: 'An error occurred during import.', life: 4000 });
             }
         },
-    });
+    });*/
 }
 async function exportData() {
     try {
-        const fullWallets = await buildExportData();
-        const payload = { organizations: fullWallets, operators: [] };
+        const payload = await buildExportData();
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
@@ -102,6 +109,8 @@ async function exportData() {
         anchor.click();
         URL.revokeObjectURL(url);
         moreMenuOpen.value = false;
+
+        toast.add({ severity: 'success', summary: 'Export done', detail: `Export available in your download folder at ${anchor.download}`, life: 4000 });
     } catch {
         toast.add({ severity: 'error', summary: 'Export failed', detail: 'Could not export data.', life: 4000 });
     }

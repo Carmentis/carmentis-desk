@@ -15,6 +15,8 @@ import {Hash, ProviderFactory, SectionType} from "@cmts-dev/carmentis-sdk-core";
 import {useAsyncState} from "@vueuse/core";
 import * as walletRepo from "../../../../db/repositories/walletRepository.ts";
 import * as orgRepo from "../../../../db/repositories/organizationRepository.ts";
+import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
+import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
 
 const toast = useToast();
 const route = useRoute();
@@ -27,17 +29,9 @@ const { isPublishingCustomJson } = storeToRefs(onChainStore);
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 
-const { state: wallet } = useAsyncState(
-    () => walletRepo.getWalletById(walletId.value),
-    null,
-    { immediate: true },
-);
+const {organization} = useCurrentOrganization();
+const {walletProvider} = useCurrentWallet();
 
-const { state: organization, execute: fetchOrg } = useAsyncState(
-    () => orgRepo.getOrganizationById(orgId.value),
-    null,
-    { immediate: true },
-);
 
 // Custom JSON publishing dialog
 const showPublishCustomJsonDialog = ref(false);
@@ -85,9 +79,9 @@ const {
     queryKey: ['organization-custom-sections', orgId],
     enabled: computed(() => isOrganizationFoundOnChain.value === true),
     queryFn: async (): Promise<CustomSectionRow[]> => {
-        if (!organization.value?.vbId || !wallet.value) return [];
-        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
-        const orgVB = await provider.loadOrganizationVirtualBlockchain(Hash.from(organization.value.vbId));
+        if (!organization.value || !organization.value.organizationVbId || !walletProvider.value) return [];
+        const provider = walletProvider.value;
+        const orgVB = await provider.loadOrganizationVirtualBlockchain(Hash.from(organization.value.organizationVbId));
         const hashes = orgVB.getAllMicroblockHashes();
         const rows: CustomSectionRow[] = [];
         for (let i = 0; i < hashes.length; i++) {

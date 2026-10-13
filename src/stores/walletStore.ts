@@ -1,6 +1,3 @@
-import { defineStore } from 'pinia';
-import { useStorageStore } from './storage.ts';
-import { useSessionStore } from './sessionStore.ts';
 import {
     BalanceAvailability,
     CryptoEncoderFactory, Hash, JwkPrivateSignatureKey, Lock, LockType,
@@ -22,7 +19,7 @@ import {InsertType, liveQuery} from "dexie";
 import {DeskDatabase} from "../db/DeskDatabase.ts";
 import {useStrongholdStore} from "./strongholdStore.ts";
 import {computedAsync} from "@vueuse/core";
-import {CredentialType, KeyType, Network, Organization} from "../types/types.ts";
+import {CredentialType, KeyType, Network, Organization, VerifiableCredential} from "../types/types.ts";
 import {db} from "../db/db.ts";
 import {useQuery} from "@tanstack/vue-query";
 import {createIndexerClient} from "../api/indexer/client.ts";
@@ -112,6 +109,16 @@ export const useWalletStore = (walletId: number) => {
         return await walletPrivateKey.value.getPublicKey();
     })
 
+    // private and public JWK (only defined for wallets backed by a JWK key)
+    const walletPrivateJwk = computed(() => {
+        const sk = walletPrivateKey.value;
+        return sk instanceof JwkPrivateSignatureKey ? sk.getPrivateJwk() : undefined;
+    })
+    const walletPublicJwk = computed(() => {
+        const sk = walletPrivateKey.value;
+        return sk instanceof JwkPrivateSignatureKey ? sk.getPublicJwk() : undefined;
+    })
+
     // key pair of the wallet (mainly used when both sk and pk should be used)
     const walletKeyPair = computed(() => ({
         sk: walletPrivateKey.value,
@@ -146,11 +153,8 @@ export const useWalletStore = (walletId: number) => {
 
 
     async function updateNetwork(network: Network) {
-        if (wallet.value) {
-            wallet.value.network = network;
-            await DeskDatabase.updateWallet(wallet.value);
-        }
-        throw new Error("Wallet not found");
+        const updated = await DeskDatabase.updateWalletNetwork(walletId, network);
+        if (updated === 0) throw new Error("Wallet not found");
     }
 
     async function createOrganization(organizationName: string) {
@@ -419,6 +423,8 @@ export const useWalletStore = (walletId: number) => {
         walletPrivateKey,
         walletPublicKey,
         walletKeyType,
+        walletPrivateJwk,
+        walletPublicJwk,
         walletKeyPair,
         walletKeyActorKeysPassphrase,
         encodedWalletPrivateKey,

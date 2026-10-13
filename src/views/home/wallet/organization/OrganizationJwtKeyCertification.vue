@@ -44,6 +44,7 @@ import {
     signData,
     type CertificateInfo,
 } from "../../../../utils/signing.ts";
+import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
 
 // define toast, clipboard and route
 const logger = DeskLogger.getLogger().getChild("organization")
@@ -53,13 +54,10 @@ const route = useRoute();
 const onChainStore = useOnChainStore();
 const { isPublishingCustomJson } = storeToRefs(onChainStore);
 const isSigningWithStore = ref(false);
+const {encodedWalletPublicKey} = useCurrentWallet();
 
 const walletId =  computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
-const encodedWalletPublicKey = computedAsync(async () => {
-    const pk = await WalletUtils.getPublicKeyFromWalletId(walletId.value);
-    return WalletUtils.encodePublicKey(pk);
-})
 
 // Dialog model
 const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnChain');
@@ -216,6 +214,7 @@ const unsignedPayload = computedAsync(async () => {
         iss: didIssuer.value,
         sub: encodedWalletPublicKey.value,
         iat: Math.floor(Date.now() / 1000),
+        nbf: cert.getNotBefore(),
         exp: cert.getNotAfter(),
     };
 });
@@ -358,8 +357,9 @@ const anchorCertificate = async () => {
         // Publish the certificate chain and signed JWT as custom data
         const customData: CustomSection = {
             type: SectionType.CUSTOM,
-            __cert__: {
-                __jwt__: signedJwtPayload.value,
+            __certificate__: {
+                type: 'KEY_ATTESTATION_JWT',
+                jwt: signedJwtPayload.value,
             }
         }
 
@@ -425,9 +425,10 @@ const {
             const customSecs = mb.getSectionsByType(SectionType.CUSTOM);
             for (const sec of customSecs) {
                 const data = sec as Record<string, unknown>;
-                if (data.__cert__) {
-                    rows.push({ height, hash: mb.getHash().encode(), data });
-                }
+                if (!data.__certificate__) continue;
+                const certificateSection = data.__certificate__ as any;
+                if (!certificateSection.jwt) continue;
+                rows.push({ height, hash: mb.getHash().encode(), data });
             }
         }
         return rows;
@@ -454,10 +455,11 @@ function base64UrlEncodeString(str: string): string {
     <div class="space-y-6">
         <!-- Header -->
         <div>
-            <h2 class="text-lg font-semibold text-gray-900 mb-2">Public Key Authentication</h2>
+            <h2 class="text-lg font-semibold text-gray-900 mb-2">Authenticate your wallet public key</h2>
             <p class="text-sm text-gray-600 mb-4">
-                Authenticate your organization's public key using an external certificate chain. Upload an x509 certificate chain,
-                generate a signature with your private key, and anchor it on-chain to cryptographically prove your identity.
+                Authenticate your organization's public key using an external key, certified by a x509 certificate chain.
+                Once completed, a JWT-based certificate certifying your organization's public key and signed by the external
+                key will be uploaded.
             </p>
         </div>
 
@@ -479,7 +481,7 @@ function base64UrlEncodeString(str: string): string {
         <div v-if="isOrganizationFoundOnChain === true" class="space-y-4">
             <div class="flex justify-between items-center">
                 <h3 class="text-lg font-semibold text-gray-900">
-                    Anchored Certificates
+                    Existing JWT Certificates
                 </h3>
                 <Button
                     label="Attach New Certificate"

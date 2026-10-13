@@ -17,11 +17,12 @@ import {useAsyncState} from "@vueuse/core";
 import * as walletRepo from "../../../../db/repositories/walletRepository.ts";
 import * as orgRepo from "../../../../db/repositories/organizationRepository.ts";
 import {useQuery} from "@tanstack/vue-query";
-import OrganizationCertificate from "./OrganizationCertificate.vue";
+import OrganizationJwtKeyCertification from "./OrganizationJwtKeyCertification.vue";
 import { useStorage } from '@vueuse/core'
 import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
 import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
 import {useAppStore} from "../../../../stores/appStore.ts";
+import OrganizationX509Certificate from "./OrganizationX509Certificate.vue";
 
 const {shouldDisplayApplications, shouldDisplayNodes, hasDeveloperRole} = useAppStore();
 const { organization } = useCurrentOrganization();
@@ -87,7 +88,8 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
                     <TabList>
                         <Tab value="0" v-if="shouldDisplayNodes">Nodes</Tab>
                         <Tab value="1" v-if="shouldDisplayApplications">Applications</Tab>
-                        <Tab value="2">Certificate</Tab>
+                        <Tab value="2">Key Attestation (JWT)</Tab>
+                        <Tab value="4">X509 Certificates</Tab>
                         <Tab value="3" v-if="hasDeveloperRole">Custom Data</Tab>
                     </TabList>
                     <TabPanels>
@@ -100,7 +102,11 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
                                 v-model:is-organization-found-on-chain="isOrganizationFoundOnChain"/>
                         </TabPanel>
                         <TabPanel value="2">
-                            <OrganizationCertificate
+                            <OrganizationJwtKeyCertification
+                                v-model:is-organization-found-on-chain="isOrganizationFoundOnChain"/>
+                        </TabPanel>
+                        <TabPanel value="4">
+                            <OrganizationX509Certificate
                                 v-model:is-organization-found-on-chain="isOrganizationFoundOnChain"/>
                         </TabPanel>
                         <TabPanel value="3" v-if="hasDeveloperRole">
