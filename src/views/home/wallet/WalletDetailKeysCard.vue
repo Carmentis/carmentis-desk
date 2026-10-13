@@ -89,6 +89,8 @@ const {execute: checkKeyPair} = useAsyncState(
 )
 
 // chosen signature scheme
+const isPrivateJwkVisible = ref(false);
+
 // JWK representations, only displayed for JWK wallets
 const privateJwkText = computed(() => {
     const jwk = walletStore.walletPrivateJwk.value;
@@ -216,20 +218,6 @@ const copyMenuItems = computed(() => {
                     <Divider />
                     <div class="w-full">
                         <div class="flex items-end justify-between gap-2">
-                            <FieldNameAndDescription name="Private JWK" description="Your private key in JWK format. Keep it strictly confidential."/>
-                            <Button
-                                icon="pi pi-copy"
-                                outlined
-                                type="button"
-                                :disabled="!privateJwkText"
-                                @click="clipboard.copyToClipboard(privateJwkText, 'Private JWK')"
-                                aria-label="Copy private JWK"
-                            />
-                        </div>
-                        <Textarea :value="privateJwkText" readonly rows="8" class="w-full font-mono text-xs" />
-                    </div>
-                    <div class="w-full">
-                        <div class="flex items-end justify-between gap-2">
                             <FieldNameAndDescription name="Public JWK" description="Your public key in JWK format."/>
                             <Button
                                 icon="pi pi-copy"
@@ -241,6 +229,31 @@ const copyMenuItems = computed(() => {
                             />
                         </div>
                         <Textarea :value="publicJwkText" readonly rows="5" class="w-full font-mono text-xs" />
+                    </div>
+                    <div class="w-full">
+                        <div class="flex items-end justify-between gap-2">
+                            <FieldNameAndDescription name="Private JWK" description="Your private key in JWK format. Keep it strictly confidential."/>
+                            <div class="flex gap-2">
+                            <Button
+                                :icon="isPrivateJwkVisible ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                                :label="isPrivateJwkVisible ? 'Hide' : 'Show'"
+                                outlined
+                                type="button"
+                                @click="isPrivateJwkVisible = !isPrivateJwkVisible"
+                                :aria-label="isPrivateJwkVisible ? 'Hide private JWK' : 'Show private JWK'"
+                            />
+                            <Button
+                                icon="pi pi-copy"
+                                outlined
+                                type="button"
+                                :disabled="!privateJwkText"
+                                @click="clipboard.copyToClipboard(privateJwkText, 'Private JWK')"
+                                aria-label="Copy private JWK"
+                            />
+                            </div>
+                        </div>
+                        <Textarea v-if="isPrivateJwkVisible" :value="privateJwkText" readonly rows="8" class="w-full font-mono text-xs" />
+                        <InputText v-else value="••••••••••••••••" readonly class="w-full" />
                     </div>
                 </template>
             </div>
