@@ -20,6 +20,8 @@ import Select from "primevue/select";
 import {KeyType, Network, WalletKey} from "../../types/types.ts";
 import {Bip39Utils} from "../../utils/Bip39Utils.ts";
 import {useAppStore} from "../../stores/appStore.ts";
+import NetworkSelector from "../../components/network/NetworkSelector.vue";
+import {networkFromPreset} from "../../utils/networkPresets.ts";
 
 
 // we propose two methods to create a key for a wallet:
@@ -53,40 +55,13 @@ const isJwkValid = computed(() =>
     jwkInput.value.trim() !== '' && jwkParseError.value === null
 );
 
-// Network configuration state
-const showNetworkDetails = ref(false);
-
-// Networks selection (for quick network setup)
-const networkMethod = ref<'mainnet' | 'testnet' | 'devnet' | 'custom'>('mainnet');
-const networkOptions = ref([
-    { label: 'Mainnet', value: "mainnet", node: 'https://mercurius.carmentis.io', indexer: 'https://indexer.carmentis.io' },
-    { label: 'Testnet', value: 'testnet', node: 'https://ares.testnet.carmentis.io', indexer: 'https://indexer.testnet.carmentis.io' },
-    { label: 'Devnet', value: "devnet", node: 'https://node2.server2.devnet.carmentis.io', indexer: 'https://indexer.server4.devnet.carmentis.io' },
-    { label: 'Custom', value: "custom", node: '', indexer: '' }
-]);
-const isCustomNetwork = computed(() => networkMethod.value === 'custom');
-const networkDetailsVisible = computed(() => isCustomNetwork.value || showNetworkDetails.value);
+// Network selection (preset or custom)
+const network = ref<Network>(networkFromPreset('mainnet'));
 
 const walletName = ref('');
 const seed = ref('');
 const passphrase = ref('');
-const nodeEndpoint = ref('');
-const indexer = ref('');
 
-watch(networkMethod, (newMethod) => {
-    const foundMethod = networkOptions.value.find(option => option.value === newMethod);
-    if (foundMethod) {
-        nodeEndpoint.value = foundMethod.node;
-        indexer.value = foundMethod.indexer;
-    } else {
-        nodeEndpoint.value = '';
-        indexer.value = '';
-    }
-    // Reset customize toggle when network changes (only relevant for predefined networks)
-    if (newMethod !== 'custom') {
-        showNetworkDetails.value = false;
-    }
-}, { immediate: true })
 
 
 const schemeOptions = [
@@ -165,11 +140,7 @@ const createWallet = async () => {
     if (!walletName.value) return;
 
     // set the wallet network
-    const network: Network = {
-        indexer: indexer.value,
-        networkName: networkMethod.value,
-        node: nodeEndpoint.value
-    }
+    const walletNetwork: Network = { ...network.value };
 
     // compute the private key
     let walletKey: WalletKey;
@@ -206,7 +177,7 @@ const createWallet = async () => {
     }
 
     // create the wallet
-    const createdWalletId = await appStore.createWallet(walletName.value, walletKey, network);
+    const createdWalletId = await appStore.createWallet(walletName.value, walletKey, walletNetwork);
     isCreatingWallet.value = false;
     await router.push(`/wallet/${createdWalletId}`);
 
@@ -262,65 +233,9 @@ const goBack = () => {
         <!-- Section 2: Network Configuration -->
         <Card>
             <template #content>
-                <div class="space-y-4">
-                    <div>
-                        <h1 class="text-lg font-bold">Network</h1>
-                        <p class="mb-4">Configure the network settings.</p>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Network
-                            <span class="text-red-500">*</span>
-                        </label>
-                        <SelectButton
-                            v-model="networkMethod"
-                            :options="networkOptions"
-                            optionLabel="label"
-                            optionValue="value"
-                            class="w-full"
-                        />
-                    </div>
-
-                    <!-- Compact network info for predefined networks (non-custom) -->
-                    <div v-if="!isCustomNetwork" class=" space-y-2">
-                        <Button
-                            @click="showNetworkDetails = !showNetworkDetails"
-                            :label="showNetworkDetails ? 'Hide settings' : 'Customize'"
-                            severity="secondary"
-                            text
-                            size="small"
-                            icon="pi pi-pencil"
-                        />
-                    </div>
-
-                    <!-- Detailed network settings (shown for custom or when customize is enabled) -->
-                    <div v-if="networkDetailsVisible" class="space-y-4">
-                        <div v-if="!isCustomNetwork" class="border-t pt-4"></div>
-                        <!-- Node Endpoint -->
-                        <div>
-                            <label for="node-endpoint" class="block text-sm font-medium text-gray-700 mb-2">
-                                Node Endpoint
-                            </label>
-                            <InputText
-                                id="node-endpoint"
-                                v-model="nodeEndpoint"
-                                placeholder="https://ares.testnet.carmentis.io"
-                                class="w-full"
-                            />
-                        </div>
-
-                        <!-- Indexer -->
-                        <div>
-                            <label for="indexer" class="block text-sm font-medium text-gray-700 mb-2">
-                                Indexer
-                            </label>
-                            <InputText
-                                id="indexer"
-                                v-model="indexer"
-                                placeholder="https://indexer.testnet.carmentis.io"
-                                class="w-full"
-                            />
-                        </div>
-                    </div>
-                </div>
+                <h1 class="text-lg font-bold">Network</h1>
+                <p class="mb-4">Configure the network settings.</p>
+                <NetworkSelector v-model="network" />
             </template>
         </Card>
 

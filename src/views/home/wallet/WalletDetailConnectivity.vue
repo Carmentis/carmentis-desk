@@ -1,60 +1,42 @@
 <script setup lang="ts">
-import {computed, reactive, ref, watch} from "vue";
-import {useRoute} from "vue-router";
-import {useAsyncState} from "@vueuse/core";
+import {computed, ref, watch} from "vue";
 import {useToast} from "primevue/usetoast";
 import Card from "primevue/card";
-import InputText from "primevue/inputtext";
 import Button from "primevue/button";
-import Tag from "primevue/tag";
-import {useClipboard} from "../../../composables/useClipboard.ts";
-import * as walletRepo from "../../../db/repositories/walletRepository.ts";
-import FieldNameAndDescription from "../../../components/utils/FieldNameAndDescription.vue";
+import NetworkSelector from "../../../components/network/NetworkSelector.vue";
 import {useCurrentWallet} from "../../../composables/useCurrentWallet.ts";
+import {Network} from "../../../types/types.ts";
+import {networkFromPreset} from "../../../utils/networkPresets.ts";
 
-const route = useRoute();
 const toast = useToast();
-const clipboard = useClipboard();
-
 const {walletNetwork, updateNetwork} = useCurrentWallet();
-const walletId = computed(() => Number(route.params.walletId));
 
-// Editable form fields
-const nodeEndpoint = ref('');
-const indexerEndpoint = ref('');
-const networkName = ref('');
-
-const savedForm = reactive({
-    nodeEndpoint: '', indexerEndpoint: '', networkName: '' });
-
-const isFormDirty = computed(
-    () =>
-        nodeEndpoint.value.trim() !== savedForm.nodeEndpoint ||
-        indexerEndpoint.value.trim() !== savedForm.indexerEndpoint ||
-        networkName.value.trim() !== savedForm.networkName,
-);
-
+const network = ref<Network>(networkFromPreset('mainnet'));
 const isSaving = ref(false);
 
-// Initialize form values when the wallet loads
-function initializeForm() {
-    if (walletNetwork.value) {
-        nodeEndpoint.value = walletNetwork.value.node ?? '';
-        indexerEndpoint.value = walletNetwork.value.indexer ?? '';
-        networkName.value = walletNetwork.value.networkName ?? '';
-        savedForm.nodeEndpoint = nodeEndpoint.value.trim();
-        savedForm.indexerEndpoint = indexerEndpoint.value.trim();
-    }
+const isFormDirty = computed(() => {
+    const saved = walletNetwork.value;
+    if (!saved) return false;
+    return network.value.networkName !== saved.networkName ||
+        network.value.node.trim() !== saved.node ||
+        network.value.indexer.trim() !== saved.indexer;
+});
+
+function resetForm() {
+    if (walletNetwork.value) network.value = { ...walletNetwork.value };
 }
 
-watch(walletNetwork, () => initializeForm(), { immediate: true });
+// Initialize the form when the wallet loads (or its network changes)
+watch(walletNetwork, () => resetForm(), { immediate: true });
 
 async function saveConnectivity() {
-    if (!nodeEndpoint.value.trim()) {
+    const node = network.value.node.trim();
+    const indexer = network.value.indexer.trim();
+    if (!node || !indexer) {
         toast.add({
             severity: 'error',
             summary: 'Validation error',
-            detail: 'Node endpoint is required',
+            detail: 'Node and indexer endpoints are required',
             life: 3000,
         });
         return;
@@ -62,16 +44,7 @@ async function saveConnectivity() {
 
     isSaving.value = true;
     try {
-        await updateNetwork({
-            networkName: networkName.value.trim(),
-            node: nodeEndpoint.value.trim(),
-            indexer: indexerEndpoint.value.trim(),
-        });
-
-        savedForm.networkName = networkName.value.trim();
-        savedForm.nodeEndpoint = nodeEndpoint.value.trim();
-        savedForm.indexerEndpoint = indexerEndpoint.value.trim();
-
+        await updateNetwork({ ...network.value, node, indexer });
         toast.add({
             severity: 'success',
             summary: 'Connectivity updated',
@@ -89,10 +62,6 @@ async function saveConnectivity() {
     } finally {
         isSaving.value = false;
     }
-}
-
-function resetForm() {
-    initializeForm();
 }
 </script>
 <template>
@@ -112,81 +81,7 @@ function resetForm() {
         </template>
         <template #content>
             <form @submit.prevent="saveConnectivity" class="space-y-4">
-                <div>
-                    <FieldNameAndDescription
-                        name="Network name"
-                        description="Indicates name of the network you are connected to"
-                        required
-                    />
-                    <div class="flex items-center gap-2">
-                        <InputText
-                            id="network-name"
-                            v-model="networkName"
-                            placeholder="My Net"
-                            class="w-full"
-                            required
-                        />
-                        <Button
-                            icon="pi pi-copy"
-                            outlined
-                            type="button"
-                            :disabled="!networkName"
-                            @click="clipboard.copyToClipboard(networkName, 'Network name')"
-                            v-tooltip="'Copy network name'"
-                            aria-label="Copy network name"
-                        />
-                    </div>
-                </div>
-                <div>
-                    <FieldNameAndDescription
-                        name="Node Endpoint"
-                        description="Indicates node endpoint in which transactions are published"
-                        required
-                    />
-                    <div class="flex items-center gap-2">
-                        <InputText
-                            id="node-endpoint"
-                            v-model="nodeEndpoint"
-                            placeholder="https://..."
-                            class="w-full"
-                            required
-                        />
-                        <Button
-                            icon="pi pi-copy"
-                            outlined
-                            type="button"
-                            :disabled="!nodeEndpoint"
-                            @click="clipboard.copyToClipboard(nodeEndpoint, 'Node endpoint')"
-                            v-tooltip="'Copy node endpoint'"
-                            aria-label="Copy node endpoint"
-                        />
-                    </div>
-                </div>
-                <div>
-                    <FieldNameAndDescription
-                        name="Indexer Endpoint"
-                        description="Indicates indexer endpoint used to fetch data from the blockchain."
-                        required
-                    />
-                    <div class="flex items-center gap-2">
-                        <InputText
-                            id="indexer-endpoint"
-                            v-model="indexerEndpoint"
-                            placeholder="https://..."
-                            class="w-full"
-                            required
-                        />
-                        <Button
-                            icon="pi pi-copy"
-                            outlined
-                            type="button"
-                            :disabled="!indexerEndpoint"
-                            @click="clipboard.copyToClipboard(indexerEndpoint, 'Indexer endpoint')"
-                            v-tooltip="'Copy indexer endpoint'"
-                            aria-label="Copy indexer endpoint"
-                        />
-                    </div>
-                </div>
+                <NetworkSelector v-model="network" />
                 <div class="flex justify-end gap-2">
                     <Button
                         type="button"
