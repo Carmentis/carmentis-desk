@@ -159,6 +159,7 @@ const anchorCertificate = async () => {
         const customData: CustomSection = {
             type: SectionType.CUSTOM,
             __certificate__: {
+                type: "X5C",
                 x5c: certificatesChain.value,
             }
         }
