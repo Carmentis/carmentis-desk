@@ -102,13 +102,15 @@ export class WalletSdJwtSigner {
 
     static async createFromPrivateKey(privateKey: PrivateSignatureKey) {
         if (privateKey instanceof JwkPrivateSignatureKey) {
-            const privateJwk = privateKey.getPrivateJwk();
-            const publicJwk = privateKey.getPublicJwk();
-            const privateCryptoKey = await jose.importJWK(privateJwk) as CryptoKey;
-            const publicCryptoKey = await jose.importJWK(publicJwk) as CryptoKey;
-
-            const sdJwt = await WalletSdJwtSigner.createFromCryptoKeyGenerator(async () => ({privateKey: privateCryptoKey, publicKey: publicCryptoKey}));
-            return sdJwt.getSdJwtInstance();
+            // the JWK key signs with JOSE semantics and knows its own `alg` identifier
+            const publicKey = await privateKey.getPublicKey();
+            return new SDJwtVcInstance({
+                hasher: digest,
+                saltGenerator: generateSalt,
+                kbSigner: SdJwtUtils.createSdJwtSignerFromPrivateKey(privateKey),
+                kbSignAlg: privateKey.getAlgorithm(),
+                kbVerifier: SdJwtUtils.createSdJwtVerifierFromPublicKey(publicKey),
+            });
         } else {
             const publicKey = await privateKey.getPublicKey();
 
