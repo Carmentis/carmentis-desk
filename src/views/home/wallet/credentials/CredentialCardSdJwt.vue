@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { computedAsync } from '@vueuse/core';
-import Card from 'primevue/card';
 import Button from 'primevue/button';
-import Tag from 'primevue/tag';
-import type { CredentialEntity } from '../../../../stores/storage.ts';
 import { parseSdJwt } from '../../../../composables/credentials/useCredentialType.ts';
 import SdJwtPresentationDialog from '../../../../components/credentials/SdJwtPresentationDialog.vue';
 import {VerifiableCredential} from "../../../../types/types.ts";
+import CredentialClaims from './CredentialClaims.vue';
+import StatusBadge from '../../../../components/ui/StatusBadge.vue';
+import CopyableValue from '../../../../components/ui/CopyableValue.vue';
 
 const props = defineProps<{
     credential: VerifiableCredential;
@@ -20,18 +20,6 @@ const emit = defineEmits<{
 
 const sdJwt = computedAsync(() => parseSdJwt(props.credential.sdjwt), null);
 const showPresentDialog = ref(false);
-
-// ---------------------------------------------------------------------------
-// Expanded rows — tracks which claim rows have been expanded by the user
-// ---------------------------------------------------------------------------
-const expandedClaims = ref<Set<string>>(new Set());
-
-function toggleExpand(id: string) {
-    const next = new Set(expandedClaims.value);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    expandedClaims.value = next;
-}
 
 // ---------------------------------------------------------------------------
 // Metadata
@@ -57,6 +45,11 @@ const expireAt = computed(() => {
               day: 'numeric',
           })
         : null;
+});
+
+const isExpired = computed(() => {
+    const exp = sdJwt.value?.jwt.payload.exp;
+    return !!exp && exp * 1000 < Date.now();
 });
 
 const subject = computed(() => sdJwt.value?.jwt.payload.sub ?? null);
@@ -104,159 +97,83 @@ const arrayDisclosureCount = computed(() => (sdJwt.value?.disclosures ?? []).fil
 </script>
 
 <template>
-    <Card class="overflow-hidden shadow-sm border border-gray-200">
-        <!-- Colored header band -->
-        <template #header>
-            <div class="bg-gradient-to-br from-blue-600 to-blue-500 px-4 py-3">
-                <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2 mb-1">
-                            <i class="pi pi-shield text-white/90 text-sm shrink-0"></i>
-                            <span class="text-white font-semibold text-sm leading-tight break-words">
-                                {{ credential.name }}
-                            </span>
-                        </div>
-                        <span
-                            v-if="sdJwt"
-                            class="font-mono text-xs text-blue-100 block truncate"
-                            :title="sdJwt.jwt.payload.vct"
-                        >
-                            {{ sdJwt.jwt.payload.vct }}
-                        </span>
-                    </div>
-                    <Tag value="SD-JWT" class="shrink-0 !bg-white/20 !text-white !border-white/30 text-xs" />
-                </div>
+    <article class="min-w-0 overflow-hidden rounded-card border border-line bg-surface shadow-card">
+        <header class="flex items-start justify-between gap-3 bg-accent-soft px-4 py-3">
+            <div class="min-w-0">
+                <h3 class="flex items-start gap-2 text-sm font-semibold text-fg">
+                    <i class="pi pi-shield mt-0.5 shrink-0 text-accent" aria-hidden="true" />
+                    <span class="break-words">{{ credential.name }}</span>
+                </h3>
+                <p
+                    v-if="sdJwt"
+                    class="mt-0.5 truncate font-mono text-xs text-fg-muted"
+                    :title="sdJwt.jwt.payload.vct"
+                >
+                    {{ sdJwt.jwt.payload.vct }}
+                </p>
             </div>
-        </template>
+            <StatusBadge tone="neutral" label="SD-JWT" icon="pi-shield" class="shrink-0" />
+        </header>
 
-        <template #content>
-            <div v-if="sdJwt" class="space-y-4">
+        <div class="space-y-4 p-4">
+            <template v-if="sdJwt">
                 <!-- Core metadata -->
-                <dl class="space-y-0 divide-y divide-gray-50">
-                    <div class="flex gap-3 py-1.5">
-                        <dt class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5">Issuer</dt>
-                        <dd class="min-w-0 flex-1 text-xs font-mono text-gray-700 break-all leading-snug">
-                            {{ sdJwt.jwt.payload.iss }}
+                <dl class="space-y-2 text-sm">
+                    <div class="grid gap-0.5 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-3">
+                        <dt class="text-fg-muted">Issuer</dt>
+                        <dd class="min-w-0">
+                            <CopyableValue :value="sdJwt.jwt.payload.iss" label="issuer" :head="14" :tail="8" />
                         </dd>
                     </div>
-                    <div v-if="subject" class="flex gap-3 py-1.5">
-                        <dt class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5">Subject</dt>
-                        <dd class="min-w-0 flex-1 text-xs font-mono text-gray-700 break-all leading-snug">
-                            {{ subject }}
+                    <div v-if="subject" class="grid gap-0.5 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-3">
+                        <dt class="text-fg-muted">Subject</dt>
+                        <dd class="min-w-0">
+                            <CopyableValue :value="subject" label="subject" :head="14" :tail="8" />
                         </dd>
                     </div>
-                    <div class="flex gap-3 py-1.5">
-                        <dt class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5">Issued</dt>
-                        <dd class="min-w-0 flex-1 text-sm text-gray-700">
-                            {{ issuedAt ?? '—' }}
-                        </dd>
+                    <div class="grid gap-0.5 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-3">
+                        <dt class="text-fg-muted">Issued</dt>
+                        <dd class="text-fg">{{ issuedAt ?? '—' }}</dd>
                     </div>
-                    <div class="flex gap-3 py-1.5">
-                        <dt class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5">Expires</dt>
-                        <dd class="min-w-0 flex-1 text-sm text-gray-700">
+                    <div class="grid gap-0.5 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-3">
+                        <dt class="text-fg-muted">Expires</dt>
+                        <dd class="flex flex-wrap items-center gap-2 text-fg">
                             {{ expireAt ?? '—' }}
+                            <StatusBadge v-if="expireAt && isExpired" tone="danger" label="Expired" icon="pi-clock" />
                         </dd>
                     </div>
-                    <div class="flex gap-3 py-1.5">
-                        <dt class="w-20 shrink-0 text-xs font-medium text-gray-400 pt-0.5">Algorithm</dt>
-                        <dd class="min-w-0 flex-1 text-xs font-mono text-gray-500">
-                            {{ sdJwt.jwt.header.alg }} /
-                            {{ sdJwt.jwt.payload._sd_alg }}
+                    <div class="grid gap-0.5 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-3">
+                        <dt class="text-fg-muted">Algorithm</dt>
+                        <dd class="font-mono text-xs text-fg-muted">
+                            {{ sdJwt.jwt.header.alg }} / {{ sdJwt.jwt.payload._sd_alg }}
                         </dd>
                     </div>
                 </dl>
 
                 <!-- Disclosed claims -->
-                <div v-if="disclosedClaims.length > 0">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                            Disclosed claims
-                        </span>
-                        <span class="text-xs text-gray-300">
-                            {{ disclosedClaims.length }}
-                        </span>
-                    </div>
-
-                    <dl class="rounded-md border border-gray-100 divide-y divide-gray-100 overflow-hidden">
-                        <div
-                            v-for="claim in disclosedClaims"
-                            :key="claim.id"
-                            class="flex gap-3 px-3 py-2 bg-white hover:bg-gray-50/50"
-                        >
-                            <!-- Key: fixed width, truncated with tooltip -->
-                            <dt
-                                class="w-24 shrink-0 text-xs font-mono font-medium text-blue-600 pt-0.5 truncate"
-                                :title="claim.key"
-                            >
-                                {{ claim.key }}
-                            </dt>
-
-                            <!-- Value: truncated or expanded -->
-                            <dd class="min-w-0 flex-1">
-                                <span
-                                    class="text-sm text-gray-700 leading-snug"
-                                    :class="
-                                        expandedClaims.has(claim.id)
-                                            ? 'break-all whitespace-pre-wrap'
-                                            : 'block truncate'
-                                    "
-                                    :title="!expandedClaims.has(claim.id) && !claim.expandable ? undefined : claim.full"
-                                >
-                                    {{ expandedClaims.has(claim.id) ? claim.full : claim.preview }}
-                                </span>
-                                <button
-                                    v-if="claim.expandable"
-                                    class="text-xs text-blue-500 hover:text-blue-700 hover:underline mt-0.5 block"
-                                    @click="toggleExpand(claim.id)"
-                                >
-                                    {{ expandedClaims.has(claim.id) ? 'Show less' : 'Show more' }}
-                                </button>
-                            </dd>
-                        </div>
-                    </dl>
-
-                    <p v-if="arrayDisclosureCount > 0" class="text-xs text-gray-400 mt-1.5">
+                <section v-if="disclosedClaims.length > 0">
+                    <h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-fg-muted">
+                        Disclosed claims ({{ disclosedClaims.length }})
+                    </h4>
+                    <CredentialClaims :entries="disclosedClaims" tone="accent" />
+                    <p v-if="arrayDisclosureCount > 0" class="mt-1.5 text-xs text-fg-muted">
                         + {{ arrayDisclosureCount }} array-element disclosure{{ arrayDisclosureCount !== 1 ? 's' : '' }}
                     </p>
-                </div>
-            </div>
+                </section>
+            </template>
 
-            <div v-else class="flex items-center gap-2 text-sm text-red-500 py-2">
-                <i class="pi pi-exclamation-circle shrink-0"></i>
-                <span>Could not parse SD-JWT</span>
-            </div>
-        </template>
+            <p v-else role="alert" class="flex items-center gap-2 py-2 text-sm text-danger">
+                <i class="pi pi-exclamation-circle shrink-0" aria-hidden="true" />
+                Could not parse SD-JWT
+            </p>
+        </div>
 
-        <template #footer>
-            <div class="flex items-center gap-2 pt-3 border-t border-gray-100">
-                <Button
-                    label="Present"
-                    icon="pi pi-share-alt"
-                    size="small"
-                    severity="primary"
-                    outlined
-                    @click="showPresentDialog = true"
-                />
-                <Button
-                    label="Browse"
-                    icon="pi pi-search"
-                    size="small"
-                    severity="secondary"
-                    outlined
-                    @click="emit('browse')"
-                />
-                <Button
-                    label="Delete"
-                    icon="pi pi-trash"
-                    size="small"
-                    severity="danger"
-                    text
-                    class="ml-auto"
-                    @click="emit('delete')"
-                />
-            </div>
-        </template>
-    </Card>
+        <footer class="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">
+            <Button label="Present" icon="pi pi-share-alt" outlined @click="showPresentDialog = true" />
+            <Button label="Browse" icon="pi pi-search" severity="secondary" outlined @click="emit('browse')" />
+            <Button label="Delete" icon="pi pi-trash" severity="danger" text class="ml-auto" @click="emit('delete')" />
+        </footer>
+    </article>
 
     <SdJwtPresentationDialog v-model:visible="showPresentDialog" :credential="credential" />
 </template>

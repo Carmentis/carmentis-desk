@@ -9,16 +9,7 @@ signed by the external key.
 <script setup lang="ts">
 import "reflect-metadata";
 import {computed, ref, watch} from "vue";
-import Dialog from "primevue/dialog";
 import Button from "primevue/button";
-import Stepper from 'primevue/stepper';
-import StepList from 'primevue/steplist';
-import StepPanels from 'primevue/steppanels';
-import Step from 'primevue/step';
-import StepPanel from 'primevue/steppanel';
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
-import Tag from 'primevue/tag';
 import {computedAsync} from "@vueuse/core";
 import {useToast} from "primevue/usetoast";
 import {CertificatesChain} from "../../../../utils/CertificatesChain.ts";
@@ -27,7 +18,6 @@ import {WalletUtils} from "../../../../utils/WalletUtils.ts";
 import {UnsecuredJWT, jwtVerify, decodeJwt} from "jose";
 import {JwkSignatureKeyExporter} from "../../../../utils/jwk-signature-key-exporter.ts";
 import {importJWK} from "jose";
-import {useClipboard} from "../../../../composables/useClipboard.ts";
 import {useRoute} from "vue-router";
 import { useOnChainActions } from "../../../../composables/useOnChainActions.ts";
 import * as orgRepo from "../../../../db/repositories/organizationRepository.ts";
@@ -44,10 +34,17 @@ import {
     type CertificateInfo,
 } from "../../../../utils/signing.ts";
 import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
+import Textarea from "primevue/textarea";
+import OrganizationSectionsList from "./OrganizationSectionsList.vue";
+import ResponsiveDialog from "../../../../components/ui/ResponsiveDialog.vue";
+import StatusBadge from "../../../../components/ui/StatusBadge.vue";
+import CopyableValue from "../../../../components/ui/CopyableValue.vue";
+import JsonBlock from "../../../../components/ui/JsonBlock.vue";
+import EmptyState from "../../../../components/ui/EmptyState.vue";
+import SkeletonBlock from "../../../../components/ui/SkeletonBlock.vue";
 
-// define toast, clipboard and route
+// define toast and route
 const logger = DeskLogger.getLogger().getChild("organization")
-const clipboard = useClipboard();
 const toast = useToast();
 const route = useRoute();
 const onChainStore = useOnChainActions();
@@ -227,6 +224,13 @@ const unsignedJwt = computed(() => {
 // dialog opening state
 const showOpenDialog = ref(false);
 
+// The dialog is a three-step flow: certificates, JWT signature, approval.
+const STEPS = ['Certificates', 'JWT signature', 'Approve'];
+const step = ref(1);
+watch(showOpenDialog, (open) => {
+    if (open) step.value = 1;
+});
+
 // JWT signature verification
 const signedJwtInput = ref("");
 const isVerifyingSignature = ref(false);
@@ -399,9 +403,6 @@ interface CertificateSectionRow {
     data: Record<string, unknown>;
 }
 
-const selectedCertificateSection = ref<CertificateSectionRow | null>(null);
-const showCertificateSectionDialog = ref(false);
-
 const {
     data: certificateSections,
     isLoading: isLoadingCertificateSections,
@@ -451,462 +452,305 @@ function base64UrlEncodeString(str: string): string {
 </script>
 
 <template>
-    <div class="space-y-6">
-        <!-- Header -->
-        <div>
-            <h2 class="text-lg font-semibold text-gray-900 mb-2">Authenticate your wallet public key</h2>
-            <p class="text-sm text-gray-600 mb-4">
-                Authenticate your organization's public key using an external key, certified by a x509 certificate chain.
-                Once completed, a JWT-based certificate certifying your organization's public key and signed by the external
-                key will be uploaded.
-            </p>
-        </div>
+    <EmptyState
+        v-if="isOrganizationFoundOnChain !== true"
+        framed
+        icon="pi-lock"
+        title="Publish your organization first"
+        description="Certificate management is only available once the organization has been published on the Carmentis network."
+    />
 
-        <!-- Lock message if organization not on-chain -->
-        <div
-            v-if="isOrganizationFoundOnChain !== true"
-            class="flex items-start gap-3 px-4 py-4 bg-gray-50 border border-gray-200 rounded-lg"
-        >
-            <i class="pi pi-lock text-gray-500 mt-0.5 text-lg"></i>
-            <div>
-                <p class="text-sm font-medium text-gray-700">Feature locked</p>
-                <p class="text-sm text-gray-500 mt-1">
-                    Certificate management is only available once the organization has been published on the Carmentis network.
+    <div v-else class="space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="min-w-0">
+                <h2 class="text-lg font-semibold text-fg">Key attestation (JWT)</h2>
+                <p class="max-w-2xl text-sm text-fg-muted">
+                    Authenticate your organization's public key using an external key, certified by an x509
+                    certificate chain. A JWT certifying your organization's public key, signed by the external key,
+                    is then published on-chain.
                 </p>
             </div>
+            <Button label="Attach certificate" icon="pi pi-plus" @click="showOpenDialog = true" />
         </div>
 
-        <!-- Anchored Certificates Section -->
-        <div v-if="isOrganizationFoundOnChain === true" class="space-y-4">
-            <div class="flex justify-between items-center">
-                <h3 class="text-lg font-semibold text-gray-900">
-                    Existing JWT Certificates
-                </h3>
-                <Button
-                    label="Attach New Certificate"
-                    icon="pi pi-plus"
-                    size="small"
-                    @click="showOpenDialog = true"
-                />
-            </div>
-
-            <!-- Certificates Table -->
-            <DataTable
-                :value="certificateSections ?? []"
-                :loading="isLoadingCertificateSections"
-                size="small"
-                striped-rows
-                :rows="5"
-                paginator
-                :rows-per-page-options="[5, 10]"
-                @row-click="(e) => { selectedCertificateSection = e.data; showCertificateSectionDialog = true; }"
-                row-hover
-                class="cursor-pointer"
-            >
-                <template #empty>
-                    <div class="text-center py-4 text-gray-500 text-sm">
-                        No certificates anchored yet. Click "Attach New Certificate" to get started.
-                    </div>
-                </template>
-                <Column field="height" header="Height" style="width: 5rem" />
-                <Column field="hash" header="Microblock Hash">
-                    <template #body="{ data: row }">
-                        <code class="text-xs bg-gray-100 px-1 py-0.5 rounded truncate block max-w-xs">
-                            {{ row.hash }}
-                        </code>
-                    </template>
-                </Column>
-                <Column header="Action" style="width: 6rem">
-                    <template #body="{ data: row }">
-                        <Button
-                            icon="pi pi-eye"
-                            label="View"
-                            size="small"
-                            text
-                            @click.stop="() => {
-                                selectedCertificateSection = row;
-                                showCertificateSectionDialog = true
-                            }"
-                        />
-                    </template>
-                </Column>
-            </DataTable>
-        </div>
-
-        <!-- Attach button for when organization is not on-chain -->
-        <Button
-            v-if="isOrganizationFoundOnChain !== true"
-            label="Attach x509 Certificates"
-            icon="pi pi-lock"
-            @click="showOpenDialog = true"
-            disabled
-        />
+        <OrganizationSectionsList
+            :rows="certificateSections"
+            :is-loading="isLoadingCertificateSections"
+            empty-title="No attestation published yet"
+            empty-description="Attach a certificate to publish your first key attestation."
+            detail-title="Key attestation"
+        >
+            <Button label="Attach certificate" icon="pi pi-plus" @click="showOpenDialog = true" />
+        </OrganizationSectionsList>
     </div>
 
-    <Dialog
+    <ResponsiveDialog
         v-model:visible="showOpenDialog"
-        header="Attach x509 Certificates"
-        modal
-        class="w-full max-w-4xl"
+        header="Attach x509 certificates"
+        size="lg"
+        :closable="!isAnchoringCertificate && !isSigningWithStore"
     >
-        <div class="flex justify-center">
-            <Stepper value="1" class="w-full">
-                <StepList>
-                    <Step value="1">Add x509 Certificates</Step>
-                    <Step value="2">JWT signature</Step>
-                    <Step value="3">Approve</Step>
-                </StepList>
-                <StepPanels>
-                    <!-- Step 1: Add x509 Certificates -->
-                    <StepPanel v-slot="{ activateCallback }" value="1">
-                        <div class="space-y-6 py-6">
-                            <!-- Certificate Input -->
-                            <div>
-                                <!-- Store certificate selection (if available) -->
-                                <div v-if="canUseCertificateStore" class="space-y-3">
-                                    <div class="flex justify-between items-center">
-                                        <label class="block text-sm font-medium text-gray-900">
-                                            Select a certificate from the OS store
-                                        </label>
-                                        <Button
-                                            icon="pi pi-refresh"
-                                            text
-                                            size="small"
-                                            :loading="isLoadingStoreCertificates"
-                                            @click="refreshStoreCertificates"
-                                        />
-                                    </div>
-
-                                    <DataTable
-                                        :value="storeCertificates"
-                                        :loading="isLoadingStoreCertificates"
-                                        size="small"
-                                        striped-rows
-                                        selection-mode="single"
-                                        @row-select="(e: any) => selectStoreCertificate(e.data)"
-                                    >
-                                        <template #empty>
-                                            <div class="text-center py-4 text-gray-500 text-sm">
-                                                No certificates found in the certificate store.
-                                            </div>
-                                        </template>
-                                        <Column header="Display name">
-                                            <template #body="{ data }">
-                                                {{ data.friendly_name ?? data.subject }}
-                                            </template>
-                                        </Column>
-                                        <Column field="subject" header="Issued to" />
-                                        <Column field="issuer" header="Issued by" />
-                                        <Column header="">
-                                            <template #body="{ data }">
-                                                <Tag
-                                                    v-if="selectedStoreCertThumbprint === data.thumbprint"
-                                                    value="Selected"
-                                                    severity="success"
-                                                    icon="pi pi-check"
-                                                />
-                                            </template>
-                                        </Column>
-                                    </DataTable>
-
-                                    <Button
-                                        v-if="!showManualEntry"
-                                        label="Add a certificate manually"
-                                        icon="pi pi-plus"
-                                        text
-                                        size="small"
-                                        @click="showManualEntry = true"
-                                    />
-                                </div>
-
-                                <!-- Manual PEM entry -->
-                                <div v-if="showManualEntry" class="mt-4">
-                                    <label class="block text-sm font-medium text-gray-900 mb-2">
-                                        Add a certificate in PEM format
-                                    </label>
-                                    <textarea
-                                        v-model="certificateInput"
-                                        placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----"
-                                        class="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                    <Button
-                                        label="Add Certificate"
-                                        icon="pi pi-plus"
-                                        :loading="isLoadingCert"
-                                        class="mt-3"
-                                        @click="addCertificate"
-                                    />
-                                </div>
-                            </div>
-
-                            <!-- Chain Validation Status -->
-                            <div v-if="certificatesList.length > 0">
-                                <div class="flex items-center gap-2 mb-4">
-                                    <span class="text-sm font-medium text-gray-700">Chain Validation:</span>
-                                    <Tag
-                                        v-if="isValidChain?.status === 'valid'"
-                                        value="Valid chain"
-                                        severity="success"
-                                        icon="pi pi-check"
-                                    />
-                                    <Tag
-                                        v-else-if="isValidChain?.status === 'incomplete'"
-                                        value="Chain incomplete (root not provided)"
-                                        severity="warn"
-                                        icon="pi pi-exclamation-triangle"
-                                    />
-                                    <Tag v-else-if="isValidChain?.status === 'invalid'"
-                                        :value="isValidChain.reason"
-                                        severity="danger"
-                                        icon="pi pi-times"
-                                    />
-                                    <Tag
-                                        v-else
-                                        value="Checking..."
-                                        severity="info"
-                                        icon="pi pi-spin pi-spinner"
-                                    />
-
-                                    <Tag
-                                        v-if="!!publicKeyJwk && formattedPublicKeyJwk !== null"
-                                        value="Public key found"
-                                        severity="success"
-                                        icon="pi pi-check"
-                                        v-tooltip="formattedPublicKeyJwk"
-                                    />
-                                    <Tag
-                                        v-else
-                                        value="No public key found"
-                                        severity="danger"
-                                        icon="pi pi-times"
-                                    />
-                                </div>
-
-                                <!-- Certificates Table -->
-                                <DataTable
-                                    :value="certificatesList"
-                                    class="w-full"
-                                    striped-rows
-                                >
-                                    <Column field="cn" header="Common Name (CN)" />
-                                    <Column field="keyType" header="Key Type" />
-                                    <Column header="Actions" style="width: 10rem">
-                                        <template #body="{ index }">
-                                            <Button
-                                                icon="pi pi-trash"
-                                                severity="danger"
-                                                text
-                                                rounded
-                                                @click="removeCertificate(index)"
-                                            />
-                                        </template>
-                                    </Column>
-                                </DataTable>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end pt-6 gap-2">
-                            <Button
-                                label="Next"
-                                :disabled="certificatesList.length === 0 || isValidChain?.status !== 'valid'"
-                                @click="activateCallback('2')"
-                            />
-                        </div>
-                    </StepPanel>
-
-                    <!-- Step 2: JWT signature -->
-                    <StepPanel v-slot="{ activateCallback }" value="2">
-                        <div class="space-y-6 py-6">
-                            <!-- Unsigned JWT Display (kept visible for both paths, for transparency) -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-900 mb-2">
-                                    Unsigned JWT
-                                </label>
-                                <div class="bg-gray-50 border border-gray-300 rounded-lg p-4">
-                                    <code class="text-xs text-gray-700 break-all font-mono block">
-                                        {{ unsignedJwt || 'Generating...' }}
-                                    </code>
-                                </div>
-                                <Button
-                                    v-if="!selectedStoreCertThumbprint && unsignedJwt"
-                                    label="Copy to Clipboard"
-                                    icon="pi pi-copy"
-                                    text
-                                    @click="clipboard.copyToClipboard(unsignedJwt, 'Unsigned JWT')"
-                                    class="mt-2"
-                                />
-                            </div>
-
-                            <!-- In-app signing (store-backed certificate) -->
-                            <div v-if="selectedStoreCertThumbprint">
-                                <Button
-                                    label="Sign with certificate"
-                                    icon="pi pi-verified"
-                                    :loading="isSigningWithStore"
-                                    @click="signWithStoreCertificate"
-                                />
-                                <p class="text-xs text-gray-500 mt-2">
-                                    You may be prompted for your certificate's PIN.
-                                </p>
-                            </div>
-
-                            <!-- Manual signature paste (external tool) -->
-                            <div v-else>
-                                <label class="block text-sm font-medium text-gray-900 mb-2">
-                                    Signed JWT (paste the signed version here)
-                                </label>
-                                <textarea
-                                    v-model="signedJwtInput"
-                                    placeholder="eyJhbGciOiJFZERTQSJ9.eyJpc3MiOiJkaWQ6andrOi..."
-                                    class="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                />
-                                <Button
-                                    label="Verify Signature"
-                                    icon="pi pi-check"
-                                    :loading="isVerifyingSignature"
-                                    class="mt-3"
-                                    @click="verifySignature"
-                                />
-                            </div>
-
-                            <!-- Verification Result (shared by both paths) -->
-                            <div v-if="signatureVerificationResult">
-                                <div
-                                    v-if="signatureVerificationResult.valid"
-                                    class="flex items-start gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg"
-                                >
-                                    <i class="pi pi-check-circle text-green-600 mt-0.5"></i>
-                                    <div class="text-sm text-green-800">
-                                        <span class="font-semibold block">Signature is valid</span>
-                                        <span class="text-xs">The JWT signature has been verified against the certificate chain</span>
-                                    </div>
-                                </div>
-                                <div
-                                    v-else
-                                    class="flex items-start gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-lg"
-                                >
-                                    <i class="pi pi-times-circle text-red-600 mt-0.5"></i>
-                                    <div class="text-sm text-red-800">
-                                        <span class="font-semibold block">Signature is invalid</span>
-                                        <span class="text-xs">{{ signatureVerificationResult.error }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex pt-6 justify-between">
-                            <Button severity="secondary" @click="activateCallback('1')">Back</Button>
-                            <Button
-                                @click="activateCallback('3')"
-                                :disabled="!signatureVerificationResult?.valid"
-                            >
-                                Next
-                            </Button>
-                        </div>
-                    </StepPanel>
-
-                    <!-- Step 3: Approve/Anchor -->
-                    <StepPanel v-slot="{ activateCallback }" value="3">
-                        <div class="space-y-6 py-6">
-                            <!-- Certificate Chain Summary -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-900 mb-2">
-                                    Certificate Chain Summary
-                                </label>
-                                <div class="bg-gray-50 border border-gray-300 rounded-lg p-4 space-y-2">
-                                    <div class="text-sm">
-                                        <span class="font-medium text-gray-700">Certificates:</span>
-                                        <span class="text-gray-900 ml-2">{{ certificatesList.length }} certificate(s)</span>
-                                    </div>
-                                    <div class="space-y-1">
-                                        <div v-for="(cert, index) in certificatesList" :key="index" class="text-sm text-gray-600">
-                                            <span class="font-medium">{{ index + 1 }}.</span> {{ cert.cn }} ({{ cert.keyType }})
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Signed JWT Payload -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-900 mb-2">
-                                    Signed JWT Payload
-                                </label>
-                                <div class="bg-gray-50 border border-gray-300 rounded-lg p-4 max-h-64 overflow-auto">
-                                    <pre class="text-xs font-mono text-gray-700">{{ JSON.stringify(signedJwtPayload, null, 2) }}</pre>
-                                </div>
-                            </div>
-
-                            <!-- Success Message -->
-                            <div
-                                v-if="hasAnchoredCertificate"
-                                class="flex items-start gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg"
-                            >
-                                <i class="pi pi-check-circle text-green-600 mt-0.5"></i>
-                                <div class="text-sm text-green-800">
-                                    <span class="font-semibold block">Certificate anchored successfully</span>
-                                    <span class="text-xs">The certificate chain has been published on-chain as a custom section</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex pt-6 justify-between">
-                            <Button
-                                severity="secondary"
-                                @click="activateCallback('2')"
-                                :disabled="isAnchoringCertificate"
-                            >
-                                Back
-                            </Button>
-                            <Button
-                                v-if="!hasAnchoredCertificate"
-                                label="Anchor Certificate"
-                                icon="pi pi-cloud-upload"
-                                :loading="isAnchoringCertificate"
-                                @click="anchorCertificate"
-                            />
-                            <Button
-                                v-else
-                                label="Done"
-                                icon="pi pi-check"
-                                severity="success"
-                                @click="showOpenDialog = false"
-                            />
-                        </div>
-                    </StepPanel>
-                </StepPanels>
-            </Stepper>
-        </div>
-    </Dialog>
-
-    <!-- Certificate Section Detail Dialog -->
-    <Dialog
-        v-model:visible="showCertificateSectionDialog"
-        header="Certificate Details"
-        modal
-        class="w-full max-w-2xl"
-    >
-        <div v-if="selectedCertificateSection" class="space-y-4">
-            <div class="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                    <span class="font-medium text-gray-600">Height</span>
-                    <p class="mt-1 text-gray-900">{{ selectedCertificateSection.height }}</p>
-                </div>
-                <div>
-                    <span class="font-medium text-gray-600">Microblock Hash</span>
-                    <code class="mt-1 block text-xs bg-gray-100 px-2 py-1 rounded break-all">
-                        {{ selectedCertificateSection.hash }}
-                    </code>
-                </div>
-            </div>
-            <div>
-                <span class="font-medium text-gray-600 text-sm">Certificate Data</span>
-                <pre class="mt-1 bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm overflow-auto max-h-96">{{ JSON.stringify(selectedCertificateSection.data, null, 2) }}</pre>
+        <!-- Progress -->
+        <div class="mb-5">
+            <p class="text-sm font-medium text-fg">Step {{ step }} of {{ STEPS.length }} · {{ STEPS[step - 1] }}</p>
+            <div class="mt-2 flex gap-1" aria-hidden="true">
+                <span
+                    v-for="n in STEPS.length"
+                    :key="n"
+                    class="h-1 flex-1 rounded-full"
+                    :class="n <= step ? 'bg-accent' : 'bg-surface-muted'"
+                />
             </div>
         </div>
+
+        <!-- Step 1: Add x509 Certificates -->
+        <div v-if="step === 1" class="space-y-6">
+            <!-- Store certificate selection (if available) -->
+            <section v-if="canUseCertificateStore" class="space-y-3">
+                <div class="flex items-center justify-between gap-2">
+                    <h3 class="text-sm font-medium text-fg">Select a certificate from the OS store</h3>
+                    <Button
+                        icon="pi pi-refresh"
+                        text
+                        severity="secondary"
+                        aria-label="Refresh the certificates of the store"
+                        :loading="isLoadingStoreCertificates"
+                        @click="refreshStoreCertificates"
+                    />
+                </div>
+
+                <SkeletonBlock v-if="isLoadingStoreCertificates" :lines="2" height-class="h-14" />
+                <p v-else-if="storeCertificates.length === 0" class="text-sm text-fg-muted">
+                    No certificates found in the certificate store.
+                </p>
+                <ul v-else role="radiogroup" aria-label="Certificates of the OS store" class="space-y-2">
+                    <li v-for="cert in storeCertificates" :key="cert.thumbprint">
+                        <button
+                            type="button"
+                            role="radio"
+                            :aria-checked="selectedStoreCertThumbprint === cert.thumbprint"
+                            :disabled="isLoadingStoreChain"
+                            class="flex w-full items-start gap-3 rounded-control border p-3 text-left transition-colors disabled:opacity-60"
+                            :class="selectedStoreCertThumbprint === cert.thumbprint
+                                ? 'border-accent bg-accent-soft'
+                                : 'border-line hover:bg-surface-muted'"
+                            @click="selectStoreCertificate(cert)"
+                        >
+                            <span class="min-w-0 flex-1">
+                                <span class="block truncate text-sm font-medium text-fg">{{ cert.friendly_name ?? cert.subject }}</span>
+                                <span class="block truncate text-xs text-fg-muted">Issued to {{ cert.subject }}</span>
+                                <span class="block truncate text-xs text-fg-muted">Issued by {{ cert.issuer }}</span>
+                            </span>
+                            <StatusBadge v-if="selectedStoreCertThumbprint === cert.thumbprint" tone="success" label="Selected" />
+                        </button>
+                    </li>
+                </ul>
+
+                <Button
+                    v-if="!showManualEntry"
+                    label="Add a certificate manually"
+                    icon="pi pi-plus"
+                    text
+                    size="small"
+                    @click="showManualEntry = true"
+                />
+            </section>
+
+            <!-- Manual PEM entry -->
+            <section v-if="showManualEntry" class="space-y-2">
+                <label for="jwt-pem-input" class="block text-sm font-medium text-fg">
+                    Add a certificate in PEM format
+                </label>
+                <Textarea
+                    id="jwt-pem-input"
+                    v-model="certificateInput"
+                    placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----"
+                    rows="6"
+                    fluid
+                    spellcheck="false"
+                    autocomplete="off"
+                    class="font-mono text-sm"
+                />
+                <div class="flex justify-end">
+                    <Button
+                        label="Add certificate"
+                        icon="pi pi-plus"
+                        severity="secondary"
+                        outlined
+                        :loading="isLoadingCert"
+                        @click="addCertificate"
+                    />
+                </div>
+            </section>
+
+            <!-- Chain -->
+            <section v-if="certificatesList.length > 0" class="space-y-3">
+                <h3 class="text-sm font-semibold text-fg">Certificate chain ({{ certificatesList.length }})</h3>
+                <div class="flex flex-wrap items-center gap-2">
+                    <StatusBadge v-if="isValidChain?.status === 'valid'" tone="success" label="Valid chain" />
+                    <StatusBadge
+                        v-else-if="isValidChain?.status === 'incomplete'"
+                        tone="warning"
+                        label="Chain incomplete (root not provided)"
+                    />
+                    <StatusBadge v-else-if="isValidChain?.status === 'invalid'" tone="danger" :label="isValidChain.reason" />
+                    <StatusBadge v-else tone="neutral" label="Checking…" icon="pi-spin pi-spinner" />
+
+                    <StatusBadge
+                        v-if="!!publicKeyJwk && formattedPublicKeyJwk !== null"
+                        tone="success"
+                        label="Public key found"
+                    />
+                    <StatusBadge v-else tone="danger" label="No public key found" />
+                </div>
+
+                <ol class="space-y-2">
+                    <li
+                        v-for="(cert, index) in certificatesList"
+                        :key="index"
+                        class="flex items-center gap-3 rounded-control border border-line px-3 py-2"
+                    >
+                        <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-muted text-xs font-medium text-fg-muted">
+                            {{ index + 1 }}
+                        </span>
+                        <span class="min-w-0 flex-1">
+                            <span class="block truncate text-sm font-medium text-fg">{{ cert.cn }}</span>
+                            <span class="block text-xs text-fg-muted">Key type: {{ cert.keyType }}</span>
+                        </span>
+                        <Button
+                            icon="pi pi-trash"
+                            severity="danger"
+                            text
+                            rounded
+                            :aria-label="`Remove certificate ${cert.cn}`"
+                            @click="removeCertificate(index)"
+                        />
+                    </li>
+                </ol>
+
+                <JsonBlock v-if="formattedPublicKeyJwk" title="Public key (JWK)" :value="formattedPublicKeyJwk" />
+            </section>
+        </div>
+
+        <!-- Step 2: JWT signature -->
+        <div v-else-if="step === 2" class="space-y-6">
+            <!-- Unsigned JWT Display (kept visible for both paths, for transparency) -->
+            <section>
+                <h3 class="mb-1 text-sm font-medium text-fg">Unsigned JWT</h3>
+                <CopyableValue v-if="unsignedJwt" :value="unsignedJwt" label="unsigned JWT" :head="24" :tail="12" />
+                <p v-else class="text-sm text-fg-muted">Generating…</p>
+            </section>
+
+            <!-- In-app signing (store-backed certificate) -->
+            <section v-if="selectedStoreCertThumbprint">
+                <Button
+                    label="Sign with certificate"
+                    icon="pi pi-verified"
+                    :loading="isSigningWithStore"
+                    @click="signWithStoreCertificate"
+                />
+                <p class="mt-2 text-xs text-fg-muted">You may be prompted for your certificate's PIN.</p>
+            </section>
+
+            <!-- Manual signature paste (external tool) -->
+            <section v-else class="space-y-2">
+                <label for="jwt-signed-input" class="block text-sm font-medium text-fg">Signed JWT</label>
+                <p class="text-sm text-fg-muted">Sign the unsigned JWT with your external key, then paste the result here.</p>
+                <Textarea
+                    id="jwt-signed-input"
+                    v-model="signedJwtInput"
+                    placeholder="eyJhbGciOiJFZERTQSJ9.eyJpc3MiOiJkaWQ6andrOi..."
+                    rows="4"
+                    fluid
+                    spellcheck="false"
+                    autocomplete="off"
+                    class="font-mono text-sm"
+                />
+                <Button
+                    label="Verify signature"
+                    icon="pi pi-check"
+                    severity="secondary"
+                    outlined
+                    :loading="isVerifyingSignature"
+                    @click="verifySignature"
+                />
+            </section>
+
+            <!-- Verification Result (shared by both paths) -->
+            <div
+                v-if="signatureVerificationResult"
+                role="status"
+                class="flex items-start gap-2 rounded-control px-4 py-3 text-sm"
+                :class="signatureVerificationResult.valid ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger'"
+            >
+                <i
+                    class="pi mt-0.5"
+                    :class="signatureVerificationResult.valid ? 'pi-check-circle' : 'pi-times-circle'"
+                    aria-hidden="true"
+                />
+                <div>
+                    <span class="block font-semibold">
+                        {{ signatureVerificationResult.valid ? 'Signature is valid' : 'Signature is invalid' }}
+                    </span>
+                    <span class="block break-words text-xs">
+                        {{ signatureVerificationResult.valid
+                            ? 'The JWT signature has been verified against the certificate chain.'
+                            : signatureVerificationResult.error }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Approve/Anchor -->
+        <div v-else class="space-y-6">
+            <section>
+                <h3 class="mb-2 text-sm font-medium text-fg">Certificate chain summary</h3>
+                <ol class="space-y-1 rounded-control border border-line bg-surface-muted p-3 text-sm">
+                    <li v-for="(cert, index) in certificatesList" :key="index" class="text-fg">
+                        <span class="font-medium">{{ index + 1 }}.</span> {{ cert.cn }}
+                        <span class="text-fg-muted">({{ cert.keyType }})</span>
+                    </li>
+                </ol>
+            </section>
+
+            <JsonBlock title="Signed JWT payload" :value="signedJwtPayload" default-open />
+
+            <div
+                v-if="hasAnchoredCertificate"
+                role="status"
+                class="flex items-start gap-2 rounded-control bg-success-soft px-4 py-3 text-sm text-success"
+            >
+                <i class="pi pi-check-circle mt-0.5" aria-hidden="true" />
+                <div>
+                    <span class="block font-semibold">Certificate anchored successfully</span>
+                    <span class="block text-xs">The certificate chain has been published on-chain as a custom section.</span>
+                </div>
+            </div>
+        </div>
+
         <template #footer>
-            <div class="flex justify-end">
-                <Button label="Close" @click="showCertificateSectionDialog = false" severity="secondary" />
-            </div>
+            <template v-if="step === 1">
+                <Button
+                    label="Next"
+                    :disabled="certificatesList.length === 0 || isValidChain?.status !== 'valid'"
+                    @click="step = 2"
+                />
+            </template>
+            <template v-else-if="step === 2">
+                <Button label="Back" severity="secondary" outlined @click="step = 1" />
+                <Button label="Next" :disabled="!signatureVerificationResult?.valid" @click="step = 3" />
+            </template>
+            <template v-else>
+                <Button label="Back" severity="secondary" outlined :disabled="isAnchoringCertificate" @click="step = 2" />
+                <Button
+                    v-if="!hasAnchoredCertificate"
+                    label="Anchor certificate"
+                    icon="pi pi-cloud-upload"
+                    :loading="isAnchoringCertificate"
+                    @click="anchorCertificate"
+                />
+                <Button v-else label="Done" icon="pi pi-check" severity="success" @click="showOpenDialog = false" />
+            </template>
         </template>
-    </Dialog>
+    </ResponsiveDialog>
 </template>

@@ -2,18 +2,8 @@
 <script setup lang="ts">
 import "reflect-metadata";
 import {computed, ref, watch} from "vue";
-import Dialog from "primevue/dialog";
 import Button from "primevue/button";
-import Stepper from 'primevue/stepper';
-import StepList from 'primevue/steplist';
-import StepPanels from 'primevue/steppanels';
-import Step from 'primevue/step';
-import StepPanel from 'primevue/steppanel';
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
-import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
-import Message from 'primevue/message';
 import {computedAsync} from "@vueuse/core";
 import {useToast} from "primevue/usetoast";
 import {CertificatesChain} from "../../../../utils/CertificatesChain.ts";
@@ -22,7 +12,6 @@ import {WalletUtils} from "../../../../utils/WalletUtils.ts";
 import {UnsecuredJWT, jwtVerify, decodeJwt} from "jose";
 import {JwkSignatureKeyExporter} from "../../../../utils/jwk-signature-key-exporter.ts";
 import {importJWK} from "jose";
-import {useClipboard} from "../../../../composables/useClipboard.ts";
 import {useRoute} from "vue-router";
 import { useOnChainActions } from "../../../../composables/useOnChainActions.ts";
 import {storeToRefs} from "pinia";
@@ -41,11 +30,14 @@ import {
 } from "../../../../utils/signing.ts";
 import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
 import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
-import JsonViewer from "../../../../components/rpcSession/JsonViewer.vue";
+import Message from 'primevue/message';
+import OrganizationSectionsList from "./OrganizationSectionsList.vue";
+import ResponsiveDialog from "../../../../components/ui/ResponsiveDialog.vue";
+import StatusBadge from "../../../../components/ui/StatusBadge.vue";
+import EmptyState from "../../../../components/ui/EmptyState.vue";
 
-// define toast, clipboard and route
+// define toast and route
 const logger = DeskLogger.getLogger().getChild("organization")
-const clipboard = useClipboard();
 const toast = useToast();
 const route = useRoute();
 const onChainStore = useOnChainActions();
@@ -118,6 +110,9 @@ const isLoadingCert = ref(false);
 
 // dialog opening state
 const showOpenDialog = ref(false);
+watch(showOpenDialog, (open) => {
+    if (!open) resetDialog();
+});
 
 
 const addCertificate = async () => {
@@ -211,9 +206,6 @@ interface CertificateSectionRow {
     data: Record<string, unknown>;
 }
 
-const selectedCertificateSection = ref<CertificateSectionRow | null>(null);
-const showCertificateSectionDialog = ref(false);
-
 const {
     data: certificateSections,
     isLoading: isLoadingCertificateSections,
@@ -250,117 +242,51 @@ const {
 </script>
 
 <template>
-    <div class="space-y-6">
-        <!-- Header -->
-        <div>
-            <h2 class="text-lg font-semibold text-gray-900 mb-2">Publish X509 Certificate</h2>
-            <p class="text-sm text-gray-600 mb-4">
-                Publish an X509 certificate to cryptographically prove your organization's identity on the Carmentis network.
-            </p>
-        </div>
+    <EmptyState
+        v-if="isOrganizationFoundOnChain !== true"
+        framed
+        icon="pi-lock"
+        title="Publish your organization first"
+        description="Certificate management is only available once the organization has been published on the Carmentis network."
+    />
 
-        <!-- Lock message if organization not on-chain -->
-        <div
-            v-if="isOrganizationFoundOnChain !== true"
-            class="flex items-start gap-3 px-4 py-4 bg-gray-50 border border-gray-200 rounded-lg"
-        >
-            <i class="pi pi-lock text-gray-500 mt-0.5 text-lg"></i>
+    <div v-else class="space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-                <p class="text-sm font-medium text-gray-700">Feature locked</p>
-                <p class="text-sm text-gray-500 mt-1">
-                    Certificate management is only available once the organization has been published on the Carmentis network.
+                <h2 class="text-lg font-semibold text-fg">X509 certificates</h2>
+                <p class="text-sm text-fg-muted">
+                    Publish an X509 certificate chain to prove your organization's identity on the Carmentis network.
                 </p>
             </div>
+            <Button label="Publish certificate" icon="pi pi-plus" @click="showOpenDialog = true" />
         </div>
 
-        <!-- Anchored Certificates Section -->
-        <div v-if="isOrganizationFoundOnChain === true" class="space-y-4">
-            <div class="flex justify-between items-center">
-                <p class="text-gray-900">
-                    Below are listed anchored x509 certificates.
-                </p>
-            </div>
-
-            <!-- Certificates Table -->
-            <DataTable
-                :value="certificateSections ?? []"
-                :loading="isLoadingCertificateSections"
-                size="small"
-                striped-rows
-                :rows="5"
-                paginator
-                :rows-per-page-options="[5, 10]"
-                @row-click="(e) => { selectedCertificateSection = e.data; showCertificateSectionDialog = true; }"
-                row-hover
-                class="cursor-pointer"
-            >
-                <template #empty>
-                    <div class="text-center py-4 text-gray-500 text-sm">
-                        No certificates anchored yet. Click "Publish New Certificate" to get started.
-                    </div>
-                </template>
-                <Column field="height" header="Height" style="width: 5rem" />
-                <Column field="hash" header="Microblock Hash">
-                    <template #body="{ data: row }">
-                        <code class="text-xs bg-gray-100 px-1 py-0.5 rounded truncate block max-w-xs">
-                            {{ row.hash }}
-                        </code>
-                    </template>
-                </Column>
-                <Column header="Action" style="width: 6rem">
-                    <template #body="{ data: row }">
-                        <Button
-                            icon="pi pi-eye"
-                            label="View"
-                            size="small"
-                            text
-                            @click.stop="() => {
-                                selectedCertificateSection = row;
-                                showCertificateSectionDialog = true
-                            }"
-                        />
-                    </template>
-                </Column>
-            </DataTable>
-
-            <div class="flex justify-end">
-                <Button
-                    label="Publish New Certificate"
-                    icon="pi pi-plus"
-                    size="small"
-                    @click="showOpenDialog = true"
-                />
-            </div>
-        </div>
-
-        <!-- Attach button for when organization is not on-chain -->
-        <Button
-            v-if="isOrganizationFoundOnChain !== true"
-            label="Attach x509 Certificates"
-            icon="pi pi-lock"
-            @click="showOpenDialog = true"
-            disabled
-        />
+        <OrganizationSectionsList
+            :rows="certificateSections"
+            :is-loading="isLoadingCertificateSections"
+            empty-title="No certificate published yet"
+            empty-description="Publish a certificate chain to prove your organization's identity."
+            detail-title="Certificate"
+        >
+            <Button label="Publish certificate" icon="pi pi-plus" @click="showOpenDialog = true" />
+        </OrganizationSectionsList>
     </div>
 
-    <Dialog
+    <ResponsiveDialog
         v-model:visible="showOpenDialog"
-        header="Publish X509 Certificate"
-        modal
+        header="Publish X509 certificate"
+        size="lg"
         :closable="!isAnchoringCertificate"
-        :close-on-escape="!isAnchoringCertificate"
-        class="w-full max-w-3xl"
-        @hide="resetDialog"
     >
         <div class="space-y-6">
-            <p class="text-sm text-gray-600">
+            <p class="text-sm text-fg-muted">
                 Add your certificate chain, leaf certificate first. Once the chain is valid, it is anchored
                 on-chain in your organization's virtual blockchain.
             </p>
 
             <!-- Certificate Input -->
             <section v-if="showManualEntry" class="space-y-2">
-                <label for="x509-pem-input" class="block text-sm font-medium text-gray-900">
+                <label for="x509-pem-input" class="block text-sm font-medium text-fg">
                     Certificate (PEM format)
                 </label>
                 <Textarea
@@ -371,14 +297,16 @@ const {
                     rows="6"
                     fluid
                     auto-resize
+                    spellcheck="false"
+                    autocomplete="off"
                     class="font-mono text-sm"
                 />
                 <div class="flex justify-end">
                     <Button
                         label="Add to chain"
                         icon="pi pi-plus"
-                        size="small"
                         severity="secondary"
+                        outlined
                         :loading="isLoadingCert"
                         :disabled="!certificateInput.trim() || isAnchoringCertificate"
                         @click="addCertificate"
@@ -387,81 +315,61 @@ const {
             </section>
 
             <!-- Empty state -->
-            <div
+            <EmptyState
                 v-if="certificatesList.length === 0"
-                class="flex flex-col items-center gap-2 py-8 border border-dashed border-gray-300 rounded-lg text-gray-500"
-            >
-                <i class="pi pi-file text-3xl"></i>
-                <p class="text-sm">No certificate in the chain yet.</p>
-            </div>
+                icon="pi-file"
+                title="No certificate in the chain yet"
+                description="Paste a certificate above to start building the chain."
+            />
 
             <!-- Chain -->
             <section v-else class="space-y-3">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-gray-900">
-                        Certificate chain ({{ certificatesList.length }})
-                    </h3>
-                    <div class="flex items-center gap-2">
-                        <span class="text-sm font-medium text-gray-700">Chain Validation:</span>
-                        <Tag
-                            v-if="isValidChain?.status === 'valid'"
-                            value="Valid chain"
-                            severity="success"
-                            icon="pi pi-check"
-                        />
-                        <Tag
-                            v-else-if="isValidChain?.status === 'incomplete'"
-                            value="Chain incomplete (root not provided)"
-                            severity="warn"
-                            icon="pi pi-exclamation-triangle"
-                        />
-                        <Tag v-else-if="isValidChain?.status === 'invalid'"
-                             :value="isValidChain.reason"
-                             severity="danger"
-                             icon="pi pi-times"
-                        />
-                        <Tag
-                            v-else
-                            value="Checking..."
-                            severity="info"
-                            icon="pi pi-spin pi-spinner"
-                        />
-                    </div>
-
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h3 class="text-sm font-semibold text-fg">Certificate chain ({{ certificatesList.length }})</h3>
+                    <StatusBadge
+                        v-if="isValidChain?.status === 'valid'"
+                        tone="success"
+                        label="Valid chain"
+                    />
+                    <StatusBadge
+                        v-else-if="isValidChain?.status === 'incomplete'"
+                        tone="warning"
+                        label="Chain incomplete (root not provided)"
+                    />
+                    <StatusBadge
+                        v-else-if="isValidChain?.status === 'invalid'"
+                        tone="danger"
+                        :label="isValidChain.reason"
+                    />
+                    <StatusBadge v-else tone="neutral" label="Checking…" icon="pi-spin pi-spinner" />
                 </div>
 
-                <DataTable
-                    :value="certificatesList"
-                    class="w-full"
-                    size="small"
-                    striped-rows
-                >
-                    <Column header="#" style="width: 3rem">
-                        <template #body="{ index }">{{ index + 1 }}</template>
-                    </Column>
-                    <Column field="cn" header="Common Name (CN)" />
-                    <Column field="keyType" header="Key Type" />
-                    <Column header="" style="width: 4rem">
-                        <template #body="{ index }">
-                            <Button
-                                icon="pi pi-trash"
-                                severity="danger"
-                                text
-                                rounded
-                                size="small"
-                                aria-label="Remove certificate"
-                                :disabled="isAnchoringCertificate"
-                                @click="removeCertificate(index)"
-                            />
-                        </template>
-                    </Column>
-                </DataTable>
+                <ol class="space-y-2">
+                    <li
+                        v-for="(cert, index) in certificatesList"
+                        :key="index"
+                        class="flex items-center gap-3 rounded-control border border-line px-3 py-2"
+                    >
+                        <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-muted text-xs font-medium text-fg-muted">
+                            {{ index + 1 }}
+                        </span>
+                        <span class="min-w-0 flex-1">
+                            <span class="block truncate text-sm font-medium text-fg">{{ cert.cn }}</span>
+                            <span class="block text-xs text-fg-muted">Key type: {{ cert.keyType }}</span>
+                        </span>
+                        <Button
+                            icon="pi pi-trash"
+                            severity="danger"
+                            text
+                            rounded
+                            :aria-label="`Remove certificate ${cert.cn}`"
+                            :disabled="isAnchoringCertificate"
+                            @click="removeCertificate(index)"
+                        />
+                    </li>
+                </ol>
 
-                <Message
-                    v-if="isValidChain?.status === 'incomplete'"
-                    severity="warn"
-                    size="small"
-                >
+                <Message v-if="isValidChain?.status === 'incomplete'" severity="warn" size="small">
                     Publishing requires a complete chain. Add the missing issuer certificate(s).
                 </Message>
             </section>
@@ -472,54 +380,20 @@ const {
         </div>
 
         <template #footer>
-            <div class="flex justify-end gap-2">
-                <Button
-                    label="Cancel"
-                    severity="secondary"
-                    text
-                    :disabled="isAnchoringCertificate"
-                    @click="showOpenDialog = false"
-                />
-                <Button
-                    :label="isAnchoringCertificate ? 'Publishing…' : 'Publish'"
-                    icon="pi pi-upload"
-                    :loading="isAnchoringCertificate"
-                    :disabled="!canPublish"
-                    @click="anchorCertificate"
-                />
-            </div>
+            <Button
+                label="Cancel"
+                severity="secondary"
+                outlined
+                :disabled="isAnchoringCertificate"
+                @click="showOpenDialog = false"
+            />
+            <Button
+                :label="isAnchoringCertificate ? 'Publishing…' : 'Publish'"
+                icon="pi pi-upload"
+                :loading="isAnchoringCertificate"
+                :disabled="!canPublish"
+                @click="anchorCertificate"
+            />
         </template>
-    </Dialog>
-
-    <!-- Certificate Section Detail Dialog -->
-    <Dialog
-        v-model:visible="showCertificateSectionDialog"
-        header="Certificate Details"
-        modal
-        class="w-full max-w-2xl"
-    >
-        <div v-if="selectedCertificateSection" class="space-y-4">
-            <div class="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                    <span class="font-medium text-gray-600">Height</span>
-                    <p class="mt-1 text-gray-900">{{ selectedCertificateSection.height }}</p>
-                </div>
-                <div>
-                    <span class="font-medium text-gray-600">Microblock Hash</span>
-                    <code class="mt-1 block text-xs bg-gray-100 px-2 py-1 rounded break-all">
-                        {{ selectedCertificateSection.hash }}
-                    </code>
-                </div>
-            </div>
-            <div>
-                <span class="font-medium text-gray-600 text-sm">Certificate Data</span>
-                <pre class="mt-1 bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm overflow-auto max-h-96">{{ JSON.stringify(selectedCertificateSection.data, null, 2) }}</pre>
-            </div>
-        </div>
-        <template #footer>
-            <div class="flex justify-end">
-                <Button label="Close" @click="showCertificateSectionDialog = false" severity="secondary" />
-            </div>
-        </template>
-    </Dialog>
+    </ResponsiveDialog>
 </template>

@@ -1,31 +1,22 @@
 <script setup lang="ts">
-import DataTable from "primevue/datatable";
 import Button from "primevue/button";
-import Column from "primevue/column";
 import {computed, ref} from "vue";
-import Dialog from "primevue/dialog";
 import Textarea from "primevue/textarea";
-import {useToast} from "primevue/usetoast";
-import {useRoute, useRouter} from "vue-router";
+import {useRoute} from "vue-router";
 import { useOnChainActions } from "../../../../composables/useOnChainActions.ts";
-import {useSessionStore} from "../../../../stores/sessionStore.ts";
 import {useQuery} from "@tanstack/vue-query";
-import {Hash, ProviderFactory, SectionType} from "@cmts-dev/carmentis-sdk-core";
-import {useAsyncState} from "@vueuse/core";
-import * as walletRepo from "../../../../db/repositories/walletRepository.ts";
-import * as orgRepo from "../../../../db/repositories/organizationRepository.ts";
+import {Hash, SectionType} from "@cmts-dev/carmentis-sdk-core";
 import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
 import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
+import OrganizationSectionsList from "./OrganizationSectionsList.vue";
+import ResponsiveDialog from "../../../../components/ui/ResponsiveDialog.vue";
+import EmptyState from "../../../../components/ui/EmptyState.vue";
 
-const toast = useToast();
 const route = useRoute();
-const router = useRouter();
 const onChainStore = useOnChainActions();
-const sessionStore = useSessionStore();
 const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnChain');
 const { isPublishingCustomJson } = onChainStore;
 
-const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 
 const {organization} = useCurrentOrganization();
@@ -61,15 +52,6 @@ interface CustomSectionRow {
     data: Record<string, unknown>;
 }
 
-const selectedCustomSection = ref<CustomSectionRow | null>(null);
-const showCustomSectionDialog = ref(false);
-
-
-function openCustomSectionDialog(row: CustomSectionRow) {
-    selectedCustomSection.value = row;
-    showCustomSectionDialog.value = true;
-}
-
 const {
     data: customSections,
     isLoading: isLoadingCustomSections,
@@ -98,162 +80,81 @@ const {
 
 </script>
 <template>
-    <div
+    <EmptyState
         v-if="isOrganizationFoundOnChain !== true"
-        class="flex items-start gap-3 px-4 py-4 bg-gray-50 border border-gray-200 rounded-lg"
-    >
-        <i class="pi pi-lock text-gray-500 mt-0.5 text-lg"></i>
-        <div>
-            <p class="text-sm font-medium text-gray-700">Feature locked</p>
-            <p class="text-sm text-gray-500 mt-1">
-                Custom on-chain data is only available once the organization has
-                been published on the Carmentis network.
-            </p>
-        </div>
-    </div>
+        framed
+        icon="pi-lock"
+        title="Publish your organization first"
+        description="Custom on-chain data is only available once the organization has been published on the Carmentis network."
+    />
+
     <div v-else class="space-y-4">
-        <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-gray-900">
-                Custom Sections On-Chain
-            </h3>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-semibold text-fg">Custom data</h2>
+                <p class="text-sm text-fg-muted">JSON sections published on your organization's blockchain.</p>
+            </div>
             <Button
-                label="Publish Custom Data"
+                label="Publish custom data"
                 icon="pi pi-file-edit"
-                size="small"
                 @click="showPublishCustomJsonDialog = true"
             />
         </div>
-        <DataTable
-            :value="customSections ?? []"
-            :loading="isLoadingCustomSections"
-            size="small"
-            striped-rows
-            :rows="5"
-            paginator
-            :rows-per-page-options="[5, 10]"
-            @row-click="(e) => openCustomSectionDialog(e.data)"
-            row-hover
-            class="cursor-pointer"
-        >
-            <template #empty>
-                <div class="text-center py-4 text-gray-500 text-sm">
-                    No custom sections found on-chain.
-                </div>
-            </template>
-            <Column field="height" header="Height" style="width: 5rem" />
-            <Column field="hash" header="Microblock Hash">
-                <template #body="{ data: row }">
-                    <code class="text-xs bg-gray-100 px-1 py-0.5 rounded truncate block max-w-xs">
-                        {{ row.hash }}
-                    </code>
-                </template>
-            </Column>
-            <Column header="Action" style="width: 6rem">
-                <template #body="{ data: row }">
-                    <Button
-                        icon="pi pi-eye"
-                        label="View"
-                        size="small"
-                        text
-                        @click.stop="openCustomSectionDialog(row)"
-                    />
-                </template>
-            </Column>
-        </DataTable>
+
+        <OrganizationSectionsList
+            :rows="customSections"
+            :is-loading="isLoadingCustomSections"
+            empty-title="No custom data published"
+            empty-description="Sections you publish on-chain will be listed here."
+            detail-title="Custom section"
+        />
     </div>
 
-
     <!-- Publish Custom Data Dialog -->
-    <Dialog
+    <ResponsiveDialog
         v-model:visible="showPublishCustomJsonDialog"
-        header="Publish Custom Data"
-        modal
-        class="w-full max-w-2xl"
+        header="Publish custom data"
+        size="lg"
+        :closable="!isPublishingCustomJson"
     >
-        <div
-            v-if="isOrganizationFoundOnChain !== true"
-            class="flex items-start gap-3 px-4 py-4 bg-gray-50 border border-gray-200 rounded-lg"
-        >
-            <i class="pi pi-lock text-gray-500 mt-0.5 text-lg"></i>
-            <div>
-                <p class="text-sm font-medium text-gray-700">Feature locked</p>
-                <p class="text-sm text-gray-500 mt-1">
-                    Publishing custom data is only available once the organization has been published on the
-                    Carmentis network.
-                </p>
-            </div>
-        </div>
-        <template v-else>
-            <p class="text-sm text-gray-500 mb-4">
-                Publish a custom JSON payload on-chain as a new microblock section for this organization's
-                virtual blockchain.
-            </p>
-            <div class="space-y-3">
-                        <Textarea
-                            v-model="customJsonInput"
-                            rows="10"
-                            class="w-full font-mono text-sm"
-                            :class="{ 'border-red-400': customJsonError }"
-                            placeholder='{ "key": "value" }'
-                        />
-                <div
-                    v-if="customJsonError"
-                    class="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-700"
-                >
-                    <i class="pi pi-exclamation-circle"></i>
-                    {{ customJsonError }}
-                </div>
-            </div>
-        </template>
-        <template #footer>
-            <div class="flex justify-end gap-2">
-                <Button
-                    label="Cancel"
-                    @click="showPublishCustomJsonDialog = false"
-                    severity="secondary"
-                    outlined
-                />
-                <Button
-                    v-if="isOrganizationFoundOnChain === true"
-                    label="Publish On-Chain"
-                    icon="pi pi-cloud-upload"
-                    :loading="isPublishingCustomJson"
-                    :disabled="isPublishingCustomJson || !!customJsonError"
-                    @click="publishCustomJson"
-                />
-            </div>
-        </template>
-    </Dialog>
+        <p class="mb-4 text-sm text-fg-muted">
+            Publish a custom JSON payload on-chain as a new microblock section of this organization's
+            virtual blockchain. Published data is public and cannot be removed.
+        </p>
+        <label for="custom-json" class="mb-1 block text-sm font-medium text-fg">JSON payload</label>
+        <Textarea
+            id="custom-json"
+            v-model="customJsonInput"
+            rows="10"
+            fluid
+            spellcheck="false"
+            autocomplete="off"
+            class="font-mono text-sm"
+            placeholder='{ "key": "value" }'
+            :invalid="!!customJsonError"
+            :aria-invalid="!!customJsonError"
+            aria-describedby="custom-json-error"
+        />
+        <p v-if="customJsonError" id="custom-json-error" role="alert" class="mt-2 flex items-start gap-2 text-sm text-danger">
+            <i class="pi pi-exclamation-circle mt-0.5" aria-hidden="true" />
+            {{ customJsonError }}
+        </p>
 
-    <!-- Custom Section Detail Dialog -->
-    <Dialog
-        v-model:visible="showCustomSectionDialog"
-        header="Custom Section"
-        modal
-        class="w-full max-w-2xl"
-    >
-        <div v-if="selectedCustomSection" class="space-y-4">
-            <div class="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                    <span class="font-medium text-gray-600">Height</span>
-                    <p class="mt-1 text-gray-900">{{ selectedCustomSection.height }}</p>
-                </div>
-                <div>
-                    <span class="font-medium text-gray-600">Microblock Hash</span>
-                    <code class="mt-1 block text-xs bg-gray-100 px-2 py-1 rounded break-all">
-                        {{ selectedCustomSection.hash }}
-                    </code>
-                </div>
-            </div>
-            <div>
-                <span class="font-medium text-gray-600 text-sm">Custom Data</span>
-                <pre class="mt-1 bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm overflow-auto max-h-96">{{ JSON.stringify(selectedCustomSection.data, null, 2) }}</pre>
-            </div>
-        </div>
         <template #footer>
-            <div class="flex justify-end">
-                <Button label="Close" @click="showCustomSectionDialog = false" severity="secondary" />
-            </div>
+            <Button
+                label="Cancel"
+                severity="secondary"
+                outlined
+                :disabled="isPublishingCustomJson"
+                @click="showPublishCustomJsonDialog = false"
+            />
+            <Button
+                label="Publish on-chain"
+                icon="pi pi-cloud-upload"
+                :loading="isPublishingCustomJson"
+                :disabled="isPublishingCustomJson || !!customJsonError"
+                @click="publishCustomJson"
+            />
         </template>
-    </Dialog>
+    </ResponsiveDialog>
 </template>

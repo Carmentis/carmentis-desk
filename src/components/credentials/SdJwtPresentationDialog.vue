@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { computed, inject, ref, watch } from 'vue';
-import Dialog from 'primevue/dialog';
-import Card from 'primevue/card';
 import Button from 'primevue/button';
-import Checkbox from 'primevue/checkbox';
-import Tag from 'primevue/tag';
+import ResponsiveDialog from '../ui/ResponsiveDialog.vue';
+import StatusBadge from '../ui/StatusBadge.vue';
 import { useToast } from 'primevue/usetoast';
 import { CredentialEntity } from '../../stores/storage';
 import { useAsyncState } from '@vueuse/core';
@@ -134,77 +132,63 @@ function formatValue(v: unknown): string {
 </script>
 
 <template>
-    <Dialog v-model:visible="visible" :header="`Present — ${credential?.name ?? ''}`" modal class="w-full max-w-lg">
+    <ResponsiveDialog v-model:visible="visible" :header="`Present — ${credential?.name ?? ''}`">
         <div v-if="envelope" class="space-y-5">
             <!-- Credential summary -->
             <div class="flex flex-wrap items-center gap-2">
-                <Tag value="SD-JWT" severity="info" />
-                <span v-if="vct" class="font-mono text-xs text-gray-500 truncate max-w-xs" :title="vct">
-                    {{ vct }}
-                </span>
-                <span v-if="iss" class="text-xs text-gray-400">· {{ iss }}</span>
+                <StatusBadge tone="neutral" label="SD-JWT" icon="pi-shield" />
+                <span v-if="vct" class="max-w-full truncate font-mono text-xs text-fg-muted" :title="vct">{{ vct }}</span>
+                <span v-if="iss" class="max-w-full truncate text-xs text-fg-muted" :title="iss">Issued by {{ iss }}</span>
             </div>
 
             <!-- Claims selector -->
-            <div>
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm font-semibold text-gray-700">
-                        Claims to disclose
-                        <span class="font-normal text-gray-400">
-                            ({{ selectedCount }} / {{ namedDisclosures.length }})
-                        </span>
-                    </span>
-                    <div class="flex gap-1">
-                        <Button label="All" size="small" text @click="selectAll" />
-                        <Button label="None" size="small" text severity="secondary" @click="selectNone" />
-                    </div>
+            <fieldset>
+                <legend class="mb-1 text-sm font-semibold text-fg">
+                    Claims to share
+                    <span class="font-normal text-fg-muted">({{ selectedCount }} of {{ namedDisclosures.length }})</span>
+                </legend>
+                <div class="mb-2 flex gap-1">
+                    <Button label="Select all" size="small" text @click="selectAll" />
+                    <Button label="Select none" size="small" text severity="secondary" @click="selectNone" />
                 </div>
 
-                <div v-if="namedDisclosures.length > 0" class="border rounded-lg divide-y overflow-hidden">
-                    <div
-                        v-for="disc in namedDisclosures"
-                        :key="disc._digest"
-                        class="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 cursor-pointer select-none"
-                        @click="toggleClaim(disc._digest)"
-                    >
-                        <Checkbox :model-value="isSelected(disc._digest)" :binary="true" class="pointer-events-none" />
-                        <span class="font-mono text-sm text-blue-700 shrink-0">
-                            {{ disc.key }}
-                        </span>
-                        <span class="text-gray-400 text-xs">:</span>
-                        <span
-                            class="text-sm truncate flex-1 min-w-0"
-                            :class="isSelected(disc._digest) ? 'text-gray-700' : 'text-gray-400 line-through'"
-                        >
-                            {{ formatValue(disc.value) }}
-                        </span>
-                        <Tag
-                            v-if="!isSelected(disc._digest)"
-                            value="hidden"
-                            severity="secondary"
-                            class="ml-auto shrink-0 text-xs"
-                        />
-                    </div>
-                </div>
+                <ul v-if="namedDisclosures.length > 0" class="divide-y divide-line overflow-hidden rounded-control border border-line">
+                    <li v-for="disc in namedDisclosures" :key="disc._digest">
+                        <label class="flex min-h-11 cursor-pointer items-center gap-3 px-3 py-2 hover:bg-surface-muted">
+                            <input
+                                type="checkbox"
+                                class="size-5 shrink-0 accent-[var(--accent)]"
+                                :checked="isSelected(disc._digest)"
+                                @change="toggleClaim(disc._digest)"
+                            />
+                            <span class="shrink-0 font-mono text-sm font-medium text-accent">{{ disc.key }}</span>
+                            <span
+                                class="min-w-0 flex-1 truncate text-sm"
+                                :class="isSelected(disc._digest) ? 'text-fg' : 'text-fg-muted line-through'"
+                            >
+                                {{ formatValue(disc.value) }}
+                            </span>
+                            <StatusBadge v-if="!isSelected(disc._digest)" tone="neutral" label="Hidden" icon="pi-eye-slash" class="shrink-0" />
+                        </label>
+                    </li>
+                </ul>
 
-                <p v-if="arrayDisclosures.length > 0" class="text-xs text-gray-400 mt-2">
-                    <i class="pi pi-info-circle mr-1"></i>
+                <p v-if="arrayDisclosures.length > 0" class="mt-2 text-xs text-fg-muted">
+                    <i class="pi pi-info-circle mr-1" aria-hidden="true" />
                     {{ arrayDisclosures.length }} array-element disclosure{{ arrayDisclosures.length !== 1 ? 's' : '' }}
                     always included.
                 </p>
-            </div>
+            </fieldset>
         </div>
 
-        <div v-else class="text-sm text-red-500 flex items-center gap-2">
-            <i class="pi pi-exclamation-circle"></i>
-            <span>Could not parse SD-JWT credential.</span>
-        </div>
+        <p v-else role="alert" class="flex items-center gap-2 text-sm text-danger">
+            <i class="pi pi-exclamation-circle" aria-hidden="true" />
+            Could not parse SD-JWT credential.
+        </p>
 
         <template #footer>
-            <div class="flex justify-end gap-2">
-                <Button label="Close" severity="secondary" outlined @click="visible = false" />
-                <Button label="Copy Encoded" icon="pi pi-copy" :disabled="!envelope" @click="copyEncoded" />
-            </div>
+            <Button label="Close" severity="secondary" outlined @click="visible = false" />
+            <Button label="Copy token" icon="pi pi-copy" :disabled="!envelope" @click="copyEncoded" />
         </template>
-    </Dialog>
+    </ResponsiveDialog>
 </template>
