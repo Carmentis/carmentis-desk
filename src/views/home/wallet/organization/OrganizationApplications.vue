@@ -5,16 +5,14 @@ import {useRoute, useRouter} from "vue-router";
 import {useToast} from "primevue/usetoast";
 import OrganizationApplicationCreationDialog from "./OrganizationApplicationCreationDialog.vue";
 import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
-import DataTable, {DataTableRowClickEvent} from "primevue/datatable";
-import Column from "primevue/column";
-import TabPanel from "primevue/tabpanel";
-import Tab from "primevue/tab";
-import TabList from "primevue/tablist";
-import Tabs from "primevue/tabs";
-import TabPanels from "primevue/tabpanels";
-import {useStorage} from "@vueuse/core";
-import {useCurrentDate} from "../../../../stores/useCurrentDate.ts";
-import {ApplicationDto, OrganizationDto} from "../../../../api/indexer/model";
+import {ApplicationDto} from "../../../../api/indexer/model";
+import SegmentedControl from "../../../../components/ui/SegmentedControl.vue";
+import StatusBadge from "../../../../components/ui/StatusBadge.vue";
+import CopyableValue from "../../../../components/ui/CopyableValue.vue";
+import EmptyState from "../../../../components/ui/EmptyState.vue";
+import ErrorState from "../../../../components/ui/ErrorState.vue";
+import SkeletonBlock from "../../../../components/ui/SkeletonBlock.vue";
+import type {SegmentedOption} from "../../../../components/ui/types.ts";
 
 const toast = useToast();
 const router = useRouter();
@@ -27,23 +25,9 @@ const orgId = computed(() => Number(route.params.orgId));
 
 const {
     organizationApplications: applications,
-    createApplication,
     importExistingApplication,
-    deleteApplication: deleteApplicationById,
     useFoundApplicationsOnChain,
 } = useCurrentOrganization();
-
-
-
-async function deleteApplication(appId: number) {
-    await deleteApplicationById(appId);
-    toast.add({
-        severity: 'success',
-        summary: 'Application deleted',
-        detail: 'Application deleted successfully',
-        life: 3000,
-    });
-}
 
 function visitApplication(appId: number) {
     router.push(`/wallet/${walletId.value}/organization/${orgId.value}/application/${appId}`);
@@ -74,126 +58,128 @@ async function importApplication(existingApplication: ApplicationDto) {
     }
 }
 
-const now = useCurrentDate();
+// ---- presentation: Local / On-chain is a filter, not another row of tabs ----
+type ApplicationsView = 'local' | 'on-chain';
+const view = ref<ApplicationsView>('local');
 const foundApplicationsOnChain = useFoundApplicationsOnChain();
-const onChainApplicationsCounter = computed(() => {
-    if (foundApplicationsOnChain.isLoading.value) {
-        return '.'.repeat(now.value.getSeconds() % 3 + 1);
-    }
 
-    if (foundApplicationsOnChain.error.value) {
-        return ':(';
-    }
+const onChainCount = computed(() => {
+    if (foundApplicationsOnChain.isLoading.value) return '';
+    if (foundApplicationsOnChain.error.value) return ' (!)';
+    return foundApplicationsOnChain.data.value ? ` (${foundApplicationsOnChain.data.value.length})` : '';
+});
+const viewOptions = computed<SegmentedOption<ApplicationsView>[]>(() => [
+    { value: 'local', label: `On this device (${applications.value.length})` },
+    { value: 'on-chain', label: `On-chain${onChainCount.value}` },
+]);
 
-    if (foundApplicationsOnChain.data.value) {
-        return `(${foundApplicationsOnChain.data.value.length})`
-    }
-
-    return 0;
-})
-const activeTab = useStorage('activeApplicationTab', 'local', sessionStorage)
+// A local application is published once the same application is found on-chain.
+const onChainIds = computed(() => new Set(foundApplicationsOnChain.data.value?.map((a) => a.virtualBlockchainId) ?? []));
+const isPublished = (vbId?: string) => !!vbId && onChainIds.value.has(vbId);
+const canTellPublication = computed(() => !!foundApplicationsOnChain.data.value);
+const localIds = computed(() => new Set(applications.value.map((a) => a.applicationVbId).filter(Boolean)));
 </script>
 <template>
-    <div
+    <EmptyState
         v-if="isOrganizationFoundOnChain !== true"
-        class="flex items-start gap-3 px-4 py-4 bg-gray-50 border border-gray-200 rounded-lg"
-    >
-        <i class="pi pi-lock text-gray-500 mt-0.5 text-lg"></i>
-        <div>
-            <p class="text-sm font-medium text-gray-700">Feature locked</p>
-            <p class="text-sm text-gray-500 mt-1">
-                Application management is only available once the organization has
-                been published on the Carmentis network.
-            </p>
-        </div>
-    </div>
+        framed
+        icon="pi-lock"
+        title="Publish your organization first"
+        description="Application management is only available once the organization has been published on the Carmentis network."
+    />
+
     <div v-else class="space-y-4">
-        <!-- Applications Header -->
-        <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-gray-900">
-                Applications
-            </h3>
-            <div class="flex gap-2">
-                <Button
-                    @click="openCreateAppDialog = true"
-                    label="Create App"
-                    icon="pi pi-plus"
-                    size="small"
-                />
-            </div>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold text-fg">Applications</h2>
+            <Button @click="openCreateAppDialog = true" label="New application" icon="pi pi-plus" />
         </div>
 
+        <SegmentedControl v-model="view" :options="viewOptions" ariaLabel="Where to look for applications" />
 
-        <Tabs v-model:value="activeTab">
-            <TabList>
-                <Tab value="local">Local Applications ({{applications.length}})</Tab>
-                <Tab value="on-chain">On-Chain Applications {{onChainApplicationsCounter}}</Tab>
-            </TabList>
-            <TabPanels>
-                <TabPanel value="local">
-                    <div class="mb-4">
-                        <span class="font-bold">Below are displayed the applications associated with this organization, found locally.</span>
-                        <div>
-                            If an application is displayed here, then this application is stored in the local database.
-                            If an application is displayed here but not in the on-chain applications, it means that
-                            the application has been created locally but not published on the blockchain.
+        <!-- On this device -->
+        <template v-if="view === 'local'">
+            <p class="text-sm text-fg-muted">
+                Applications stored on this device. A draft has not been published on the blockchain yet.
+            </p>
+
+            <EmptyState
+                v-if="applications.length === 0"
+                framed
+                icon="pi-box"
+                title="No application yet"
+                description="Create an application to start publishing data with your organization."
+            >
+                <Button @click="openCreateAppDialog = true" label="New application" icon="pi pi-plus" />
+            </EmptyState>
+
+            <ul v-else class="grid gap-3 lg:grid-cols-2">
+                <li
+                    v-for="app in applications"
+                    :key="app.id"
+                    class="min-w-0 space-y-2 rounded-card border border-line bg-surface p-4 shadow-card"
+                >
+                    <div class="flex items-start justify-between gap-3">
+                        <p class="min-w-0 truncate font-semibold text-fg">{{ app.name }}</p>
+                        <Button label="Open" icon="pi pi-arrow-right" icon-pos="right" severity="secondary" outlined size="small" @click="visitApplication(app.id)" />
+                    </div>
+                    <StatusBadge
+                        v-if="canTellPublication"
+                        :tone="isPublished(app.applicationVbId) ? 'success' : 'warning'"
+                        :label="isPublished(app.applicationVbId) ? 'Published' : 'Draft'"
+                        :icon="isPublished(app.applicationVbId) ? 'pi-check-circle' : 'pi-file-edit'"
+                    />
+                    <CopyableValue v-if="app.applicationVbId" :value="app.applicationVbId" label="application ID" :head="10" :tail="8" />
+                </li>
+            </ul>
+        </template>
+
+        <!-- On-chain -->
+        <template v-else>
+            <p class="text-sm text-fg-muted">
+                Applications of this organization found on the blockchain. Import one to manage it here.
+            </p>
+
+            <SkeletonBlock v-if="foundApplicationsOnChain.isLoading.value" :lines="3" height-class="h-16" />
+
+            <ErrorState
+                v-else-if="foundApplicationsOnChain.error.value"
+                title="Could not search the blockchain"
+                :message="foundApplicationsOnChain.error.value.message"
+                retryable
+                @retry="foundApplicationsOnChain.refetch()"
+            />
+
+            <EmptyState
+                v-else-if="!foundApplicationsOnChain.data.value?.length"
+                framed
+                icon="pi-box"
+                title="No application found on-chain"
+                description="Applications you publish for this organization will appear here."
+            />
+
+            <ul v-else class="grid gap-3 lg:grid-cols-2">
+                <li
+                    v-for="app in foundApplicationsOnChain.data.value"
+                    :key="app.virtualBlockchainId"
+                    class="min-w-0 space-y-2 rounded-card border border-line bg-surface p-4 shadow-card"
+                >
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="truncate font-semibold text-fg">{{ app.name }}</p>
+                            <p v-if="app.homepageUrl" class="truncate text-sm text-fg-muted">{{ app.homepageUrl }}</p>
                         </div>
+                        <Button label="Import" icon="pi pi-download" severity="secondary" outlined size="small" @click="importApplication(app)" />
                     </div>
-
-                    <!-- Applications Content -->
-                    <div v-if="applications.length === 0" class="text-center py-8">
-                        <div
-                            class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
-                        >
-                            <i class="pi pi-box text-2xl text-gray-400"></i>
-                        </div>
-                        <p class="text-gray-500 text-sm mb-4">No application yet</p>
-                    </div>
-                    <div v-else class="space-y-3">
-                        <DataTable
-                            :value="applications"
-                            stripedRows
-                            showGridlines
-                            responsiveLayout="scroll"
-                            class="text-sm hover:cursor-pointer"
-                            @rowClick=" (event: DataTableRowClickEvent<any>) => visitApplication(event.data.id)"
-                        >
-                            <Column field="name" header="name" sortable style="min-width: 150px"></Column>
-                            <Column field="applicationVbId" header="Application ID" sortable style="min-width: 150px"/>
-                        </DataTable>
-                    </div>
-                </TabPanel>
-                <TabPanel value="on-chain">
-
-                    <!-- Applications on-chain -->
-                    <div class="mb-4">
-                        <span class="font-bold">Below are displayed the applications associated with this organization found on-chain.</span>
-                        <div>
-                            If an application is displayed here but not in the local applications,
-                            it means that the application has been created on the blockchain but not yet synchronized with the
-                            local database. To import it, click on the application.
-                        </div>
-                    </div>
-                    <DataTable
-                        :value="foundApplicationsOnChain.data.value"
-                        stripedRows
-                        showGridlines
-                        responsiveLayout="scroll"
-                        class="text-sm hover:cursor-pointer"
-                        @rowClick=" (event: DataTableRowClickEvent<any>) => importApplication(event.data)"
-                    >
-                        <Column field="name" header="name" sortable style="min-width: 150px"></Column>
-                        <Column field="virtualBlockchainId" header="Application ID" sortable style="min-width: 150px"/>
-                        <Column field="homepageUrl" header="Website" sortable style="min-width: 150px"/>
-                        <Column field="description" header="Description" sortable style="min-width: 150px"/>
-                    </DataTable>
-                </TabPanel>
-            </TabPanels>
-        </Tabs>
-
-
-
-
+                    <StatusBadge
+                        :tone="localIds.has(app.virtualBlockchainId) ? 'success' : 'info'"
+                        :label="localIds.has(app.virtualBlockchainId) ? 'On this device' : 'Not imported'"
+                        :icon="localIds.has(app.virtualBlockchainId) ? 'pi-check-circle' : 'pi-cloud-download'"
+                    />
+                    <p v-if="app.description" class="line-clamp-2 text-sm text-fg-muted">{{ app.description }}</p>
+                    <CopyableValue :value="app.virtualBlockchainId" label="application ID" :head="10" :tail="8" />
+                </li>
+            </ul>
+        </template>
     </div>
 
     <OrganizationApplicationCreationDialog v-model:showAppDialog="openCreateAppDialog" />

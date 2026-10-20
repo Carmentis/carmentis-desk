@@ -1,43 +1,50 @@
 <script setup lang="ts">
 import InputText from "primevue/inputtext";
-import Dialog from "primevue/dialog";
 import Button from "primevue/button";
-import {computed, ref} from "vue";
+import {computed, ref, watch} from "vue";
 import {useToast} from "primevue/usetoast";
 import {useRoute, useRouter} from "vue-router";
 import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
+import ResponsiveDialog from "../../../../components/ui/ResponsiveDialog.vue";
+import FieldNameAndDescription from "../../../../components/utils/FieldNameAndDescription.vue";
 
 const toast = useToast();
-const showAppDialog = defineModel<boolean>('showAppDialog');
+const showAppDialog = defineModel<boolean>('showAppDialog', { default: false });
 const appName = ref('');
 const route = useRoute();
 const router = useRouter();
 
-const {organization, organizationApplications, createApplication} = useCurrentOrganization();
+const {createApplication} = useCurrentOrganization();
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 
+// inline validation, shown once the user tried to create the application
+const submitted = ref(false);
+const isCreating = ref(false);
+const nameError = computed(() => submitted.value && !appName.value ? 'Enter a name for the application.' : '');
+watch(showAppDialog, (open) => {
+    if (open) submitted.value = false;
+});
 
 async function submitAppDialog() {
-    if (!appName.value) {
+    submitted.value = true;
+    if (nameError.value) return;
+
+    isCreating.value = true;
+    try {
+        const createdAppId = await createApplication(appName.value)
         toast.add({
-            severity: 'error',
-            summary: 'Validation error',
-            detail: 'Application name is required',
+            severity: 'success',
+            summary: 'Application created',
+            detail: `Application "${appName.value}" created successfully`,
             life: 3000,
         });
-        return;
-    }
-    const createdAppId = await createApplication(appName.value)
-    toast.add({
-        severity: 'success',
-        summary: 'Application created',
-        detail: `Application "${appName.value}" created successfully`,
-        life: 3000,
-    });
-    showAppDialog.value = false;
+        showAppDialog.value = false;
 
-    visitApplication(createdAppId);
+        visitApplication(createdAppId);
+    } finally {
+        isCreating.value = false;
+    }
 }
 
 function visitApplication(appId: number) {
@@ -46,36 +53,24 @@ function visitApplication(appId: number) {
 </script>
 
 <template>
-    <!-- Application Dialog -->
-    <Dialog
-        v-model:visible="showAppDialog"
-        header="Create Application"
-        modal
-        class="w-full max-w-md"
-    >
-        <div class="space-y-4">
-            <div>
-                <label for="app-name" class="block text-sm font-medium text-gray-700 mb-2">
-                    Application Name
-                    <span class="text-red-500">*</span>
-                </label>
-                <InputText
-                    id="app-name"
-                    v-model="appName"
-                    placeholder="Enter application name"
-                    class="w-full"
-                />
-            </div>
-        </div>
+    <ResponsiveDialog v-model:visible="showAppDialog" header="New application" :closable="!isCreating">
+        <form id="create-app-form" novalidate @submit.prevent="submitAppDialog">
+            <FieldNameAndDescription name="Application name" input-id="app-name" required />
+            <InputText
+                id="app-name"
+                v-model="appName"
+                fluid
+                autocomplete="off"
+                placeholder="e.g. Customer portal"
+                :invalid="!!nameError"
+                :aria-invalid="!!nameError"
+                aria-describedby="app-name-error"
+            />
+            <p v-if="nameError" id="app-name-error" class="mt-1 text-sm text-danger">{{ nameError }}</p>
+        </form>
         <template #footer>
-            <div class="flex justify-end gap-2">
-                <Button label="Cancel" @click="showAppDialog = false" severity="secondary" outlined />
-                <Button
-                    label="Create"
-                    @click="submitAppDialog"
-                    icon="pi pi-check"
-                />
-            </div>
+            <Button label="Cancel" severity="secondary" outlined :disabled="isCreating" @click="showAppDialog = false" />
+            <Button type="submit" form="create-app-form" label="Create" icon="pi pi-check" :loading="isCreating" />
         </template>
-    </Dialog>
+    </ResponsiveDialog>
 </template>

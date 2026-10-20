@@ -11,8 +11,11 @@ const props = withDefaults(defineProps<{
     action?: string;
     message?: string;
     confirmLabel?: string;
+    /** `danger` for deletions, `primary` for other irreversible actions such as publishing. */
+    tone?: 'danger' | 'primary';
     loading?: boolean;
 }>(), {
+    tone: 'danger',
     action: 'delete',
     message: 'This action cannot be undone.',
     confirmLabel: 'Delete',
@@ -45,7 +48,7 @@ const open = useVModel(props, 'visible', emit);
             />
             <Button
                 :label="props.confirmLabel"
-                severity="danger"
+                :severity="props.tone === 'danger' ? 'danger' : undefined"
                 :loading="props.loading"
                 @click="emit('confirm')"
             />
