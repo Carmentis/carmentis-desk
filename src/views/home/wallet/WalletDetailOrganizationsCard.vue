@@ -12,6 +12,7 @@ import StatusBadge from "../../../components/ui/StatusBadge.vue";
 import PublicationBadge from "../../../components/ui/PublicationBadge.vue";
 import {useSettledOnChainSearch} from "../../../composables/useSettledOnChainSearch.ts";
 import {isUnknownAccountError} from "../../../utils/accountErrors.ts";
+import {useAccountResolved} from "../../../composables/useAccountResolved.ts";
 import CopyableValue from "../../../components/ui/CopyableValue.vue";
 import EmptyState from "../../../components/ui/EmptyState.vue";
 import ErrorState from "../../../components/ui/ErrorState.vue";
@@ -108,10 +109,11 @@ const onChainIds = computed(() => new Set(foundOrganizations.data.value?.map((o)
 const isPublished = (vbId?: string) => !!vbId && onChainIds.value.has(vbId);
 // The search needs the account ID and the indexer: until it ran with them, an empty result means nothing yet.
 const accountIdQuery = useAccountIdQuery();
+const isAccountResolved = useAccountResolved(accountIdQuery);
 const isSearchSettled = useSettledOnChainSearch(
     foundOrganizations,
-    // a wallet without account answers with an "unknown account" error: there is simply nothing to find
-    computed(() => (accountIdQuery.isSuccess.value || isUnknownAccountError(accountIdQuery.error.value)) && !!indexer.value),
+    // an ID, or the "unknown account" error of a wallet without account (nothing to find): not a `null` answer
+    computed(() => isAccountResolved.value && !!indexer.value),
 );
 const canTellPublication = computed(() =>
     !foundOrganizations.error.value
