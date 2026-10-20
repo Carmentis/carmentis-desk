@@ -129,8 +129,9 @@ export function useOnChainActions() {
         // errors are already reported with a toast: these two do not rethrow (as before)
         publishOrganization: (params: ops.PublishOrganizationParams) =>
             publishOrganizationAsync(params).then(() => undefined, () => undefined),
+        // resolves to true on success and false on failure, so callers can react without try/catch
         publishCustomJson: (params: ops.PublishCustomJsonParams) =>
-            publishCustomJsonAsync(params).then(() => undefined, () => undefined),
+            publishCustomJsonAsync(params).then(() => true, () => false),
 
         // these rethrow so callers can keep their dialog open
         claimNode: (params: ops.ClaimNodeParams) => claimNodeAsync(params).then((r) => r.microblockHash),
