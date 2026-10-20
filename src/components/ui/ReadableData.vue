@@ -60,7 +60,16 @@ const isEmptyContainer = computed(() => isContainer(props.data) && items.value.l
         {{ scalar.text }}<span v-if="scalar.raw" class="font-mono text-xs text-fg-muted"> ({{ scalar.raw }})</span>
     </span>
 
-    <ul v-else class="list-disc space-y-1.5 pl-5 marker:text-fg-muted" :class="props.depth > 0 ? 'mt-1' : ''">
+    <!-- Bullets only for arrays; a nested object is set apart by an indent and a thin rule instead. -->
+    <ul
+        v-else
+        class="space-y-1.5"
+        :class="[
+            Array.isArray(props.data) ? 'list-disc pl-5 marker:text-fg-muted' : 'list-none',
+            props.depth > 0 ? 'mt-1' : '',
+            props.depth > 0 && !Array.isArray(props.data) ? 'ml-1 border-l border-line pl-3' : '',
+        ]"
+    >
         <li v-for="item in items" :key="item.key" class="text-sm text-fg">
             <template v-if="item.label !== null">
                 <strong class="font-semibold">{{ item.label }}</strong>

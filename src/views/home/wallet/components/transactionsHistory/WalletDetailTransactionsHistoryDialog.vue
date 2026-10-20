@@ -10,7 +10,8 @@ import EmptyState from "../../../../../components/ui/EmptyState.vue";
 import ErrorState from "../../../../../components/ui/ErrorState.vue";
 import SkeletonBlock from "../../../../../components/ui/SkeletonBlock.vue";
 
-const {useAccountTransactionsHistory, useHasAccountOnChainQuery} = useCurrentWallet();
+const {useAccountTransactionsHistory, useHasAccountOnChainQuery, useAccountIdQuery} = useCurrentWallet();
+const accountIdQuery = useAccountIdQuery();
 const isOpen = defineModel<boolean>('isOpen', { default: false });
 
 // define the limit to use
@@ -44,19 +45,22 @@ const transactions = computed(() => {
 
 <template>
     <ResponsiveDialog v-model:visible="isOpen" header="Transaction history" size="lg">
+        <SkeletonBlock v-if="accountIdQuery.isLoading.value" label="Loading your account…" :lines="3" height-class="h-12" />
+
         <EmptyState
-            v-if="!hasAccount"
+            v-else-if="!hasAccount"
             icon="pi-wallet"
             title="No account yet"
             description="This wallet does not have an account on the blockchain yet."
         />
 
-        <SkeletonBlock v-else-if="accountHistoryQuery.isLoading.value" :lines="5" height-class="h-12" />
+        <SkeletonBlock v-else-if="accountHistoryQuery.isLoading.value" label="Loading transactions…" :lines="5" height-class="h-12" />
 
         <ErrorState
             v-else-if="accountHistoryQuery.error.value"
             title="History unavailable"
-            :message="accountHistoryQuery.error.value.message"
+            message="We could not load your transactions. Check your connection and try again."
+            :details="accountHistoryQuery.error.value.message"
             retryable
             @retry="accountHistoryQuery.refetch()"
         />

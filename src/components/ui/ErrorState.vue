@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import Button from 'primevue/button';
+import ErrorDetails from './ErrorDetails.vue';
 
 const props = withDefaults(defineProps<{
     title?: string;
     message?: string;
+    /** Raw technical text of the error, shown on demand. */
+    details?: string;
     retryable?: boolean;
 }>(), {
     title: 'Something went wrong',
@@ -20,6 +23,7 @@ const emit = defineEmits<{ (e: 'retry'): void }>();
         </span>
         <h3 class="text-base font-semibold text-fg">{{ props.title }}</h3>
         <p v-if="props.message" class="max-w-sm break-words text-sm text-fg-muted">{{ props.message }}</p>
+        <ErrorDetails v-if="props.details" :details="props.details" />
         <Button
             v-if="props.retryable"
             label="Try again"

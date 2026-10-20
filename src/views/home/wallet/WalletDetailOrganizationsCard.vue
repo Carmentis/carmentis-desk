@@ -11,6 +11,7 @@ import SegmentedControl from "../../../components/ui/SegmentedControl.vue";
 import StatusBadge from "../../../components/ui/StatusBadge.vue";
 import PublicationBadge from "../../../components/ui/PublicationBadge.vue";
 import {useSettledOnChainSearch} from "../../../composables/useSettledOnChainSearch.ts";
+import {isUnknownAccountError} from "../../../utils/accountErrors.ts";
 import CopyableValue from "../../../components/ui/CopyableValue.vue";
 import EmptyState from "../../../components/ui/EmptyState.vue";
 import ErrorState from "../../../components/ui/ErrorState.vue";
@@ -109,9 +110,13 @@ const isPublished = (vbId?: string) => !!vbId && onChainIds.value.has(vbId);
 const accountIdQuery = useAccountIdQuery();
 const isSearchSettled = useSettledOnChainSearch(
     foundOrganizations,
-    computed(() => accountIdQuery.isSuccess.value && !!indexer.value),
+    // a wallet without account answers with an "unknown account" error: there is simply nothing to find
+    computed(() => (accountIdQuery.isSuccess.value || isUnknownAccountError(accountIdQuery.error.value)) && !!indexer.value),
 );
-const canTellPublication = computed(() => !foundOrganizations.error.value && !accountIdQuery.error.value);
+const canTellPublication = computed(() =>
+    !foundOrganizations.error.value
+    && (!accountIdQuery.error.value || isUnknownAccountError(accountIdQuery.error.value)),
+);
 const publicationState = (vbId?: string) =>
     !isSearchSettled.value ? 'loading' : isPublished(vbId) ? 'published' : 'draft';
 
