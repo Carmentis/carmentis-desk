@@ -64,5 +64,5 @@ export function useAppMenuActions() {
         { label: 'Log out', icon: 'pi pi-sign-out', class: 'text-danger', command: logout },
     ];
 
-    return { menuItems };
+    return { menuItems, exportData };
 }

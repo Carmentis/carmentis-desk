@@ -12,7 +12,9 @@ import ToggleSwitch from 'primevue/toggleswitch';
 import PageHeader from '../../../components/ui/PageHeader.vue';
 import UiCard from '../../../components/ui/UiCard.vue';
 import SectionTabs from '../../../components/ui/SectionTabs.vue';
-import ConfirmActionDialog from '../../../components/ui/ConfirmActionDialog.vue';
+import ResponsiveDialog from '../../../components/ui/ResponsiveDialog.vue';
+import Message from 'primevue/message';
+import { useAppMenuActions } from '../../../composables/useAppMenuActions.ts';
 import type { TabItem } from '../../../components/ui/types.ts';
 
 const { hasDeveloperRole, hasNodeHolderRole, setNodeHolderRoleToUser, setDeveloperRoleToUser } = useAppStore();
@@ -36,6 +38,19 @@ const updateButtonLabel = computed(() => {
 // A shallowRef: the update is a class instance with private fields, which a reactive proxy would break.
 const pendingUpdate = shallowRef<Update | null>(null);
 const showUpdateDialog = ref(false);
+
+// Updating restarts the application: the user is asked to export the data first.
+const { exportData } = useAppMenuActions();
+const isExporting = ref(false);
+
+async function exportBeforeUpdate() {
+    isExporting.value = true;
+    try {
+        await exportData();
+    } finally {
+        isExporting.value = false;
+    }
+}
 
 async function checkForUpdate() {
     isSearchingForUpdate.value = true;
@@ -139,7 +154,9 @@ const tabs = computed<TabItem[]>(() => [
 
                     <UiCard title="Application update">
                         <div class="flex flex-wrap items-center justify-between gap-3">
-                            <p class="text-sm text-fg-muted">Check whether a newer version is available.</p>
+                            <p class="text-sm text-fg-muted">
+                                Check whether a newer version is available. Export your data before updating.
+                            </p>
                             <Button
                                 icon="pi pi-refresh"
                                 :label="updateButtonLabel"
@@ -160,15 +177,35 @@ const tabs = computed<TabItem[]>(() => [
             </template>
         </SectionTabs>
 
-        <ConfirmActionDialog
-            v-model:visible="showUpdateDialog"
-            title="Update available"
-            action="install"
-            tone="primary"
-            confirm-label="Update"
-            :item-name="`Version ${pendingUpdate?.version ?? ''}`"
-            message="The application restarts once the update is installed."
-            @confirm="installUpdate"
-        />
+        <ResponsiveDialog v-model:visible="showUpdateDialog" header="Update available">
+            <div class="space-y-4">
+                <p class="text-sm text-fg">
+                    Version <strong>{{ pendingUpdate?.version }}</strong> is available. The application restarts once
+                    the update is installed.
+                </p>
+
+                <Message severity="warn" :closable="false">
+                    <p class="font-semibold">Export your data before updating.</p>
+                    <p class="mt-1">
+                        Keep a copy of your wallets, organizations and keys, in case something goes wrong during the
+                        update. The export file contains your private keys and is not encrypted: store it somewhere safe.
+                    </p>
+                </Message>
+
+                <Button
+                    label="Export data"
+                    icon="pi pi-download"
+                    severity="secondary"
+                    outlined
+                    :loading="isExporting"
+                    @click="exportBeforeUpdate"
+                />
+            </div>
+
+            <template #footer>
+                <Button label="Cancel" severity="secondary" outlined @click="showUpdateDialog = false" />
+                <Button label="Update" icon="pi pi-refresh" @click="installUpdate" />
+            </template>
+        </ResponsiveDialog>
     </div>
 </template>
