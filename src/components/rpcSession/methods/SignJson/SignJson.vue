@@ -22,6 +22,9 @@ import {useAppStore} from "../../../../stores/appStore.ts";
 import {useWalletStore} from "../../../../stores/walletStore.ts";
 import RpcRequestLayout from "../../RpcRequestLayout.vue";
 import RpcWalletPicker from "../../RpcWalletPicker.vue";
+import ReadableData from "../../../ui/ReadableData.vue";
+import SegmentedControl from "../../../ui/SegmentedControl.vue";
+import type {SegmentedOption} from "../../../ui/types.ts";
 
 const props = defineProps<{ params: SignJsonParams }>();
 
@@ -46,6 +49,14 @@ const shouldBeAllowedOnChain = ref(isRequestingAllowedOnChainDecision ?
 )
 const purpose = ref(context.purpose);
 const payload = params.payload
+
+// The data to sign is first shown in plain words; the exact JSON is one click away.
+type PayloadView = 'readable' | 'json';
+const payloadView = ref<PayloadView>('readable');
+const payloadViewOptions: SegmentedOption<PayloadView>[] = [
+    { value: 'readable', label: 'Readable' },
+    { value: 'json', label: 'JSON' },
+];
 
 /*
 watch([props], async () => {
@@ -128,8 +139,20 @@ async function approve() {
         <RpcWalletPicker v-model="chosenWallet" :wallets="wallets" label="Wallet to sign with" />
 
         <div>
-            <p class="mb-1 text-sm font-medium text-fg">Payload to sign</p>
-            <JsonViewer :data="params.payload" max-height="16rem" />
+            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p class="text-sm font-medium text-fg">Data to sign</p>
+                <SegmentedControl v-model="payloadView" :options="payloadViewOptions" ariaLabel="How to display the data" />
+            </div>
+            <div
+                v-if="payloadView === 'readable'"
+                class="max-h-80 overflow-auto rounded-control border border-line bg-surface-muted p-3"
+            >
+                <ReadableData :data="params.payload" />
+            </div>
+            <JsonViewer v-else :data="params.payload" max-height="20rem" />
+            <p class="mt-1 text-xs text-fg-muted">
+                The readable view is a simplified display of the same data. Your signature covers the exact JSON.
+            </p>
         </div>
 
         <template #actions>
