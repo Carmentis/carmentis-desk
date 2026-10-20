@@ -1,3 +1,30 @@
+# [1.34.0](https://github.com/Carmentis/carmentis-desk/compare/v1.33.0...v1.34.0) (2026-10-20)
+
+
+### Bug Fixes
+
+* add X5C type in OrganizationX509Certificate custom section ([bd0ebfd](https://github.com/Carmentis/carmentis-desk/commit/bd0ebfdbacc85f8ff498b09fd08acdaa7b49d72f))
+
+
+### Features
+
+* add `PublicationBadge` component and enhance on-chain publication handling ([6f6f1e0](https://github.com/Carmentis/carmentis-desk/commit/6f6f1e0d486e36542f09323e1da7e04f7b559466))
+* add CredentialClaims and OrganizationSectionsList views for improved data presentation ([f540173](https://github.com/Carmentis/carmentis-desk/commit/f5401736a2d3890cc55b94f71d8ec14671adbde5))
+* add Organization X509 Certificate management and wallet JWK export ([940826f](https://github.com/Carmentis/carmentis-desk/commit/940826f8256e71bf70f6c52663d471a76d0f1f57))
+* add payload view toggle for SignJson with readable and JSON options ([277e4bb](https://github.com/Carmentis/carmentis-desk/commit/277e4bbbf0f35bcdaf398a7e1107634fc472589d))
+* add ReadableData component for rendering JSON-like data with human-readable keys ([3ab02ff](https://github.com/Carmentis/carmentis-desk/commit/3ab02ff960a1be8efda9a23b03c0495db66267d5))
+* add tests for publication badge and introduce `useAccountResolved` composable ([3c3bf54](https://github.com/Carmentis/carmentis-desk/commit/3c3bf543649457ab6053212ca7e451db0bdc06c0))
+* add toggle for private JWK visibility in WalletDetailKeysCard ([5d94f1e](https://github.com/Carmentis/carmentis-desk/commit/5d94f1ebee8558400d3b6ddc2b9182e39523b85d))
+* enhance update flow with data export prompt and improved dialog design ([8f5a683](https://github.com/Carmentis/carmentis-desk/commit/8f5a683d1eb361a4ae773254ce0dd9fbaf0ea9ed))
+* enhance WalletDetail dialogs and components for improved UI consistency ([d3be28a](https://github.com/Carmentis/carmentis-desk/commit/d3be28a89814ec9b5cd962d0f11339103490a696))
+* handle "unknown account" errors and enhance wallet components ([7b5863a](https://github.com/Carmentis/carmentis-desk/commit/7b5863ad7735c6c3f371e0f823be560e9197a5d6))
+* improve X509 certificate chain management UI and anchoring logic ([6d13fbb](https://github.com/Carmentis/carmentis-desk/commit/6d13fbb74965ba8910043be93a2b448b6d531851))
+* introduce `/v2/auth/pk` JSON-RPC method with enhanced public key authentication ([2a5838a](https://github.com/Carmentis/carmentis-desk/commit/2a5838a85e0ae2457a3433d5ad6c8ec1fc671051))
+* introduce `usePublicationStatus` composable and redesign application views ([07234e6](https://github.com/Carmentis/carmentis-desk/commit/07234e6af364fdcc7b8d1ef34b4a0a51d652b897))
+* introduce CredentialCardFace component and improve credential card handling ([aebc551](https://github.com/Carmentis/carmentis-desk/commit/aebc551336dbe8ddb3de234391a0083a2885fde3))
+* redesign app layout with new sidebar, top bar, and bottom navigation ([e832b8a](https://github.com/Carmentis/carmentis-desk/commit/e832b8a1620280201be88b9dbdc0f5b815e7ff23))
+* redesign RPC session screens using shared layouts and components ([2586eed](https://github.com/Carmentis/carmentis-desk/commit/2586eed4c5fbc47694d9fc83bba8e44910990e40))
+
 # [1.33.0](https://github.com/Carmentis/carmentis-desk/compare/v1.32.2...v1.33.0) (2026-09-21)
 
 
