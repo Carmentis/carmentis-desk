@@ -3,7 +3,7 @@ import { computed, watch, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Breadcrumb from 'primevue/breadcrumb';
 import { useAsyncState } from '@vueuse/core';
-import { useAccountBreakdownQuery } from '../../composables/useAccountBreakdown.ts';
+import { useCurrentWallet } from '../../composables/useCurrentWallet.ts';
 import * as walletRepo from '../../db/repositories/walletRepository';
 import * as orgRepo from '../../db/repositories/organizationRepository';
 import * as appRepo from '../../db/repositories/applicationRepository';
@@ -113,7 +113,8 @@ const items = computed(() => {
 
 const show = computed(() => route.name !== 'home' && items.value.length > 0);
 
-const breakdownQuery = useAccountBreakdownQuery(computed(() => walletId.value ?? 0));
+const { useAccountBreakdownQuery } = useCurrentWallet();
+const breakdownQuery = useAccountBreakdownQuery();
 </script>
 
 <template>
