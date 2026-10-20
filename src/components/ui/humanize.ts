@@ -62,3 +62,8 @@ export const isContainer = (value: unknown): value is Record<string, unknown> | 
 /** A value shown on the same line as its label: not a container, or an empty one. */
 export const isInline = (value: unknown): boolean =>
     !isContainer(value) || (Array.isArray(value) ? value.length === 0 : Object.keys(value).length === 0);
+
+/** Shortens a long identifier in the middle: `did:jwk:eyJhbGciOi…Y3Jlc3M`. */
+export function truncateMiddle(value: string, head = 14, tail = 6): string {
+    return value.length > head + tail + 1 ? `${value.slice(0, head)}…${value.slice(-tail)}` : value;
+}

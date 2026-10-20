@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {describeScalar, humanizeKey, isInline} from "../src/components/ui/humanize";
+import {describeScalar, humanizeKey, isInline, truncateMiddle} from "../src/components/ui/humanize";
 
 describe("humanizeKey", () => {
     it("capitalizes a plain word", () => {
@@ -60,5 +60,12 @@ describe("isInline", () => {
         expect(isInline([])).toBe(true);
         expect(isInline({a: 1})).toBe(false);
         expect(isInline([1])).toBe(false);
+    });
+});
+
+describe("truncateMiddle", () => {
+    it("shortens long values and keeps short ones", () => {
+        expect(truncateMiddle("did:jwk:eyJhbGciOiJFUzI1NiJ9abcdef", 8, 4)).toBe("did:jwk:…cdef");
+        expect(truncateMiddle("short")).toBe("short");
     });
 });

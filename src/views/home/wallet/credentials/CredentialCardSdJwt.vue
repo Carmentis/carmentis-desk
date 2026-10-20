@@ -7,6 +7,8 @@ import SdJwtPresentationDialog from '../../../../components/credentials/SdJwtPre
 import {VerifiableCredential} from "../../../../types/types.ts";
 import CredentialClaims from './CredentialClaims.vue';
 import StatusBadge from '../../../../components/ui/StatusBadge.vue';
+import { humanizeKey, truncateMiddle } from '../../../../components/ui/humanize.ts';
+import CredentialCardFace from './CredentialCardFace.vue';
 import CopyableValue from '../../../../components/ui/CopyableValue.vue';
 
 const props = defineProps<{
@@ -20,6 +22,7 @@ const emit = defineEmits<{
 
 const sdJwt = computedAsync(() => parseSdJwt(props.credential.sdjwt), null);
 const showPresentDialog = ref(false);
+const showDetails = ref(false);
 
 // ---------------------------------------------------------------------------
 // Metadata
@@ -93,31 +96,76 @@ const disclosedClaims = computed(() =>
         })),
 );
 
+// ---------------------------------------------------------------------------
+// What the front of the card shows
+// ---------------------------------------------------------------------------
+
+// Identity-like claims first, so that e.g. the name comes before technical fields.
+const FACE_PRIORITY = ['name', 'given_name', 'family_name', 'first_name', 'last_name', 'firstname', 'lastname', 'email', 'birthdate', 'birth_date'];
+
+const faceClaims = computed(() => {
+    const rank = (key: string) => {
+        const index = FACE_PRIORITY.indexOf(key.toLowerCase());
+        return index === -1 ? FACE_PRIORITY.length : index;
+    };
+    return (sdJwt.value?.disclosures ?? [])
+        .filter((d) => d.key !== undefined && ['string', 'number', 'boolean'].includes(typeof d.value))
+        .map((d) => ({ key: d.key as string, value: String(d.value) }))
+        .sort((a, b) => rank(a.key) - rank(b.key))
+        .slice(0, 3)
+        .map((claim) => ({ label: humanizeKey(claim.key), value: claim.value }));
+});
+
+const issuerShort = computed(() => {
+    const iss = sdJwt.value?.jwt.payload.iss;
+    return iss ? truncateMiddle(String(iss)) : undefined;
+});
+
+const expiresAtMs = computed(() => {
+    const exp = sdJwt.value?.jwt.payload.exp;
+    return exp ? exp * 1000 : null;
+});
+
 const arrayDisclosureCount = computed(() => (sdJwt.value?.disclosures ?? []).filter((d) => d.key === undefined).length);
 </script>
 
 <template>
-    <article class="min-w-0 overflow-hidden rounded-card border border-line bg-surface shadow-card">
-        <header class="flex items-start justify-between gap-3 bg-accent-soft px-4 py-3">
-            <div class="min-w-0">
-                <h3 class="flex items-start gap-2 text-sm font-semibold text-fg">
-                    <i class="pi pi-shield mt-0.5 shrink-0 text-accent" aria-hidden="true" />
-                    <span class="break-words">{{ credential.name }}</span>
-                </h3>
-                <p
-                    v-if="sdJwt"
-                    class="mt-0.5 truncate font-mono text-xs text-fg-muted"
-                    :title="sdJwt.jwt.payload.vct"
-                >
-                    {{ sdJwt.jwt.payload.vct }}
-                </p>
-            </div>
-            <StatusBadge tone="neutral" label="SD-JWT" icon="pi-shield" class="shrink-0" />
-        </header>
+    <article class="min-w-0 space-y-3">
+        <!-- The credential, drawn as a card -->
+        <CredentialCardFace
+            :name="credential.name"
+            kind="SD-JWT VC"
+            :subtitle="sdJwt?.jwt.payload.vct"
+            :claims="faceClaims"
+            :issuer="issuerShort"
+            :expires-at="expiresAtMs"
+            :expired="isExpired"
+        />
 
-        <div class="space-y-4 p-4">
-            <template v-if="sdJwt">
-                <!-- Core metadata -->
+        <p v-if="!sdJwt" role="alert" class="flex items-center gap-2 text-sm text-danger">
+            <i class="pi pi-exclamation-circle shrink-0" aria-hidden="true" />
+            Could not parse SD-JWT
+        </p>
+
+        <div class="flex flex-wrap items-center gap-2">
+            <Button label="Present" icon="pi pi-share-alt" @click="showPresentDialog = true" />
+            <Button label="Browse" icon="pi pi-search" severity="secondary" outlined @click="emit('browse')" />
+            <Button label="Delete" icon="pi pi-trash" severity="danger" text class="ml-auto" @click="emit('delete')" />
+        </div>
+
+        <!-- Everything else about the credential -->
+        <div v-if="sdJwt">
+            <button
+                type="button"
+                class="flex min-h-11 items-center gap-2 text-sm font-medium text-accent hover:underline"
+                :aria-expanded="showDetails"
+                @click="showDetails = !showDetails"
+            >
+                <i class="pi text-xs" :class="showDetails ? 'pi-chevron-down' : 'pi-chevron-right'" aria-hidden="true" />
+                {{ showDetails ? 'Hide details' : 'Show details' }}
+            </button>
+
+            <div v-if="showDetails" class="mt-2 space-y-4 rounded-card border border-line bg-surface p-4">
                 <dl class="space-y-2 text-sm">
                     <div class="grid gap-0.5 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-3">
                         <dt class="text-fg-muted">Issuer</dt>
@@ -150,7 +198,6 @@ const arrayDisclosureCount = computed(() => (sdJwt.value?.disclosures ?? []).fil
                     </div>
                 </dl>
 
-                <!-- Disclosed claims -->
                 <section v-if="disclosedClaims.length > 0">
                     <h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-fg-muted">
                         Disclosed claims ({{ disclosedClaims.length }})
@@ -160,19 +207,8 @@ const arrayDisclosureCount = computed(() => (sdJwt.value?.disclosures ?? []).fil
                         + {{ arrayDisclosureCount }} array-element disclosure{{ arrayDisclosureCount !== 1 ? 's' : '' }}
                     </p>
                 </section>
-            </template>
-
-            <p v-else role="alert" class="flex items-center gap-2 py-2 text-sm text-danger">
-                <i class="pi pi-exclamation-circle shrink-0" aria-hidden="true" />
-                Could not parse SD-JWT
-            </p>
+            </div>
         </div>
-
-        <footer class="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">
-            <Button label="Present" icon="pi pi-share-alt" outlined @click="showPresentDialog = true" />
-            <Button label="Browse" icon="pi pi-search" severity="secondary" outlined @click="emit('browse')" />
-            <Button label="Delete" icon="pi pi-trash" severity="danger" text class="ml-auto" @click="emit('delete')" />
-        </footer>
     </article>
 
     <SdJwtPresentationDialog v-model:visible="showPresentDialog" :credential="credential" />

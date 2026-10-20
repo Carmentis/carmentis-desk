@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import Button from 'primevue/button';
 import {VerifiableCredential} from "../../../../types/types.ts";
 import CredentialClaims from './CredentialClaims.vue';
-import StatusBadge from '../../../../components/ui/StatusBadge.vue';
+import { humanizeKey } from '../../../../components/ui/humanize.ts';
+import CredentialCardFace from './CredentialCardFace.vue';
 
 const props = defineProps<{
     credential: VerifiableCredential;
@@ -83,36 +84,53 @@ const totalKeys = computed<number | null>(() => {
     }
 });
 
+const showDetails = ref(false);
+
+// The first entries are enough for the front of the card.
+const faceClaims = computed(() =>
+    (jsonPreview.value ?? []).slice(0, 3).map((entry) => ({ label: humanizeKey(entry.key), value: entry.preview })),
+);
+
 const hiddenKeyCount = computed(() => (totalKeys.value !== null ? Math.max(0, totalKeys.value - MAX_PREVIEW_KEYS) : 0));
 </script>
 
 <template>
-    <article class="min-w-0 overflow-hidden rounded-card border border-line bg-surface shadow-card">
-        <header class="flex items-start justify-between gap-3 bg-surface-muted px-4 py-3">
-            <h3 class="flex min-w-0 items-start gap-2 text-sm font-semibold text-fg">
-                <i class="pi pi-id-card mt-0.5 shrink-0 text-fg-muted" aria-hidden="true" />
-                <span class="break-words">{{ credential.name }}</span>
-            </h3>
-            <StatusBadge tone="neutral" label="Unknown format" icon="pi-question-circle" class="shrink-0" />
-        </header>
+    <article class="min-w-0 space-y-3">
+        <!-- The credential, drawn as a (grey) card: its format is not recognized -->
+        <CredentialCardFace
+            :name="credential.name"
+            kind="Unknown format"
+            :claims="faceClaims"
+            palette="neutral"
+        />
 
-        <div class="p-4">
-            <template v-if="jsonPreview">
+        <p v-if="!jsonPreview" role="alert" class="flex items-center gap-2 text-sm text-danger">
+            <i class="pi pi-exclamation-circle shrink-0" aria-hidden="true" />
+            Invalid JSON
+        </p>
+
+        <div class="flex flex-wrap items-center gap-2">
+            <Button label="Browse" icon="pi pi-search" severity="secondary" outlined @click="emit('browse')" />
+            <Button label="Delete" icon="pi pi-trash" severity="danger" text class="ml-auto" @click="emit('delete')" />
+        </div>
+
+        <div v-if="jsonPreview">
+            <button
+                type="button"
+                class="flex min-h-11 items-center gap-2 text-sm font-medium text-accent hover:underline"
+                :aria-expanded="showDetails"
+                @click="showDetails = !showDetails"
+            >
+                <i class="pi text-xs" :class="showDetails ? 'pi-chevron-down' : 'pi-chevron-right'" aria-hidden="true" />
+                {{ showDetails ? 'Hide details' : 'Show details' }}
+            </button>
+
+            <div v-if="showDetails" class="mt-2 rounded-card border border-line bg-surface p-4">
                 <CredentialClaims :entries="jsonPreview" tone="muted" />
                 <p v-if="hiddenKeyCount > 0" class="mt-2 px-1 text-xs text-fg-muted">
                     … and {{ hiddenKeyCount }} more key{{ hiddenKeyCount !== 1 ? 's' : '' }}
                 </p>
-            </template>
-
-            <p v-else role="alert" class="flex items-center gap-2 py-2 text-sm text-danger">
-                <i class="pi pi-exclamation-circle shrink-0" aria-hidden="true" />
-                Invalid JSON
-            </p>
+            </div>
         </div>
-
-        <footer class="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">
-            <Button label="Browse" icon="pi pi-search" severity="secondary" outlined @click="emit('browse')" />
-            <Button label="Delete" icon="pi pi-trash" severity="danger" text class="ml-auto" @click="emit('delete')" />
-        </footer>
     </article>
 </template>
