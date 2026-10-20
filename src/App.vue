@@ -3,7 +3,7 @@ import Toast from 'primevue/toast';
 import ConfirmDialog from 'primevue/confirmdialog';
 import ProgressSpinner from 'primevue/progressspinner';
 import {onMounted, ref, watch} from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import OpenIdDeepLinkHandler from './components/openid/OpenIdDeepLinkHandler.vue';
@@ -13,6 +13,7 @@ import {useNavigation} from "./composables/useNavigation.ts";
 
 const appWindow = getCurrentWindow();
 const router = useRouter();
+const route = useRoute();
 const nav = useNavigation();
 const openidQuery = ref<string>('');
 const openidCredentialOfferQuery = ref<string>('');
@@ -72,13 +73,12 @@ watch([isOnboarded, isUnlocked], () => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-50">
+    <div class="min-h-dvh bg-page text-fg">
         <ConfirmDialog />
         <Toast position="top-center" />
 
         <OpenIdDeepLinkHandler :uri="openidQuery" />
         <OpenIdCredentialOfferDeepLinkHandler :uri="openidCredentialOfferQuery" />
-        test {{isOnboarded}} {{isUnlocked}}
         <div v-if="isStarting">
             <div class="w-full h-full flex items-center justify-center">
                 <ProgressSpinner />
@@ -86,7 +86,9 @@ watch([isOnboarded, isUnlocked], () => {
         </div>
         <div v-else>
             <Suspense>
-                <router-view :key="$route.fullPath" />
+                <!-- Keyed on the layout route, not the full path: the app shell (AppLayout) stays mounted across
+                     navigations and keys its own page view on the full path. -->
+                <router-view :key="route.matched[0]?.path ?? route.fullPath" />
                 <template #fallback>
                     <div class="w-full h-full flex items-center justify-center">
                         <ProgressSpinner />

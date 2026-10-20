@@ -5,7 +5,7 @@ import { useStorageStore } from './stores/storage.ts';
 import { useSessionStore } from './stores/sessionStore.ts';
 import router from './router';
 import PrimeVue from 'primevue/config';
-import Aura from '@primeuix/themes/aura';
+import { CarmentisPreset } from './theme/carmentisPreset.ts';
 import ToastService from 'primevue/toastservice';
 import ConfirmationService from 'primevue/confirmationservice';
 import {QueryClient, VueQueryPlugin} from '@tanstack/vue-query';
@@ -57,9 +57,9 @@ app.use(VueQueryPlugin, {
 })
 app.use(PrimeVue, {
     theme: {
-        preset: Aura,
+        preset: CarmentisPreset,
         options: {
-            darkModeSelector: '.invalid-dark-mode',
+            darkModeSelector: '.dark',
         },
     },
 });
