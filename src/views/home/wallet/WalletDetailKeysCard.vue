@@ -1,48 +1,27 @@
 <script setup lang="ts">
-import InputText from "primevue/inputtext";
-import Card from "primevue/card";
-import SplitButton from "primevue/splitbutton";
-import Password from "primevue/password";
-import Divider from "primevue/divider";
-import Checkbox from "primevue/checkbox";
-import {capitalize, computed, ref} from "vue";
-import {useClipboard} from "../../../composables/useClipboard.ts";
-import {computedAsync, useAsyncState} from "@vueuse/core";
+import {computed, ref} from "vue";
+import {useAsyncState} from "@vueuse/core";
 import * as walletRepo from "../../../db/repositories/walletRepository.ts";
-import * as orgRepo from "../../../db/repositories/organizationRepository.ts";
-import {
-    CryptoEncoderFactory,
-    SignatureSchemeId
-} from "@cmts-dev/carmentis-sdk-core";
+import {SignatureSchemeId} from "@cmts-dev/carmentis-sdk-core";
 import {useRoute} from "vue-router";
-import {useSessionStore} from "../../../stores/sessionStore.ts";
-import Select from "primevue/select";
 import {useWalletStore} from "../../../stores/walletStore.ts";
 import {useToast} from "primevue/usetoast";
 import Button from "primevue/button";
-import Textarea from "primevue/textarea";
 import {KeyType} from "../../../types/types.ts";
 import {match, P} from "ts-pattern";
-import FieldNameAndDescription from "../../../components/utils/FieldNameAndDescription.vue";
-
+import UiCard from "../../../components/ui/UiCard.vue";
+import SecretField from "../../../components/ui/SecretField.vue";
+import CopyableValue from "../../../components/ui/CopyableValue.vue";
+import JsonBlock from "../../../components/ui/JsonBlock.vue";
+import StatusBadge from "../../../components/ui/StatusBadge.vue";
 
 const route = useRoute();
 const walletStore = useWalletStore(Number(route.params.walletId));
-const clipboard = useClipboard();
+const walletId = computed(() => Number(route.params.walletId));
 
-const walletIdString = ref(route.params.walletId);
-const walletId = computed(() => Number(walletIdString.value));
-console.log(`Loading keys for wallet with id ${walletIdString.value}`)
-
-const { state: wallet, execute: fetchWallet } = useAsyncState(
+const { state: wallet } = useAsyncState(
     () => walletRepo.getWalletById(walletId.value),
     null,
-    { immediate: true },
-);
-
-const { state: organizations, execute: fetchOrgs } = useAsyncState(
-    () => orgRepo.getOrganizationsByWalletId(walletId.value),
-    [],
     { immediate: true },
 );
 
@@ -88,9 +67,6 @@ const {execute: checkKeyPair} = useAsyncState(
     undefined,
 )
 
-// chosen signature scheme
-const isPrivateJwkVisible = ref(false);
-
 // JWK representations, only displayed for JWK wallets
 const privateJwkText = computed(() => {
     const jwk = walletStore.walletPrivateJwk.value;
@@ -107,156 +83,80 @@ const signatureScheme = computed(() => {
         .otherwise((wallet) => wallet.schemeId)
 });
 
-
-/*
-// Copy menu items
-const copyMenuItems = computed(() => {
-    const alwaysAvailableItems = {
-            label: 'Copy Seed',
-            icon: 'pi pi-copy',
-            command: async () => {
-                if (!wallet.value) return;
-                const seed = await sessionStore.getWalletSeed(wallet.value.id);
-                clipboard.copyToClipboard(seed, 'Seed');
-            },
-        };
-
-    const extraOptions = match(chosenKeyFormat.value)
-        .with(KeyFormat.CMTS, () => [
-            {
-                label: 'Copy Public Key',
-                icon: 'pi pi-copy',
-                command: () => clipboard.copyToClipboard(pk.value, 'Public key'),
-            },
-            {
-                label: 'Copy Private Key',
-                icon: 'pi pi-copy',
-                command: () => clipboard.copyToClipboard(sk.value, 'Private key'),
-            },
-        ])
-        .with(KeyFormat.DID_CMTS, () => [
-            {
-                label: 'Copy DID',
-                icon: 'pi pi-copy',
-                command: () => {
-                    if (didCmtsFormat.value) {
-                        clipboard.copyToClipboard(JSON.stringify(didCmtsFormat.value), 'DID JWK');
-                    }
-                }
-            },
-        ])
-        .otherwise(() => [])
-
-    return [alwaysAvailableItems, ...extraOptions];
-});
-
- */
+// The section is closed on every visit: no secret is rendered until the user opens it and reveals a field.
+const isOpen = ref(false);
 </script>
+
 <template>
-    <!-- Wallet Keys Card -->
-    <Card class="w-full">
-        <template #title>
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <i class="pi pi-key text-xl"></i>
-                    <span>
-                        Wallet Keys
-                           <span class="px-2 py-1 text-xs font-semibold text-blue-600 bg-blue-100 rounded-md">
-                                {{walletStore.walletKeyType}}
-                            </span>
-                    </span>
-                </div>
-                <div class="flex gap-2">
+    <UiCard
+        title="Security and keys"
+        subtitle="Your cryptographic keys. Anyone with your private key can control this wallet."
+    >
+        <template #header-actions>
+            <button
+                type="button"
+                class="inline-flex min-h-11 items-center gap-2 rounded-control px-3 text-sm font-medium text-accent hover:bg-accent-soft"
+                :aria-expanded="isOpen"
+                aria-controls="wallet-keys-body"
+                @click="isOpen = !isOpen"
+            >
+                {{ isOpen ? 'Hide' : 'Show' }}
+                <i class="pi text-xs" :class="isOpen ? 'pi-chevron-up' : 'pi-chevron-down'" aria-hidden="true" />
+            </button>
+        </template>
 
-                    <Button
-                        label="Check keys"
-                        icon="pi pi-check"
-                        size="small"
-                        aria-placeholder="Perform a self-test of keys"
-                        @click="() => checkKeyPair()"
-                    />
-
-
-                </div>
+        <div v-if="isOpen" id="wallet-keys-body" class="space-y-6">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <StatusBadge tone="neutral" icon="pi-key" :label="`Key type: ${walletStore.walletKeyType.value}`" />
+                <Button
+                    label="Check keys"
+                    icon="pi pi-check"
+                    severity="secondary"
+                    outlined
+                    size="small"
+                    @click="() => checkKeyPair()"
+                />
             </div>
-        </template>
-        <template #subtitle>
-            <p class="text-sm text-surface-500">
-                Your cryptographic keys. Keep the private key strictly
-                confidential — anyone with access to them can control this wallet.
-            </p>
-        </template>
-        <template #content>
-            <div class="space-y-4">
-                <div class="w-full">
-                    <FieldNameAndDescription name="Private key" description="Your private key"/>
-                    <Password
-                        v-model="walletStore.encodedWalletPrivateKey.value"
-                        :feedback="false"
-                        toggleMask
-                        class="w-full"
-                        input-class="w-full"
-                    />
-                </div>
-                <div class="w-full">
-                    <FieldNameAndDescription name="Public key" description="Your public key"/>
-                    <InputText :value="walletStore.encodedWalletPublicKey.value" readonly class="w-full" />
-                </div>
-                <div class="w-full">
-                    <FieldNameAndDescription name="Actor keys passphrase" description="Your generated passphrase used to generate technical access keys on-demand"/>
-                    <Password
-                        v-model="walletStore.walletKeyActorKeysPassphrase.value"
-                        :feedback="false"
-                        toggleMask
-                        class="w-full"
-                        input-class="w-full"
-                    />
-                </div>
 
-                <!-- JWK-specific section -->
-                <template v-if="walletStore.walletKeyType.value === KeyType.JWK">
-                    <Divider />
-                    <div class="w-full">
-                        <div class="flex items-end justify-between gap-2">
-                            <FieldNameAndDescription name="Public JWK" description="Your public key in JWK format."/>
-                            <Button
-                                icon="pi pi-copy"
-                                outlined
-                                type="button"
-                                :disabled="!publicJwkText"
-                                @click="clipboard.copyToClipboard(publicJwkText, 'Public JWK')"
-                                aria-label="Copy public JWK"
-                            />
-                        </div>
-                        <Textarea :value="publicJwkText" readonly rows="5" class="w-full font-mono text-xs" />
-                    </div>
-                    <div class="w-full">
-                        <div class="flex items-end justify-between gap-2">
-                            <FieldNameAndDescription name="Private JWK" description="Your private key in JWK format. Keep it strictly confidential."/>
-                            <div class="flex gap-2">
-                            <Button
-                                :icon="isPrivateJwkVisible ? 'pi pi-eye-slash' : 'pi pi-eye'"
-                                :label="isPrivateJwkVisible ? 'Hide' : 'Show'"
-                                outlined
-                                type="button"
-                                @click="isPrivateJwkVisible = !isPrivateJwkVisible"
-                                :aria-label="isPrivateJwkVisible ? 'Hide private JWK' : 'Show private JWK'"
-                            />
-                            <Button
-                                icon="pi pi-copy"
-                                outlined
-                                type="button"
-                                :disabled="!privateJwkText"
-                                @click="clipboard.copyToClipboard(privateJwkText, 'Private JWK')"
-                                aria-label="Copy private JWK"
-                            />
-                            </div>
-                        </div>
-                        <Textarea v-if="isPrivateJwkVisible" :value="privateJwkText" readonly rows="8" class="w-full font-mono text-xs" />
-                        <InputText v-else value="••••••••••••••••" readonly class="w-full" />
-                    </div>
-                </template>
+            <SecretField
+                label="Private key"
+                description="Gives full control of this wallet. Never share it."
+                :value="walletStore.encodedWalletPrivateKey.value"
+            />
+
+            <div>
+                <p class="text-sm font-medium text-fg">Public key</p>
+                <p class="mb-1 text-xs text-fg-muted">Safe to share. Others use it to send you tokens.</p>
+                <CopyableValue
+                    :value="walletStore.encodedWalletPublicKey.value"
+                    label="public key"
+                    :head="14"
+                    :tail="10"
+                />
             </div>
-        </template>
-    </Card>
+
+            <SecretField
+                label="Actor keys passphrase"
+                description="Used to generate technical access keys on demand. Keep it private."
+                multiline
+                :value="walletStore.walletKeyActorKeysPassphrase.value"
+            />
+
+            <!-- JWK-specific section -->
+            <div v-if="walletStore.walletKeyType.value === KeyType.JWK" class="space-y-4 border-t border-line pt-5">
+                <h3 class="text-sm font-semibold text-fg">Advanced: JWK format</h3>
+                <JsonBlock title="Public JWK" :value="publicJwkText" />
+                <SecretField
+                    label="Private JWK"
+                    description="Your private key in JWK format. Never share it."
+                    multiline
+                    :value="privateJwkText"
+                />
+            </div>
+        </div>
+
+        <p v-else class="text-sm text-fg-muted">
+            Hidden by default. Open this section to view or copy your keys.
+        </p>
+    </UiCard>
 </template>

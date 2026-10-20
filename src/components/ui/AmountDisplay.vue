@@ -2,34 +2,47 @@
 import { computed } from 'vue';
 
 const props = withDefaults(defineProps<{
-    /** Amount in display units (anything whose string form is a decimal number). */
+    /**
+     * The amount in CMTS: a number, a decimal string, or an SDK token (anything with `getAmountAsCMTS()`).
+     */
     value: unknown;
     unit?: string;
-    /** Fixed number of decimals. Callers that know the token precision should set it. */
+    /** Minimum number of decimals, always shown. */
     decimals?: number;
+    /** Extra decimals shown only when they are not zero (the token has 5 decimals). */
+    maxDecimals?: number;
     size?: 'hero' | 'default' | 'sm';
 }>(), {
     unit: 'CMTS',
     decimals: 2,
+    maxDecimals: 5,
     size: 'default',
 });
 
 const SIZES = {
     hero: 'text-amount text-fg',
     default: 'text-lg font-semibold text-fg',
-    sm: 'text-sm font-medium text-fg-muted',
+    sm: 'text-sm font-medium text-fg',
 };
 
+function toNumber(value: unknown): number | null {
+    if (value && typeof value === 'object' && 'getAmountAsCMTS' in value && typeof value.getAmountAsCMTS === 'function') {
+        return Number(value.getAmountAsCMTS());
+    }
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string' && /^-?\d+(\.\d+)?$/.test(value.trim())) return Number(value);
+    return null;
+}
+
 const parsed = computed(() => {
-    const raw = String(props.value ?? '').trim();
-    // Anything that is not a plain decimal number is shown untouched, and without a unit.
-    if (!/^-?\d+(\.\d+)?$/.test(raw)) return { text: raw || '—', numeric: false };
+    const amount = toNumber(props.value);
+    // Anything that is not an amount is shown untouched, and without a unit.
+    if (amount === null || Number.isNaN(amount)) return { text: String(props.value ?? '').trim() || '—', numeric: false };
     const format = new Intl.NumberFormat(undefined, {
         minimumFractionDigits: props.decimals,
-        maximumFractionDigits: props.decimals,
+        maximumFractionDigits: Math.max(props.decimals, props.maxDecimals),
     });
-    // Modern engines format decimal strings exactly; older ones fall back to a Number.
-    return { text: format.format(raw as unknown as number), numeric: true };
+    return { text: format.format(amount), numeric: true };
 });
 </script>
 

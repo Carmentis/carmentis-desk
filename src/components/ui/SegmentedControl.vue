@@ -33,7 +33,7 @@ function onKeydown(event: KeyboardEvent, index: number) {
     <div
         role="radiogroup"
         :aria-label="props.ariaLabel"
-        class="inline-flex max-w-full rounded-control bg-surface-muted p-1"
+        class="flex w-full rounded-control bg-surface-muted p-1 sm:inline-flex sm:w-auto"
     >
         <button
             v-for="(option, index) in props.options"
@@ -42,7 +42,7 @@ function onKeydown(event: KeyboardEvent, index: number) {
             role="radio"
             :aria-checked="model === option.value"
             :tabindex="model === option.value ? 0 : -1"
-            class="inline-flex min-h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-[calc(var(--radius-control)-2px)] px-4 text-sm font-medium transition-colors"
+            class="inline-flex min-h-11 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-[calc(var(--radius-control)-2px)] px-2 text-sm sm:px-4 font-medium transition-colors"
             :class="model === option.value
                 ? 'bg-surface text-fg shadow-card'
                 : 'text-fg-muted hover:text-fg'"

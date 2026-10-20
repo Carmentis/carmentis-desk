@@ -1,152 +1,129 @@
 <script setup lang="ts">
-import Card from "primevue/card";
-import Button from "primevue/button";
-import {computed, ref} from "vue";
-import {useClipboard} from "../../../composables/useClipboard.ts";
+import { computed, ref } from 'vue';
+import Button from 'primevue/button';
+import UiCard from '../../../components/ui/UiCard.vue';
+import AmountDisplay from '../../../components/ui/AmountDisplay.vue';
+import EmptyState from '../../../components/ui/EmptyState.vue';
+import ErrorState from '../../../components/ui/ErrorState.vue';
+import SkeletonBlock from '../../../components/ui/SkeletonBlock.vue';
 import WalletDetailTransactionsHistoryDialog
-    from "./components/transactionsHistory/WalletDetailTransactionsHistoryDialog.vue";
-import WalletDetailTokenTransferDialog from "./WalletDetailTokenTransferDialog.vue";
-import WalletDetailBreakdownDetailsDialog from "./WalletDetailBreakdownDetailsDialog.vue";
-import {useCurrentWallet} from "../../../composables/useCurrentWallet.ts";
+    from './components/transactionsHistory/WalletDetailTransactionsHistoryDialog.vue';
+import WalletDetailTokenTransferDialog from './WalletDetailTokenTransferDialog.vue';
+import WalletDetailBreakdownDetailsDialog from './WalletDetailBreakdownDetailsDialog.vue';
+import WalletDetailReceiveDialog from './WalletDetailReceiveDialog.vue';
+import { useCurrentWallet } from '../../../composables/useCurrentWallet.ts';
 
-const clipboard = useClipboard();
-
-const {useAccountBreakdownQuery, useAccountIdQuery} = useCurrentWallet();
+const { useAccountBreakdownQuery, useAccountIdQuery, useAccountStateQuery } = useCurrentWallet();
 
 const breakdownQuery = useAccountBreakdownQuery();
 const accountIdQuery = useAccountIdQuery();
+const accountStateQuery = useAccountStateQuery();
 
 const showBreakdownDetailsDialog = ref(false);
 const showTokenTransferDialog = ref(false);
+const showReceiveDialog = ref(false);
 const showAccountTransactionsHistory = ref(false);
-const moreMenuOpen = ref(false);
-const hasError = computed(() => breakdownQuery.error.value || accountIdQuery.error.value)
-const isLoading = computed(() => accountIdQuery.isLoading.value || breakdownQuery.isLoading.value)
+
+const isLoading = computed(() =>
+    accountIdQuery.isLoading.value || accountStateQuery.isLoading.value || breakdownQuery.isLoading.value,
+);
+const error = computed(() =>
+    breakdownQuery.error.value ?? accountStateQuery.error.value ?? accountIdQuery.error.value,
+);
+const breakdown = computed(() => breakdownQuery.data.value);
+const updatedAt = computed(() =>
+    breakdownQuery.dataUpdatedAt.value ? new Date(breakdownQuery.dataUpdatedAt.value).toLocaleTimeString() : '',
+);
+
+function retry() {
+    accountIdQuery.refetch();
+    accountStateQuery.refetch();
+    breakdownQuery.refetch();
+}
 </script>
+
 <template>
+    <UiCard title="Balance">
+        <template v-if="updatedAt && breakdown" #header-actions>
+            <span class="text-xs text-fg-muted">Updated {{ updatedAt }}</span>
+        </template>
 
-    <!-- No account found on chain Card -->
-    <Card v-if="isLoading || hasError || !breakdownQuery.data.value" class="w-full">
-        <template #title>
-            <div class="flex items-center gap-2">
-                <i class="pi pi-wallet text-xl" v-if="!isLoading"></i>
-                <i class="pi pi-sync text-xl" v-if="isLoading"></i>
-                <span>Balance</span>
+        <SkeletonBlock v-if="isLoading" :lines="3" />
+
+        <ErrorState
+            v-else-if="error"
+            title="Balance unavailable"
+            :message="error.message"
+            retryable
+            @retry="retry"
+        />
+
+        <div v-else-if="breakdown" class="space-y-5">
+            <!-- Spendable is what the user cares about; the rest is secondary -->
+            <div>
+                <p class="text-sm text-fg-muted">Spendable</p>
+                <AmountDisplay :value="breakdown.getSpendable()" size="hero" />
             </div>
-        </template>
-        <template #subtitle>
-            <p class="text-sm text-surface-500">
-                Your on-chain token holdings broken down by spendable, vested, and staked amounts.
-            </p>
-        </template>
-        <template #content>
-            <div class="text-center py-12">
-                <i class="pi pi-exclamation-circle text-3xl text-amber-500 mb-2"></i>
-                <h1 class="text-2xl font-bold text-gray-900 mb-2">No account found</h1>
-                <p class="text-gray-600 text-sm">Purchase tokens to see your balance.</p>
+
+            <dl class="grid gap-2 sm:grid-cols-3">
+                <div
+                    v-for="item in [
+                        { label: 'Staked', value: breakdown.getStaked() },
+                        { label: 'Vested', value: breakdown.getVested() },
+                        { label: 'Escrowed', value: breakdown.getEscrowed() },
+                    ]"
+                    :key="item.label"
+                    class="flex items-baseline justify-between gap-3 rounded-control bg-surface-muted px-3 py-2 sm:block"
+                >
+                    <dt class="text-xs text-fg-muted">{{ item.label }}</dt>
+                    <dd><AmountDisplay :value="item.value" size="sm" /></dd>
+                </div>
+            </dl>
+
+            <div class="grid grid-cols-3 gap-2">
+                <Button label="Send" icon="pi pi-send" icon-pos="top" @click="showTokenTransferDialog = true" />
+                <Button
+                    label="Receive"
+                    icon="pi pi-download"
+                    icon-pos="top"
+                    severity="secondary"
+                    outlined
+                    @click="showReceiveDialog = true"
+                />
+                <Button
+                    label="History"
+                    icon="pi pi-clock"
+                    icon-pos="top"
+                    severity="secondary"
+                    outlined
+                    @click="showAccountTransactionsHistory = true"
+                />
             </div>
-        </template>
-    </Card>
 
-    <!-- Balance Card -->
-    <Card v-else-if="breakdownQuery.data.value" class="w-full">
-        <template #title>
-            <div class="flex flex-wrap items-center justify-between gap-2">
-                <div class="flex items-center gap-2">
-                    <i class="pi pi-wallet text-xl"></i>
-                    <span>Balance</span>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                    <span v-if="breakdownQuery.dataUpdatedAt.value" class="text-xs text-gray-500">
-                        {{ new Date(breakdownQuery.dataUpdatedAt.value).toLocaleString() }}
-                    </span>
-                    <Button
-                        @click="showTokenTransferDialog = true"
-                        label="Transfer"
-                        icon="pi pi-send"
-                        size="small"
-                    />
-                    <Button
-                        @click="() => showAccountTransactionsHistory = true"
-                        label="History"
-                        icon="pi pi-clock"
-                        size="small"
-                    />
-                    <!-- More menu -->
-                    <div class="relative">
-                        <Button
-                            @click="moreMenuOpen = !moreMenuOpen"
-                            icon="pi pi-ellipsis-h"
-                            text
-                            rounded
-                            size="small"
-                            severity="secondary"
-                        />
-                        <div
-                            v-if="moreMenuOpen"
-                            class="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1"
-                            @click.stop
-                        >
-                            <button
-                                class="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left flex items-center gap-2 transition-colors"
-                                @click="showBreakdownDetailsDialog = true; moreMenuOpen = false"
-                            >
-                                <i class="pi pi-eye text-xs" />
-                                See Details
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </template>
-        <template #subtitle>
-            <p class="text-sm text-surface-500">
-                Your on-chain token holdings broken down by spendable, vested, and staked amounts.
-            </p>
-        </template>
-        <template #content>
-            <div class="flex flex-col grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="border-2 border-gray-50 rounded-lg p-4">
-                    <div class="text-sm text-gray-600 font-medium mb-1">Account ID</div>
-                    <div class="font-bold text-gray-900 text-sm">
-                        {{ accountIdQuery.data.value }}
-                    </div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <div class="text-sm text-gray-600 font-medium mb-1">Spendable</div>
-                    <div class="text-2xl font-bold text-gray-900">
-                        {{ breakdownQuery.data.value.getSpendable() }}
-                    </div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <div class="text-sm text-gray-600 font-medium mb-1">Staked</div>
-                    <div class="text-2xl font-bold text-gray-900">
-                        {{ breakdownQuery.data.value.getStaked() }}
-                    </div>
-                </div>
-                <div class="flex gap-4">
-                    <div class="bg-gray-50 rounded-lg p-4 w-1/2">
-                        <div class="text-sm text-gray-600 font-medium mb-1">Vested</div>
-                        <div class="text-2xl font-bold text-gray-900">
-                            {{ breakdownQuery.data.value.getVested() }}
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg p-4 w-1/2">
-                        <div class="text-sm text-gray-600 font-medium mb-1">Escrowed</div>
-                        <div class="text-2xl font-bold text-gray-900">
-                            {{ breakdownQuery.data.value.getEscrowed() }}
-                        </div>
-                    </div>
-                </div>
+            <Button
+                label="Staked, vested and escrowed details"
+                icon="pi pi-list"
+                text
+                severity="secondary"
+                size="small"
+                class="w-full sm:w-auto"
+                @click="showBreakdownDetailsDialog = true"
+            />
+        </div>
 
-
-
-            </div>
-        </template>
-    </Card>
+        <EmptyState
+            v-else
+            icon="pi-wallet"
+            title="No account on the blockchain yet"
+            description="Your account is created the first time this wallet receives tokens."
+        >
+            <Button label="Receive tokens" icon="pi pi-download" @click="showReceiveDialog = true" />
+        </EmptyState>
+    </UiCard>
 
     <!-- dialogs -->
     <WalletDetailTokenTransferDialog v-model:isOpen="showTokenTransferDialog" />
+    <WalletDetailReceiveDialog v-model:isOpen="showReceiveDialog" />
     <WalletDetailTransactionsHistoryDialog v-model:is-open="showAccountTransactionsHistory" />
     <WalletDetailBreakdownDetailsDialog v-model:isOpen="showBreakdownDetailsDialog" />
 </template>

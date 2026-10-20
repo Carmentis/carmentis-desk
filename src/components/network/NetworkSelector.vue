@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue';
-import SelectButton from 'primevue/selectbutton';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import FieldNameAndDescription from "../utils/FieldNameAndDescription.vue";
+import SegmentedControl from "../ui/SegmentedControl.vue";
 import {Network} from "../../types/types.ts";
 import {
     NETWORK_PRESETS,
@@ -34,60 +34,63 @@ function updateField(field: 'node' | 'indexer', value: string | undefined) {
 <template>
     <div class="space-y-4">
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <p class="mb-1 text-sm font-medium text-fg">
                 Network
-                <span class="text-red-500">*</span>
-            </label>
-            <SelectButton
-                v-model="selectedPreset"
-                :options="NETWORK_PRESETS"
-                optionLabel="label"
-                optionValue="value"
-                :allowEmpty="false"
-                class="w-full"
-            />
+                <span class="text-danger" aria-hidden="true">*</span>
+            </p>
+            <SegmentedControl v-model="selectedPreset" :options="NETWORK_PRESETS" ariaLabel="Network" />
         </div>
 
         <div v-if="!isCustom">
             <Button
                 @click="showDetails = !showDetails"
-                :label="showDetails ? 'Hide settings' : 'Customize'"
+                :label="showDetails ? 'Hide settings' : 'Customize endpoints'"
                 type="button"
                 severity="secondary"
                 text
                 size="small"
                 icon="pi pi-pencil"
+                :aria-expanded="showDetails"
             />
         </div>
 
         <div v-if="detailsVisible" class="space-y-4">
-            <div v-if="!isCustom" class="border-t pt-4"></div>
             <div>
                 <FieldNameAndDescription
-                    name="Node Endpoint"
-                    description="Indicates node endpoint in which transactions are published"
+                    name="Node endpoint"
+                    description="The node your transactions are published to."
+                    input-id="node-endpoint"
                     required
                 />
                 <InputText
                     id="node-endpoint"
                     :modelValue="network.node"
                     @update:modelValue="updateField('node', $event)"
+                    inputmode="url"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    spellcheck="false"
                     placeholder="https://ares.testnet.carmentis.io"
-                    class="w-full"
+                    fluid
                 />
             </div>
             <div>
                 <FieldNameAndDescription
-                    name="Indexer Endpoint"
-                    description="Indicates indexer endpoint used to fetch data from the blockchain."
+                    name="Indexer endpoint"
+                    description="The indexer used to read data from the blockchain."
+                    input-id="indexer-endpoint"
                     required
                 />
                 <InputText
                     id="indexer-endpoint"
                     :modelValue="network.indexer"
                     @update:modelValue="updateField('indexer', $event)"
+                    inputmode="url"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    spellcheck="false"
                     placeholder="https://indexer.testnet.carmentis.io"
-                    class="w-full"
+                    fluid
                 />
             </div>
         </div>

@@ -8,8 +8,11 @@ const props = withDefaults(defineProps<{
     header: string;
     /** Set to false while an action is running, so the dialog cannot be dismissed half-way. */
     closable?: boolean;
+    /** Width of the centered modal (md: 32rem, lg: 48rem). Bottom sheets are always full width. */
+    size?: 'md' | 'lg';
 }>(), {
     closable: true,
+    size: 'md',
 });
 
 const emit = defineEmits<{ (e: 'update:visible', value: boolean): void }>();
@@ -22,7 +25,7 @@ const isDesktop = useBreakpoints(breakpointsTailwind).greaterOrEqual('md');
 const pt = computed(() => ({
     root: {
         class: isDesktop.value
-            ? 'w-[32rem]! max-w-[calc(100vw-2rem)]!'
+            ? [props.size === 'lg' ? 'w-[48rem]!' : 'w-[32rem]!', 'max-w-[calc(100vw-2rem)]!']
             : 'm-0! w-full! max-w-none! max-h-[90dvh]! rounded-b-none! rounded-t-[var(--radius-sheet)]! shadow-sheet!',
     },
     content: { class: 'overflow-y-auto' },

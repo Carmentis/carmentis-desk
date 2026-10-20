@@ -1,22 +1,20 @@
 <script setup lang="ts">
-import Card from "primevue/card";
 import Button from "primevue/button";
-import {useAsyncState} from "@vueuse/core";
 import {computed, ref} from "vue";
 import {useRoute, useRouter} from "vue-router";
 import {useToast} from "primevue/usetoast";
 import InputText from "primevue/inputtext";
-import Dialog from "primevue/dialog";
-import DataTable, {DataTableRowClickEvent} from "primevue/datatable";
-import Column from "primevue/column";
 import {useCurrentWallet} from "../../../composables/useCurrentWallet.ts";
 import {OrganizationDto} from "../../../api/indexer/model";
-import Tab from "primevue/tab";
-import TabList from "primevue/tablist";
-import Tabs from "primevue/tabs";
-import TabPanels from "primevue/tabpanels";
-import TabPanel from "primevue/tabpanel";
-import {useCurrentDate} from "../../../stores/useCurrentDate.ts";
+import ResponsiveDialog from "../../../components/ui/ResponsiveDialog.vue";
+import SegmentedControl from "../../../components/ui/SegmentedControl.vue";
+import StatusBadge from "../../../components/ui/StatusBadge.vue";
+import CopyableValue from "../../../components/ui/CopyableValue.vue";
+import EmptyState from "../../../components/ui/EmptyState.vue";
+import ErrorState from "../../../components/ui/ErrorState.vue";
+import SkeletonBlock from "../../../components/ui/SkeletonBlock.vue";
+import FieldNameAndDescription from "../../../components/utils/FieldNameAndDescription.vue";
+import type {SegmentedOption} from "../../../components/ui/types.ts";
 
 const toast = useToast();
 const router = useRouter();
@@ -27,36 +25,39 @@ const {walletOrganizations, createOrganization, importExistingOrganization, useF
 const walletId = computed(() => Number(route.params.walletId));
 const showOrgDialog = ref(false);
 const orgName = ref('');
-const orgVbId = ref('');
+const orgNameSubmitted = ref(false);
+const isCreating = ref(false);
 
 const foundOrganizations = useFoundOrganizationsOnchain();
 
 function openCreateOrgDialog() {
     orgName.value = '';
-    orgVbId.value = '';
+    orgNameSubmitted.value = false;
     showOrgDialog.value = true;
 }
 
+const orgNameError = computed(() =>
+    orgNameSubmitted.value && !orgName.value ? 'Enter a name for the organization.' : '',
+);
+
 async function submitOrgDialog() {
-    if (!orgName.value) {
+    orgNameSubmitted.value = true;
+    if (orgNameError.value) return;
+
+    isCreating.value = true;
+    try {
+        await createOrganization(orgName.value);
+
         toast.add({
-            severity: 'error',
-            summary: 'Validation error',
-            detail: 'Organization name is required',
+            severity: 'success',
+            summary: 'Organization created',
+            detail: `Organization "${orgName.value}" created successfully`,
             life: 3000,
         });
-        return;
+        showOrgDialog.value = false;
+    } finally {
+        isCreating.value = false;
     }
-
-    await createOrganization(orgName.value);
-
-    toast.add({
-        severity: 'success',
-        summary: 'Organization created',
-        detail: `Organization "${orgName.value}" created successfully`,
-        life: 3000,
-    });
-    showOrgDialog.value = false;
 }
 
 function visitOrganization(orgId: number) {
@@ -77,171 +78,162 @@ async function importOrganization(
     });
     toast.add({
         severity: 'success',
-        summary: 'Organization created',
-        detail: `Organization "${orgName.value}" created successfully`,
+        summary: 'Organization imported',
+        detail: `Organization "${existingOrganization.name}" imported successfully`,
         life: 3000,
     });
 }
 
+// ---- presentation ----
+type OrganizationsView = 'local' | 'on-chain';
+const view = ref<OrganizationsView>('local');
 
-const activeTab = ref("local");
-const now = useCurrentDate();
-const onChainOrganizationsCounter = computed(() => {
-    if (foundOrganizations.isLoading.value) {
-        return '.'.repeat(now.value.getSeconds() % 3 + 1);
-    }
+const onChainCount = computed(() => {
+    if (foundOrganizations.isLoading.value) return '';
+    if (foundOrganizations.error.value) return ' (!)';
+    return foundOrganizations.data.value ? ` (${foundOrganizations.data.value.length})` : '';
+});
+const viewOptions = computed<SegmentedOption<OrganizationsView>[]>(() => [
+    { value: 'local', label: `On this device (${walletOrganizations.value.length})` },
+    { value: 'on-chain', label: `On-chain${onChainCount.value}` },
+]);
 
-    if (foundOrganizations.error.value) {
-        return ':(';
-    }
+const place = (city?: string, countryCode?: string) => [city, countryCode].filter(Boolean).join(', ');
 
-    if (foundOrganizations.data.value) {
-        return `(${foundOrganizations.data.value.length})`
-    }
+// A local organization is published once the same organization is found on-chain.
+const onChainIds = computed(() => new Set(foundOrganizations.data.value?.map((o) => o.virtualBlockchainId) ?? []));
+const isPublished = (vbId?: string) => !!vbId && onChainIds.value.has(vbId);
+const canTellPublication = computed(() => !!foundOrganizations.data.value);
 
-    return 0;
-})
+const localIds = computed(() => new Set(walletOrganizations.value.map((o) => o.organizationVbId).filter(Boolean)));
 </script>
 <template>
-
-    <div class="flex flex-wrap items-center justify-between gap-2">
-        <div class="flex items-center gap-2">
-            <i class="pi pi-building text-xl"></i>
-            <span>Organizations </span>
+    <div class="space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold text-fg">Organizations</h2>
+            <Button @click="openCreateOrgDialog" label="New organization" icon="pi pi-plus" />
         </div>
-        <div class="flex flex-wrap gap-2">
-            <Button
-                @click="openCreateOrgDialog"
-                label="Create Org"
-                icon="pi pi-plus"
-                size="small"
-            />
 
-        </div>
+        <SegmentedControl v-model="view" :options="viewOptions" ariaLabel="Where to look for organizations" />
+
+        <!-- On this device -->
+        <template v-if="view === 'local'">
+            <p class="text-sm text-fg-muted">
+                Organizations stored on this device. A draft has not been published on the blockchain yet.
+            </p>
+
+            <div v-if="walletOrganizations.length === 0" class="rounded-card border border-line bg-surface shadow-card">
+                <EmptyState
+                    icon="pi-building"
+                    title="No organizations yet"
+                    description="Create an organization to publish nodes and applications."
+                >
+                    <Button @click="openCreateOrgDialog" label="New organization" icon="pi pi-plus" />
+                </EmptyState>
+            </div>
+
+            <ul v-else class="grid gap-3 lg:grid-cols-2">
+                <li
+                    v-for="org in walletOrganizations"
+                    :key="org.id"
+                    class="min-w-0 space-y-2 rounded-card border border-line bg-surface p-4 shadow-card"
+                >
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="truncate font-semibold text-fg">{{ org.name }}</p>
+                            <p v-if="place(org.city, org.countryCode)" class="truncate text-sm text-fg-muted">
+                                {{ place(org.city, org.countryCode) }}
+                            </p>
+                        </div>
+                        <Button label="Open" icon="pi pi-arrow-right" icon-pos="right" severity="secondary" outlined size="small" @click="visitOrganization(org.id)" />
+                    </div>
+                    <StatusBadge
+                        v-if="canTellPublication"
+                        :tone="isPublished(org.organizationVbId) ? 'success' : 'warning'"
+                        :label="isPublished(org.organizationVbId) ? 'Published' : 'Draft'"
+                        :icon="isPublished(org.organizationVbId) ? 'pi-check-circle' : 'pi-file-edit'"
+                    />
+                    <p v-if="org.website" class="truncate text-sm text-fg-muted">{{ org.website }}</p>
+                    <CopyableValue v-if="org.organizationVbId" :value="org.organizationVbId" label="organization ID" :head="10" :tail="8" />
+                </li>
+            </ul>
+        </template>
+
+        <!-- On-chain -->
+        <template v-else>
+            <p class="text-sm text-fg-muted">
+                Organizations linked to this wallet on the blockchain. Import one to manage it here.
+            </p>
+
+            <SkeletonBlock v-if="foundOrganizations.isLoading.value" :lines="3" height-class="h-16" />
+
+            <div v-else-if="foundOrganizations.error.value" class="rounded-card border border-line bg-surface shadow-card">
+                <ErrorState
+                    title="Could not search the blockchain"
+                    :message="foundOrganizations.error.value.message"
+                    retryable
+                    @retry="foundOrganizations.refetch()"
+                />
+            </div>
+
+            <div v-else-if="!foundOrganizations.data.value?.length" class="rounded-card border border-line bg-surface shadow-card">
+                <EmptyState
+                    icon="pi-building"
+                    title="No organization found on-chain"
+                    description="Organizations you publish with this wallet will appear here."
+                />
+            </div>
+
+            <ul v-else class="grid gap-3 lg:grid-cols-2">
+                <li
+                    v-for="org in foundOrganizations.data.value"
+                    :key="org.virtualBlockchainId"
+                    class="min-w-0 space-y-2 rounded-card border border-line bg-surface p-4 shadow-card"
+                >
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="truncate font-semibold text-fg">{{ org.name }}</p>
+                            <p v-if="place(org.city, org.countryCode)" class="truncate text-sm text-fg-muted">
+                                {{ place(org.city, org.countryCode) }}
+                            </p>
+                        </div>
+                        <Button label="Import" icon="pi pi-download" severity="secondary" outlined size="small" @click="importOrganization(org)" />
+                    </div>
+                    <StatusBadge
+                        :tone="localIds.has(org.virtualBlockchainId) ? 'success' : 'info'"
+                        :label="localIds.has(org.virtualBlockchainId) ? 'In this wallet' : 'Not imported'"
+                        :icon="localIds.has(org.virtualBlockchainId) ? 'pi-check-circle' : 'pi-cloud-download'"
+                    />
+                    <p v-if="org.website" class="truncate text-sm text-fg-muted">{{ org.website }}</p>
+                    <CopyableValue :value="org.virtualBlockchainId" label="organization ID" :head="10" :tail="8" />
+                </li>
+            </ul>
+        </template>
     </div>
 
-    <Tabs v-model:value="activeTab">
-        <TabList>
-            <Tab value="local">Local Organizations ({{ walletOrganizations.length }})</Tab>
-            <Tab value="on-chain">On-Chain Organizations {{onChainOrganizationsCounter}}</Tab>
-        </TabList>
-        <TabPanels>
-            <TabPanel value="local">
-                <div class="mb-4">
-                    <span class="font-bold">Below are displayed the organizations associated with this wallet, found locally.</span>
-                    <div>
-                        If an organization is displayed here, then this organization is stored in the local database.
-                        If an organization is displayed here but not in the on-chain organization, it means that
-                        the organization has been created locally but not published on the blockchain.
-                    </div>
-                </div>
-
-                <div v-if="walletOrganizations.length === 0" class="text-center py-8">
-                    <div
-                        class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3"
-                    >
-                        <i class="pi pi-building text-2xl text-gray-400"></i>
-                    </div>
-                    <p class="text-gray-500 text-sm mb-4">No organizations yet</p>
-                    <div class="flex gap-2 justify-center">
-                        <Button
-                            @click="openCreateOrgDialog"
-                            label="Create Organization"
-                            icon="pi pi-plus"
-                            size="small"
-                        />
-                    </div>
-                </div>
-                <div v-else class="space-y-3">
-                    <DataTable
-                        :value="walletOrganizations"
-                        stripedRows
-                        showGridlines
-                        :paginator="walletOrganizations.length > 10"
-                        :rows="10"
-                        :rowsPerPageOptions="[5, 10, 20, 50]"
-                        responsiveLayout="scroll"
-                        class="text-sm hover:cursor-pointer"
-                        @rowClick=" (event: DataTableRowClickEvent<any>) => visitOrganization(event.data.id)"
-                    >
-                        <Column field="name" header="name" sortable style="min-width: 150px"/>
-                        <Column field="city" header="City" sortable/>
-                        <Column field="countryCode" header="Country Code" sortable/>
-                        <Column field="website" header="Website" sortable/>
-                        <Column field="organizationVbId" header="Organization ID" sortable style="min-width: 150px"/>
-                    </DataTable>
-                </div>
-
-
-
-            </TabPanel>
-
-            <TabPanel value="on-chain">
-                <!-- Applications on-chain -->
-                <div class="mb-4">
-                    <span class="font-bold">Below are displayed the organizations associated with this wallet found on-chain.</span>
-                    <div>
-                        If an organization is displayed here but not in the local organization,
-                        it means that the organization has been created on the blockchain but not yet synchronized with the
-                        local database. To import it, click on the organization.
-                    </div>
-                </div>
-                <div>
-                    <DataTable
-                        :value="foundOrganizations.data.value"
-                        stripedRows
-                        showGridlines
-                        responsiveLayout="scroll"
-                        class="text-sm hover:cursor-pointer"
-                        @rowClick=" (event: DataTableRowClickEvent<any>) => importOrganization(event.data)"
-                    >
-                        <Column field="name" header="name" sortable style="min-width: 150px"></Column>
-                        <Column field="city" header="City" sortable/>
-                        <Column field="countryCode" header="Country Code" sortable/>
-                        <Column field="website" header="Website" sortable/>
-                        <Column field="virtualBlockchainId" header="Organization ID" sortable style="min-width: 150px"/>
-                        <Column>
-                            <template #body>
-                                <Button icon="pi pi-download" title="Import"/>
-                            </template>
-                        </Column>
-                    </DataTable>
-                </div>
-            </TabPanel>
-        </TabPanels>
-    </Tabs>
-
     <!-- Organization Dialog -->
-    <Dialog
-        v-model:visible="showOrgDialog"
-        :header="'Create Organization'"
-        modal
-        class="w-full max-w-md"
-    >
-        <div class="space-y-4">
-            <div>
-                <label for="org-name" class="block text-sm font-medium text-gray-700 mb-2">
-                    Organization Name
-                    <span class="text-red-500">*</span>
-                </label>
-                <InputText
-                    id="org-name"
-                    v-model="orgName"
-                    placeholder="Enter organization name"
-                    class="w-full"
-                />
-            </div>
-
-        </div>
+    <ResponsiveDialog v-model:visible="showOrgDialog" header="New organization" :closable="!isCreating">
+        <form id="create-org-form" novalidate @submit.prevent="submitOrgDialog">
+            <FieldNameAndDescription
+                name="Organization name"
+                input-id="org-name"
+                required
+            />
+            <InputText
+                id="org-name"
+                v-model="orgName"
+                fluid
+                autocomplete="organization"
+                placeholder="e.g. Acme Corp"
+                :invalid="!!orgNameError"
+                :aria-invalid="!!orgNameError"
+                aria-describedby="org-name-error"
+            />
+            <p v-if="orgNameError" id="org-name-error" class="mt-1 text-sm text-danger">{{ orgNameError }}</p>
+        </form>
         <template #footer>
-            <div class="flex justify-end gap-2">
-                <Button label="Cancel" @click="showOrgDialog = false" severity="secondary" outlined />
-                <Button
-                    :label="'Create'"
-                    @click="submitOrgDialog"
-                    icon="pi pi-check"
-                />
-            </div>
+            <Button label="Cancel" severity="secondary" outlined :disabled="isCreating" @click="showOrgDialog = false" />
+            <Button type="submit" form="create-org-form" label="Create" icon="pi pi-check" :loading="isCreating" />
         </template>
-    </Dialog>
+    </ResponsiveDialog>
 </template>

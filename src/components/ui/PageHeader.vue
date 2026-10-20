@@ -33,6 +33,10 @@ const menu = ref<InstanceType<typeof Menu>>();
         <div class="min-w-0 flex-1 self-center">
             <h1 class="truncate text-xl font-semibold text-fg sm:text-2xl">{{ props.title }}</h1>
             <p v-if="props.subtitle" class="truncate text-sm text-fg-muted">{{ props.subtitle }}</p>
+            <!-- Badges and other short metadata under the title -->
+            <div v-if="$slots.meta" class="mt-1 flex flex-wrap items-center gap-2">
+                <slot name="meta" />
+            </div>
         </div>
 
         <div class="flex shrink-0 items-center gap-1">

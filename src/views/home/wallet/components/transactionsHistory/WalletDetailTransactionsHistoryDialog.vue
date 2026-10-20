@@ -1,19 +1,17 @@
 <script setup lang="ts">
-import { useRoute } from 'vue-router';
 import {computed, ref} from 'vue';
-import Card from 'primevue/card';
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
-import ProgressSpinner from 'primevue/progressspinner';
 import InputNumber from 'primevue/inputnumber';
 import Button from 'primevue/button';
-import {computedAsync} from "@vueuse/core";
 import {Transaction} from "./Transaction.ts";
-import Dialog from 'primevue/dialog';
 import {useCurrentWallet} from "../../../../../composables/useCurrentWallet.ts";
+import ResponsiveDialog from "../../../../../components/ui/ResponsiveDialog.vue";
+import CopyableValue from "../../../../../components/ui/CopyableValue.vue";
+import EmptyState from "../../../../../components/ui/EmptyState.vue";
+import ErrorState from "../../../../../components/ui/ErrorState.vue";
+import SkeletonBlock from "../../../../../components/ui/SkeletonBlock.vue";
 
 const {useAccountTransactionsHistory, useHasAccountOnChainQuery} = useCurrentWallet();
-const isOpen = defineModel<boolean>('isOpen');
+const isOpen = defineModel<boolean>('isOpen', { default: false });
 
 // define the limit to use
 const limit = ref(5);
@@ -45,70 +43,83 @@ const transactions = computed(() => {
 </script>
 
 <template>
-    <Dialog v-model:visible="isOpen" modal header="Transactions History" class="w-[95vw] h-[95vh]">
-            <!-- No Account State -->
-        <div v-if="!hasAccount" class="flex flex-col items-center justify-center p-6 text-center">
-            <i class="pi pi-wallet text-4xl text-gray-400 mb-3"></i>
-            <h3 class="text-lg font-semibold mb-2">No Account Yet</h3>
-            <p class="text-gray-600">This wallet does not have an account on the blockchain yet.</p>
-        </div>
+    <ResponsiveDialog v-model:visible="isOpen" header="Transaction history" size="lg">
+        <EmptyState
+            v-if="!hasAccount"
+            icon="pi-wallet"
+            title="No account yet"
+            description="This wallet does not have an account on the blockchain yet."
+        />
 
-            <!-- Loading State -->
-        <div v-else-if="accountHistoryQuery.isLoading.value" class="flex flex-col items-center justify-center p-6">
-            <ProgressSpinner style="width: 50px; height: 50px" strokeWidth="4" />
-            <p class="mt-4 text-gray-600">Loading transaction history...</p>
-        </div>
+        <SkeletonBlock v-else-if="accountHistoryQuery.isLoading.value" :lines="5" height-class="h-12" />
 
+        <ErrorState
+            v-else-if="accountHistoryQuery.error.value"
+            title="History unavailable"
+            :message="accountHistoryQuery.error.value.message"
+            retryable
+            @retry="accountHistoryQuery.refetch()"
+        />
 
-            <!-- Transaction History DataTable -->
-        <div v-else-if="accountHistoryQuery.data.value">
-            <div class="flex flex-wrap items-end gap-4 mb-4">
-                <div class="flex flex-col gap-2">
-                    <label for="limit" class="text-sm font-medium text-gray-600">Limit</label>
-                    <InputNumber
-                        id="limit"
-                        v-model="limit"
-                        :min="1"
-                        :max="20"
-                        showButtons
-                        buttonLayout="horizontal"
-                        inputClass="w-16 text-center"
-                    />
+        <div v-else-if="accountHistoryQuery.data.value" class="space-y-4">
+            <!-- Paging options -->
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                <div>
+                    <label for="limit" class="mb-1 block text-sm font-medium text-fg">Show</label>
+                    <InputNumber input-id="limit" v-model="limit" :min="1" :max="20" suffix=" transactions" fluid />
                 </div>
-                <div class="flex flex-col gap-2">
-                    <label for="higher_than_height" class="text-sm font-medium text-gray-600">From height</label>
-                    <InputNumber
-                        id="higher_than_height"
-                        v-model="higherThanHeight"
-                        :min="0"
-                        showButtons
-                        buttonLayout="horizontal"
-                        inputClass="w-20 text-center"
-                    />
+                <div>
+                    <label for="higher_than_height" class="mb-1 block text-sm font-medium text-fg">From block</label>
+                    <InputNumber input-id="higher_than_height" v-model="higherThanHeight" :min="0" fluid />
                 </div>
                 <Button
                     icon="pi pi-refresh"
-                    label="Refetch"
+                    label="Refresh"
+                    severity="secondary"
+                    outlined
+                    class="col-span-2 sm:col-span-1"
                     :loading="accountHistoryQuery.isFetching.value"
                     @click="() => accountHistoryQuery.refetch()"
                 />
             </div>
-            <DataTable :value="transactions" stripedRows scroll-direction="vertical" scroll-height="400px" class="text-sm">
-                <Column field="height" header="Height" sortable></Column>
-                <Column field="amount" header="Amount" sortable>
-                    <template #body="slotProps">
-                        <div class="flex items-center gap-2">
-                            <i v-if="slotProps.data.isZero" class="pi pi-equals"></i>
-                            <i v-else-if="!slotProps.data.isNegative" class="pi pi-arrow-up text-green-500"></i>
-                            <i v-else class="pi pi-arrow-down text-red-500"></i>
-                            <span>{{ slotProps.data.amount }}</span>
+
+            <EmptyState
+                v-if="transactions.length === 0"
+                icon="pi-clock"
+                title="No transactions"
+                description="Nothing was found for these options."
+            />
+
+            <ul v-else class="divide-y divide-line">
+                <li v-for="(tx, index) in transactions" :key="`${tx.height}-${index}`" class="flex gap-3 py-3">
+                    <span
+                        class="flex size-10 shrink-0 items-center justify-center rounded-full"
+                        :class="tx.isZero
+                            ? 'bg-surface-muted text-fg-muted'
+                            : tx.isNegative ? 'bg-danger-soft text-danger' : 'bg-success-soft text-success'"
+                    >
+                        <i
+                            class="pi"
+                            :class="tx.isZero ? 'pi-equals' : tx.isNegative ? 'pi-arrow-up-right' : 'pi-arrow-down-left'"
+                            aria-hidden="true"
+                        />
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-baseline justify-between gap-3">
+                            <span class="truncate font-medium text-fg">{{ tx.type }}</span>
+                            <span
+                                class="shrink-0 font-semibold tabular-nums"
+                                :class="tx.isZero ? 'text-fg' : tx.isNegative ? 'text-danger' : 'text-success'"
+                            >
+                                <span class="sr-only">{{ tx.isZero ? '' : tx.isNegative ? 'Sent ' : 'Received ' }}</span>{{ !tx.isZero && !tx.isNegative ? '+' : '' }}{{ tx.amount }}
+                            </span>
                         </div>
-                    </template>
-                </Column>
-                <Column field="transferredAt" header="Date" sortable></Column>
-                <Column field="type" header="Type" sortable></Column>
-                <Column field="linkedAccount" header="Linked Account"></Column>
-            </DataTable>
+                        <p class="text-xs text-fg-muted">{{ tx.transferredAt }} · Block {{ tx.height }}</p>
+                        <p v-if="tx.linkedAccount === 'Fees Account'" class="text-xs text-fg-muted">Network fees</p>
+                        <CopyableValue v-else :value="tx.linkedAccount" label="linked account" :head="10" :tail="8" />
+                    </div>
+                </li>
+            </ul>
         </div>
-    </Dialog>
+    </ResponsiveDialog>
 </template>

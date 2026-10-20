@@ -1,19 +1,14 @@
 <script setup lang="ts">
-import {useRoute} from "vue-router";
-import {computed} from "vue";
+import {computed, ref} from "vue";
 import {CMTSToken, TokenUnit} from "@cmts-dev/carmentis-sdk-core";
-import Dialog from "primevue/dialog";
-import Tabs from "primevue/tabs";
-import Tab from "primevue/tab";
-import TabList from "primevue/tablist";
-import TabPanel from "primevue/tabpanel";
-import TabPanels from "primevue/tabpanels";
-import DataTable from "primevue/datatable";
-import Column from "primevue/column";
 import {useCurrentWallet} from "../../../composables/useCurrentWallet.ts";
+import ResponsiveDialog from "../../../components/ui/ResponsiveDialog.vue";
+import SegmentedControl from "../../../components/ui/SegmentedControl.vue";
+import CopyableValue from "../../../components/ui/CopyableValue.vue";
+import EmptyState from "../../../components/ui/EmptyState.vue";
+import type {SegmentedOption} from "../../../components/ui/types.ts";
 
-const route = useRoute();
-const isOpen = defineModel<boolean>('isOpen');
+const isOpen = defineModel<boolean>('isOpen', { default: false });
 const {useAccountStateQuery} = useCurrentWallet();
 
 const accountStateQuery = useAccountStateQuery();
@@ -38,110 +33,88 @@ function formatTimestampPlusDays(timestamp: number, days: number): string {
     if (!timestamp) return '-';
     return new Date((timestamp + days * 86400) * 1000).toLocaleString();
 }
+
+// ---- presentation: one card per lock, the lock type is chosen with a segmented control ----
+type LockKind = 'staking' | 'vesting' | 'escrow';
+interface LockRow { label: string; value: string | number; technical?: boolean }
+interface LockCard { amount: string; rows: LockRow[] }
+
+const kind = ref<LockKind>('staking');
+const options = computed<SegmentedOption<LockKind>[]>(() => [
+    { value: 'staking', label: `Staking (${stakingLocks.value.length})` },
+    { value: 'vesting', label: `Vesting (${vestingLocks.value.length})` },
+    { value: 'escrow', label: `Escrow (${escrowLocks.value.length})` },
+]);
+
+const cards = computed<LockCard[]>(() => {
+    if (kind.value === 'staking') {
+        return stakingLocks.value.map((lock) => ({
+            amount: formatAtomics(lock.amount),
+            rows: [
+                { label: 'Validator node ID', value: lock.validatorNodeId, technical: true },
+                { label: 'Slashed', value: lock.slashed ? 'Yes' : 'No' },
+                { label: 'Planned unlock', value: formatAtomics(lock.plannedUnlockAmountInAtomics) },
+                { label: 'Unlock date', value: formatTimestamp(lock.plannedUnlockTimestamp) },
+            ],
+        }));
+    }
+    if (kind.value === 'vesting') {
+        return vestingLocks.value.map((lock) => ({
+            amount: formatAtomics(lock.amount),
+            rows: [
+                { label: 'Initial vested', value: formatAtomics(lock.initialVestedAmountInAtomics) },
+                { label: 'Cliff start', value: formatTimestamp(lock.cliffStartTimestamp) },
+                { label: 'Cliff (days)', value: lock.cliffDurationDays },
+                { label: 'Vesting (days)', value: lock.vestingDurationDays },
+                { label: 'Vesting start', value: formatTimestampPlusDays(lock.cliffStartTimestamp, lock.cliffDurationDays) },
+                {
+                    label: 'Vesting end',
+                    value: formatTimestampPlusDays(lock.cliffStartTimestamp, lock.cliffDurationDays + lock.vestingDurationDays),
+                },
+            ],
+        }));
+    }
+    return escrowLocks.value.map((lock) => ({
+        amount: formatAtomics(lock.amount),
+        rows: [
+            { label: 'Escrow ID', value: lock.escrowIdentifier, technical: true },
+            { label: 'Emitter', value: lock.fundEmitterAccountId, technical: true },
+            { label: 'Authorizer', value: lock.transferAuthorizerAccountId, technical: true },
+            { label: 'Start', value: formatTimestamp(lock.startTimestamp) },
+            { label: 'Duration (days)', value: lock.durationDays },
+            { label: 'Limit date', value: formatTimestampPlusDays(lock.startTimestamp, lock.durationDays) },
+        ],
+    }));
+});
+
+const EMPTY_TITLES: Record<LockKind, string> = {
+    staking: 'No staking lock',
+    vesting: 'No vesting lock',
+    escrow: 'No escrow lock',
+};
 </script>
+
 <template>
-    <Dialog v-model:visible="isOpen" header="Breakdown Details" modal class="w-[95vw] h-[95vh]">
-        <Tabs value="staking">
-            <TabList>
-                <Tab value="staking">Staking ({{ stakingLocks.length }})</Tab>
-                <Tab value="vesting">Vesting ({{ vestingLocks.length }})</Tab>
-                <Tab value="escrow">Escrow ({{ escrowLocks.length }})</Tab>
-            </TabList>
-            <TabPanels>
-                <!-- Staking locks -->
-                <TabPanel value="staking">
-                    <DataTable :value="stakingLocks" stripedRows scroll-direction="vertical" scroll-height="400px" class="text-sm">
-                        <template #empty>
-                            <div class="text-center py-6 text-surface-500">No staking lock.</div>
-                        </template>
-                        <Column field="amount" header="Amount" sortable>
-                            <template #body="{ data }">{{ formatAtomics(data.amount) }}</template>
-                        </Column>
-                        <Column field="validatorNodeId" header="Validator Node ID">
-                            <template #body="{ data }">
-                                <span class="font-mono text-xs">{{ data.validatorNodeId }}</span>
-                            </template>
-                        </Column>
-                        <Column field="slashed" header="Slashed" sortable>
-                            <template #body="{ data }">
-                                <i :class="data.slashed ? 'pi pi-check text-red-500' : 'pi pi-times text-surface-400'"></i>
-                            </template>
-                        </Column>
-                        <Column field="plannedUnlockAmountInAtomics" header="Planned Unlock" sortable>
-                            <template #body="{ data }">{{ formatAtomics(data.plannedUnlockAmountInAtomics) }}</template>
-                        </Column>
-                        <Column field="plannedUnlockTimestamp" header="Unlock Date" sortable>
-                            <template #body="{ data }">{{ formatTimestamp(data.plannedUnlockTimestamp) }}</template>
-                        </Column>
-                    </DataTable>
-                </TabPanel>
+    <ResponsiveDialog v-model:visible="isOpen" header="Staked, vested and escrowed tokens" size="lg">
+        <div class="space-y-4">
+            <SegmentedControl v-model="kind" :options="options" ariaLabel="Type of lock" />
 
-                <!-- Vesting locks -->
-                <TabPanel value="vesting">
-                    <DataTable :value="vestingLocks" stripedRows scroll-direction="vertical" scroll-height="400px" class="text-sm">
-                        <template #empty>
-                            <div class="text-center py-6 text-surface-500">No vesting lock.</div>
-                        </template>
-                        <Column field="amount" header="Amount" sortable>
-                            <template #body="{ data }">{{ formatAtomics(data.amount) }}</template>
-                        </Column>
-                        <Column field="initialVestedAmountInAtomics" header="Initial Vested" sortable>
-                            <template #body="{ data }">{{ formatAtomics(data.initialVestedAmountInAtomics) }}</template>
-                        </Column>
-                        <Column field="cliffStartTimestamp" header="Cliff Start" sortable>
-                            <template #body="{ data }">{{ formatTimestamp(data.cliffStartTimestamp) }}</template>
-                        </Column>
-                        <Column field="cliffDurationDays" header="Cliff (days)" sortable></Column>
-                        <Column field="vestingDurationDays" header="Vesting (days)" sortable></Column>
-                        <Column header="Vesting Start">
-                            <template #body="{ data }">
-                                {{ formatTimestampPlusDays(data.cliffStartTimestamp, data.cliffDurationDays) }}
-                            </template>
-                        </Column>
-                        <Column header="Vesting End">
-                            <template #body="{ data }">
-                                {{ formatTimestampPlusDays(data.cliffStartTimestamp, data.cliffDurationDays + data.vestingDurationDays) }}
-                            </template>
-                        </Column>
-                    </DataTable>
-                </TabPanel>
+            <EmptyState v-if="cards.length === 0" icon="pi-lock" :title="EMPTY_TITLES[kind]" />
 
-                <!-- Escrow locks -->
-                <TabPanel value="escrow">
-                    <DataTable :value="escrowLocks" stripedRows scroll-direction="vertical" scroll-height="400px" class="text-sm">
-                        <template #empty>
-                            <div class="text-center py-6 text-surface-500">No escrow lock.</div>
-                        </template>
-                        <Column field="amount" header="Amount" sortable>
-                            <template #body="{ data }">{{ formatAtomics(data.amount) }}</template>
-                        </Column>
-                        <Column field="escrowIdentifier" header="Escrow ID">
-                            <template #body="{ data }">
-                                <span class="font-mono text-xs">{{ data.escrowIdentifier }}</span>
-                            </template>
-                        </Column>
-                        <Column field="fundEmitterAccountId" header="Emitter">
-                            <template #body="{ data }">
-                                <span class="font-mono text-xs">{{ data.fundEmitterAccountId }}</span>
-                            </template>
-                        </Column>
-                        <Column field="transferAuthorizerAccountId" header="Authorizer">
-                            <template #body="{ data }">
-                                <span class="font-mono text-xs">{{ data.transferAuthorizerAccountId }}</span>
-                            </template>
-                        </Column>
-                        <Column field="startTimestamp" header="Start" sortable>
-                            <template #body="{ data }">{{ formatTimestamp(data.startTimestamp) }}</template>
-                        </Column>
-                        <Column field="durationDays" header="Duration (days)" sortable></Column>
-                        <Column header="Limit Date">
-                            <template #body="{ data }">
-                                {{ formatTimestampPlusDays(data.startTimestamp, data.durationDays) }}
-                            </template>
-                        </Column>
-                    </DataTable>
-                </TabPanel>
-            </TabPanels>
-        </Tabs>
-    </Dialog>
+            <ul v-else class="space-y-3">
+                <li v-for="(card, index) in cards" :key="index" class="rounded-control border border-line p-3">
+                    <p class="text-lg font-semibold tabular-nums text-fg">{{ card.amount }}</p>
+                    <dl class="mt-2 space-y-1.5">
+                        <div v-for="row in card.rows" :key="row.label" class="flex items-baseline justify-between gap-4 text-sm">
+                            <dt class="shrink-0 text-fg-muted">{{ row.label }}</dt>
+                            <dd class="min-w-0 text-right text-fg">
+                                <CopyableValue v-if="row.technical" :value="String(row.value)" :label="row.label" :head="8" :tail="6" />
+                                <template v-else>{{ row.value }}</template>
+                            </dd>
+                        </div>
+                    </dl>
+                </li>
+            </ul>
+        </div>
+    </ResponsiveDialog>
 </template>

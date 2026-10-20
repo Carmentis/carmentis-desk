@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import {computed, ref, watch} from "vue";
 import {useToast} from "primevue/usetoast";
-import Card from "primevue/card";
 import Button from "primevue/button";
 import NetworkSelector from "../../../components/network/NetworkSelector.vue";
+import UiCard from "../../../components/ui/UiCard.vue";
+import StickyActionBar from "../../../components/ui/StickyActionBar.vue";
 import {useCurrentWallet} from "../../../composables/useCurrentWallet.ts";
 import {Network} from "../../../types/types.ts";
 import {networkFromPreset} from "../../../utils/networkPresets.ts";
@@ -65,42 +66,31 @@ async function saveConnectivity() {
 }
 </script>
 <template>
-    <Card>
-        <template #title>
-            <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2">
-                    <i class="pi pi-server text-xl"></i>
-                    <span>Connectivity</span>
-                </div>
-            </div>
-        </template>
-        <template #subtitle>
-            <p class="text-sm text-surface-500">
-                The network endpoints this wallet uses to reach the Carmentis node and indexer.
-            </p>
-        </template>
-        <template #content>
-            <form @submit.prevent="saveConnectivity" class="space-y-4">
-                <NetworkSelector v-model="network" />
-                <div class="flex justify-end gap-2">
-                    <Button
-                        type="button"
-                        label="Reset"
-                        icon="pi pi-undo"
-                        severity="secondary"
-                        outlined
-                        :disabled="!isFormDirty || isSaving"
-                        @click="resetForm"
-                    />
-                    <Button
-                        type="submit"
-                        label="Save Changes"
-                        icon="pi pi-check"
-                        :loading="isSaving"
-                        :disabled="!isFormDirty"
-                    />
-                </div>
-            </form>
-        </template>
-    </Card>
+    <UiCard
+        title="Connectivity"
+        subtitle="The node and indexer this wallet uses to reach the Carmentis blockchain."
+    >
+        <form @submit.prevent="saveConnectivity" class="space-y-4">
+            <NetworkSelector v-model="network" />
+
+            <!-- Only offered once something changed; pinned to the bottom of the screen on mobile -->
+            <StickyActionBar v-if="isFormDirty">
+                <Button
+                    type="button"
+                    label="Reset"
+                    icon="pi pi-undo"
+                    severity="secondary"
+                    outlined
+                    :disabled="isSaving"
+                    @click="resetForm"
+                />
+                <Button
+                    type="submit"
+                    label="Save changes"
+                    icon="pi pi-check"
+                    :loading="isSaving"
+                />
+            </StickyActionBar>
+        </form>
+    </UiCard>
 </template>

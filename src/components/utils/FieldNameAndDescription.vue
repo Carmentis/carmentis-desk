@@ -1,16 +1,20 @@
 <script setup lang="ts">
- const props = defineProps<{name: string, description: string, required?: boolean}>();
- const name = props.name;
- const description = props.description;
- const isRequired = props.required ?? false;
+const props = defineProps<{
+    name: string;
+    description?: string;
+    required?: boolean;
+    /** Id of the input this label belongs to. */
+    inputId?: string;
+}>();
 </script>
 
 <template>
-    <label for="manual-node-name" class="block text-sm font-medium text-gray-700 mb-2" >
-        {{name}}
-        <span class="text-red-500" v-if="isRequired">*</span>
+    <label :for="props.inputId" class="mb-1 block text-sm font-medium text-fg">
+        {{ props.name }}
+        <span v-if="props.required" class="text-danger" aria-hidden="true">*</span>
+        <span v-if="props.required" class="sr-only">(required)</span>
     </label>
-    <label for="manual-node-name" class="block text-sm text-gray-400 font-medium mb-2" v-if="description">
-        {{ description }}
-    </label>
+    <p v-if="props.description" class="mb-2 text-sm text-fg-muted">
+        {{ props.description }}
+    </p>
 </template>

@@ -1,169 +1,124 @@
 <script setup lang="ts">
-import {computed, ref, watch} from 'vue';
+import {computed, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import Button from 'primevue/button';
-import Card from 'primevue/card';
-import Dialog from 'primevue/dialog';
-import InputText from 'primevue/inputtext';
-import {type ApplicationParticipation, useStorageStore} from '../../../stores/storage.ts';
-import {useSessionStore} from '../../../stores/sessionStore.ts';
-import {useAsyncState} from '@vueuse/core';
-import * as walletRepo from '../../../db/repositories/walletRepository.ts';
-import * as orgRepo from '../../../db/repositories/organizationRepository.ts';
-import * as participationRepo from '../../../db/repositories/participationRepository.ts';
-
+import type {MenuItem} from 'primevue/menuitem';
+import {useTimeoutFn} from '@vueuse/core';
 import {useToast} from 'primevue/usetoast';
-import {useAccountBreakdownQuery, useAccountStateQuery,} from '../../../composables/useAccountBreakdown.ts';
-import WalletDetailAppParticipationCard from './WalletDetailAppParticipationCard.vue';
-import {useConfirm} from 'primevue/useconfirm';
-import WalletDetailSync from "./WalletDetailSync.vue";
-import {useClipboard} from "../../../composables/useClipboard.ts";
-import WalletDetailBalanceCard from "./WalletDetailBalanceCard.vue";
-import WalletDetailKeysCard from "./WalletDetailKeysCard.vue";
-import Tabs from 'primevue/tabs';
-import TabList from 'primevue/tablist';
-import Tab from 'primevue/tab';
-import TabPanels from 'primevue/tabpanels';
-import TabPanel from 'primevue/tabpanel';
-import WalletDetailOrganizationsCard from "./WalletDetailOrganizationsCard.vue";
-import WalletDetailApplicationLedgerParticipationsCard from "./WalletDetailApplicationLedgerParticipationsCard.vue";
-import WalletDetailConnectivity from "./WalletDetailConnectivity.vue";
-import WalletDetailVirtualBlockchains from "./WalletDetailVirtualBlockchains.vue";
 import {useAppStore} from "../../../stores/appStore.ts";
 import {useWalletStore} from "../../../stores/walletStore.ts";
-import {useCurrentWallet} from "../../../composables/useCurrentWallet.ts";
-import {storeToRefs} from "pinia";
-import Credentials from "./credentials/Credentials.vue";
+import WalletDetailSync from "./WalletDetailSync.vue";
+import WalletDetailBalanceCard from "./WalletDetailBalanceCard.vue";
+import WalletDetailAccountCard from "./WalletDetailAccountCard.vue";
+import WalletDetailKeysCard from "./WalletDetailKeysCard.vue";
+import WalletDetailOrganizationsCard from "./WalletDetailOrganizationsCard.vue";
+import WalletDetailConnectivity from "./WalletDetailConnectivity.vue";
 import WalletDetailCredentials from "./credentials/WalletDetailCredentials.vue";
-
+import PageHeader from "../../../components/ui/PageHeader.vue";
+import NetworkBadge from "../../../components/ui/NetworkBadge.vue";
+import SectionTabs from "../../../components/ui/SectionTabs.vue";
+import EmptyState from "../../../components/ui/EmptyState.vue";
+import SkeletonBlock from "../../../components/ui/SkeletonBlock.vue";
+import ConfirmActionDialog from "../../../components/ui/ConfirmActionDialog.vue";
+import type {TabItem} from "../../../components/ui/types.ts";
 
 const toast = useToast();
 const route = useRoute();
 const router = useRouter();
 const {deleteWalletById, shouldDisplayOrganizations} = useAppStore();
-const confirm = useConfirm();
-
-const goBack = () => {
-    router.push('/');
-};
-
-const deleteWallet = () => {
-    confirm.require({
-        message: `Are you sure you want to delete the wallet "${wallet.value?.name}"? This action will delete all associated organizations, nodes, and applications and cannot be undone.`,
-        header: 'Delete Wallet',
-        icon: 'pi pi-exclamation-triangle',
-        rejectClass: 'p-button-secondary p-button-outlined',
-        rejectLabel: 'Cancel',
-        acceptLabel: 'Delete',
-        acceptClass: 'p-button-danger',
-        accept: async () => {
-            await deleteWalletById(walletId.value);
-            toast.add({
-                severity: 'success',
-                summary: 'Wallet deleted',
-                detail: 'Wallet deleted successfully',
-                life: 3000,
-            });
-            await router.push('/');
-        },
-    });
-};
 
 const walletId = computed(() => Number(route.params.walletId));
-
 const {wallet} = useWalletStore(walletId.value);
 
+// The wallet arrives asynchronously and a missing wallet looks the same as a loading one:
+// show a skeleton for a moment before concluding that it does not exist.
+const hasWaited = ref(false);
+useTimeoutFn(() => hasWaited.value = true, 1000);
 
+// ---- delete (destructive: in the overflow menu, behind a confirmation naming the wallet) ----
+const showDeleteDialog = ref(false);
+const isDeleting = ref(false);
 
+const menuItems: MenuItem[] = [
+    { label: 'Delete wallet', icon: 'pi pi-trash', class: 'text-danger', command: () => showDeleteDialog.value = true },
+];
 
+async function deleteWallet() {
+    isDeleting.value = true;
+    try {
+        await deleteWalletById(walletId.value);
+        toast.add({
+            severity: 'success',
+            summary: 'Wallet deleted',
+            detail: 'Wallet deleted successfully',
+            life: 3000,
+        });
+        await router.push('/');
+    } finally {
+        isDeleting.value = false;
+    }
+}
+
+// ---- tabs: a single level ----
+const tab = ref('overview');
+const tabs = computed<TabItem[]>(() => [
+    { value: 'overview', label: 'Overview', icon: 'pi-wallet' },
+    { value: 'organizations', label: 'Organizations', icon: 'pi-building', hidden: !shouldDisplayOrganizations.value },
+    { value: 'credentials', label: 'Credentials', icon: 'pi-id-card' },
+    { value: 'connectivity', label: 'Connectivity', icon: 'pi-server' },
+]);
 </script>
 
 <template>
-    <div>
-        <div v-if="wallet">
-            <div class="space-y-4">
-                <!-- Wallet Header -->
-                <div class="flex items-center justify-between gap-4 pb-4 border-b border-gray-200">
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                            <i class="pi pi-wallet" />
-                            Wallet - {{ wallet.name }}
-                        </h1>
-                    </div>
-                    <div class="flex items-center gap-2">
+    <div v-if="wallet" class="space-y-6">
+        <PageHeader :title="wallet.name" :menu-items="menuItems">
+            <template #meta>
+                <NetworkBadge :network-name="wallet.network.networkName" />
+            </template>
+        </PageHeader>
 
-                        <button
-                            @click="deleteWallet"
-                            class="px-4 py-2 flex items-center gap-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                            <i class="pi pi-trash" />
-                            <span class="hidden sm:inline">Delete</span>
-                        </button>
+        <WalletDetailSync/>
+
+        <SectionTabs
+            v-model="tab"
+            :tabs="tabs"
+            ariaLabel="Wallet sections"
+            :persist-key="`walletDetailTab:${walletId}`"
+        >
+            <template #default="{ active }">
+                <div v-if="active === 'overview'" class="space-y-4">
+                    <div class="grid gap-4 lg:grid-cols-2 lg:items-start">
+                        <WalletDetailBalanceCard/>
+                        <WalletDetailAccountCard/>
                     </div>
+                    <WalletDetailKeysCard/>
                 </div>
+                <WalletDetailOrganizationsCard v-else-if="active === 'organizations'"/>
+                <WalletDetailCredentials v-else-if="active === 'credentials'"/>
+                <WalletDetailConnectivity v-else-if="active === 'connectivity'"/>
+            </template>
+        </SectionTabs>
 
-                <WalletDetailSync/>
+        <ConfirmActionDialog
+            v-model:visible="showDeleteDialog"
+            title="Delete wallet"
+            :item-name="wallet.name"
+            message="This will also delete all its organizations, nodes and applications from this device. This action cannot be undone."
+            :loading="isDeleting"
+            @confirm="deleteWallet"
+        />
+    </div>
 
-                <Tabs value="-1">
-                    <TabList>
-                        <Tab value="-1">
-                            <i class="pi pi-key mr-2"></i>
-                            Overview
-                        </Tab>
-                        <Tab value="0" v-if="shouldDisplayOrganizations">
-                            <i class="pi pi-building mr-2"></i>
-                            Organizations
-                        </Tab>
-                        <Tab value="3">
-                            <i class="pi pi-id-card mr-2"></i>
-                            Credentials
-                        </Tab>
-                        <Tab value="1" v-if="false">
-                            <i class="pi pi-box mr-2"></i>
-                            Application ledgers
-                        </Tab>
-                        <Tab value="2">
-                            <i class="pi pi-server mr-2"></i>
-                            Connectivity
-                        </Tab>
-                    </TabList>
-                    <TabPanels>
-                        <TabPanel value="-1">
-                            <div class="flex gap-4">
-                                <WalletDetailKeysCard/>
-                                <WalletDetailBalanceCard/>
-                            </div>
-                        </TabPanel>
-                        <TabPanel value="0">
-                            <WalletDetailOrganizationsCard/>
-                        </TabPanel>
-                        <TabPanel value="1" v-if="false">
-                            <WalletDetailApplicationLedgerParticipationsCard/>
-                            <WalletDetailVirtualBlockchains/>
-                        </TabPanel>
-                        <TabPanel value="2">
-                            <WalletDetailConnectivity/>
-                        </TabPanel>
-                        <TabPanel value="3">
-                            <WalletDetailCredentials/>
-                        </TabPanel>
-                    </TabPanels>
-                </Tabs>
+    <SkeletonBlock v-else-if="!hasWaited" :lines="4" />
 
-            </div>
-
-
-
-        </div>
-
-        <!-- Not Found State -->
-        <div v-else class="text-center py-12 px-4">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
-                <i class="pi pi-exclamation-triangle text-3xl text-red-600"></i>
-            </div>
-            <h1 class="text-2xl font-bold text-gray-900 mb-2">Wallet Not Found</h1>
-            <p class="text-gray-500 mb-6">The wallet you're looking for doesn't exist.</p>
-            <Button @click="goBack" label="Back to Home" icon="pi pi-home" />
-        </div>
+    <!-- Not Found State -->
+    <div v-else class="rounded-card border border-line bg-surface shadow-card">
+        <EmptyState
+            icon="pi-exclamation-triangle"
+            title="Wallet not found"
+            description="The wallet you are looking for does not exist."
+        >
+            <Button label="Back to wallets" icon="pi pi-home" @click="router.push('/')" />
+        </EmptyState>
     </div>
 </template>

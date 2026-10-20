@@ -1,28 +1,28 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { type CredentialEntity } from '../../../../stores/storage.ts';
-import { useWalletStore } from '../../../../stores/walletStore.ts';
-import { useAsyncState } from '@vueuse/core';
-import * as walletRepo from '../../../../db/repositories/walletRepository.ts';
-import * as credentialRepo from '../../../../db/repositories/credentialRepository.ts';
-import MenuBar from 'primevue/menubar';
-import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
-import { useConfirm } from 'primevue/useconfirm';
-import type { MenuItem } from 'primevue/menuitem';
 import CredentialCard from './CredentialCard.vue';
+import PageHeader from '../../../../components/ui/PageHeader.vue';
+import ResponsiveDialog from '../../../../components/ui/ResponsiveDialog.vue';
+import ConfirmActionDialog from '../../../../components/ui/ConfirmActionDialog.vue';
+import EmptyState from '../../../../components/ui/EmptyState.vue';
+import JsonBlock from '../../../../components/ui/JsonBlock.vue';
+import FieldNameAndDescription from '../../../../components/utils/FieldNameAndDescription.vue';
 import { parseCompactSdJwt, SdJwtParseError } from '../../../../composables/credentials/parseSdJwtToken.ts';
 import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
 import {VerifiableCredential} from "../../../../types/types.ts";
 
 const router = useRouter();
+const route = useRoute();
 const {wallet, walletCredentials, createSdJwtCredential, deleteCredential} = useCurrentWallet()
 const toast = useToast();
-const confirm = useConfirm();
+
+// Shown as a page of its own (bottom navigation) or as a tab of the wallet page.
+const isStandalone = computed(() => route.name === 'wallet-credentials');
 
 // ---------------------------------------------------------------------------
 // Add credential dialog
@@ -36,19 +36,18 @@ const sdJwtParsing = ref(false);
 function openAddDialog() {
     sdJwtName.value = '';
     sdJwtToken.value = '';
+    addSubmitted.value = false;
     showAddDialog.value = true;
 }
 
+const addSubmitted = ref(false);
+const tokenError = computed(() =>
+    addSubmitted.value && !sdJwtToken.value.trim() ? 'Paste the SD-JWT token of the credential.' : '',
+);
+
 async function handleAddSubmit() {
-    if (!sdJwtToken.value.trim()) {
-        toast.add({
-            severity: 'error',
-            summary: 'Validation error',
-            detail: 'SD-JWT token is required',
-            life: 3000,
-        });
-        return;
-    }
+    addSubmitted.value = true;
+    if (tokenError.value) return;
 
     sdJwtParsing.value = true;
     try {
@@ -94,26 +93,31 @@ async function handleAddSubmit() {
 // ---------------------------------------------------------------------------
 // Delete credential (confirmation owned here)
 // ---------------------------------------------------------------------------
+const credentialToDelete = ref<VerifiableCredential | null>(null);
+const showDeleteDialog = ref(false);
+const isDeleting = ref(false);
+
 function requestDelete(credentialId: number) {
     const credential = walletCredentials.value.find((c) => c.id === credentialId);
     if (!credential) return;
-    confirm.require({
-        message: `Are you sure you want to delete "${credential.name}"? This cannot be undone.`,
-        header: 'Delete Credential',
-        icon: 'pi pi-exclamation-triangle',
-        rejectClass: 'p-button-secondary p-button-outlined',
-        rejectLabel: 'Cancel',
-        acceptLabel: 'Delete',
-        acceptClass: 'p-button-danger',
-        accept: async () => {
-            await deleteCredential(credentialId);
-            toast.add({
-                severity: 'success',
-                summary: 'Credential deleted',
-                life: 2000,
-            });
-        },
-    });
+    credentialToDelete.value = credential;
+    showDeleteDialog.value = true;
+}
+
+async function confirmDelete() {
+    if (!credentialToDelete.value) return;
+    isDeleting.value = true;
+    try {
+        await deleteCredential(credentialToDelete.value.id);
+        toast.add({
+            severity: 'success',
+            summary: 'Credential deleted',
+            life: 2000,
+        });
+        showDeleteDialog.value = false;
+    } finally {
+        isDeleting.value = false;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -140,122 +144,115 @@ function requestBrowse(credentialId: number) {
     if (browsingCredential.value) showBrowseDialog.value = true;
 }
 
-// ---------------------------------------------------------------------------
-// Menubar
-// ---------------------------------------------------------------------------
-const menuItems = computed<MenuItem[]>(() => [
-    {
-        label: 'Add Credential',
-        icon: 'pi pi-plus',
-        items: [
-            {
-                label: 'SD-JWT IETF Credential',
-                command: openAddDialog,
-            }
-        ]
-    },
-]);
+watch(showBrowseDialog, (open) => {
+    if (!open) browsingCredential.value = null;
+});
 </script>
 
 <template>
-    <div>
-        <div v-if="wallet">
-            <div class="space-y-4">
-                <MenuBar :model="menuItems" />
+    <div v-if="wallet" class="space-y-4">
+        <PageHeader v-if="isStandalone" title="Credentials" :subtitle="wallet.name" />
 
-                <!-- Empty state -->
-                <div v-if="walletCredentials.length === 0" class="text-center py-12">
-                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
-                        <i class="pi pi-id-card text-2xl text-gray-400"></i>
-                    </div>
-                    <p class="text-gray-500 text-sm mb-4">No credentials yet</p>
-                    <Button @click="openAddDialog" label="Add Credential" icon="pi pi-plus" size="small" />
-                </div>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 v-if="!isStandalone" class="text-lg font-semibold text-fg">Credentials</h2>
+            <span v-else />
+            <Button @click="openAddDialog" label="Add credential" icon="pi pi-plus" />
+        </div>
 
-                <!-- Credentials grid -->
-                <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    <CredentialCard
-                        v-for="credential in walletCredentials"
-                        :key="credential.id"
-                        :credential="credential"
-                        @delete="requestDelete"
-                        @browse="requestBrowse"
+        <!-- Empty state -->
+        <div v-if="walletCredentials.length === 0" class="rounded-card border border-line bg-surface shadow-card">
+            <EmptyState
+                icon="pi-id-card"
+                title="No credentials yet"
+                description="Credentials issued to you are stored here and can be presented when a service asks for them."
+            >
+                <Button @click="openAddDialog" label="Add credential" icon="pi pi-plus" />
+            </EmptyState>
+        </div>
+
+        <!-- Credentials grid -->
+        <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <CredentialCard
+                v-for="credential in walletCredentials"
+                :key="credential.id"
+                :credential="credential"
+                @delete="requestDelete"
+                @browse="requestBrowse"
+            />
+        </div>
+
+        <!-- Add Credential Dialog -->
+        <ResponsiveDialog v-model:visible="showAddDialog" header="Add SD-JWT credential" size="lg" :closable="!sdJwtParsing">
+            <form id="add-credential-form" class="space-y-5" novalidate @submit.prevent="handleAddSubmit">
+                <div>
+                    <FieldNameAndDescription
+                        name="Name (optional)"
+                        description="Defaults to the credential type."
+                        input-id="sd-jwt-name"
+                    />
+                    <InputText
+                        id="sd-jwt-name"
+                        v-model="sdJwtName"
+                        fluid
+                        autocomplete="off"
+                        placeholder="e.g. Employee badge"
                     />
                 </div>
-            </div>
-
-            <!-- Add Credential Dialog -->
-            <Dialog v-model:visible="showAddDialog" header="Add SD-JWT Credential" modal class="w-full max-w-lg">
-                <div class="space-y-4 pt-2">
-                    <div>
-                        <label for="sd-jwt-name" class="block text-sm font-medium text-gray-700 mb-2">
-                            Name
-                            <span class="text-gray-400 font-normal">(optional — defaults to credential type)</span>
-                        </label>
-                        <InputText
-                            id="sd-jwt-name"
-                            v-model="sdJwtName"
-                            placeholder="Leave blank to use credential type (vct)"
-                            class="w-full"
-                        />
-                    </div>
-                    <div>
-                        <label for="sd-jwt-token" class="block text-sm font-medium text-gray-700 mb-2">
-                            Compact SD-JWT-VC Token
-                            <span class="text-red-500">*</span>
-                        </label>
-                        <Textarea
-                            id="sd-jwt-token"
-                            v-model="sdJwtToken"
-                            placeholder="eyJ...eyJ...~WyJ...~WyJ...~"
-                            class="w-full font-mono text-xs"
-                            rows="8"
-                        />
-                        <p class="text-xs text-gray-400 mt-1">
-                            Format:
-                            <code class="bg-gray-100 px-1 rounded">
-                                header.payload.signature~disclosure1~disclosure2~
-                            </code>
-                        </p>
-                    </div>
+                <div>
+                    <FieldNameAndDescription
+                        name="SD-JWT token"
+                        description="The compact token you received from the issuer."
+                        input-id="sd-jwt-token"
+                        required
+                    />
+                    <Textarea
+                        id="sd-jwt-token"
+                        v-model="sdJwtToken"
+                        fluid
+                        autocomplete="off"
+                        spellcheck="false"
+                        class="font-mono text-xs"
+                        rows="8"
+                        placeholder="eyJ…~WyJ…~"
+                        :invalid="!!tokenError"
+                        :aria-invalid="!!tokenError"
+                        aria-describedby="sd-jwt-token-error"
+                    />
+                    <p v-if="tokenError" id="sd-jwt-token-error" class="mt-1 text-sm text-danger">{{ tokenError }}</p>
                 </div>
+            </form>
 
-                <template #footer>
-                    <div class="flex justify-end gap-2">
-                        <Button label="Cancel" @click="showAddDialog = false" severity="secondary" outlined />
-                        <Button label="Add" icon="pi pi-check" :loading="sdJwtParsing" @click="handleAddSubmit" />
-                    </div>
-                </template>
-            </Dialog>
+            <template #footer>
+                <Button label="Cancel" severity="secondary" outlined :disabled="sdJwtParsing" @click="showAddDialog = false" />
+                <Button type="submit" form="add-credential-form" label="Add" icon="pi pi-check" :loading="sdJwtParsing" />
+            </template>
+        </ResponsiveDialog>
 
-            <!-- Browse Credential Dialog -->
-            <Dialog
-                v-model:visible="showBrowseDialog"
-                :header="browsingCredential?.name ?? 'Credential'"
-                modal
-                class="w-full max-w-2xl"
-                @after-hide="browsingCredential = null"
-            >
-                <pre
-                    class="text-xs font-mono bg-gray-50 rounded p-4 overflow-auto max-h-[60vh] whitespace-pre-wrap break-all"
-                    >{{ prettyBrowseJson }}</pre
-                >
-                <template #footer>
-                    <div class="flex justify-end">
-                        <Button label="Close" @click="showBrowseDialog = false" severity="secondary" outlined />
-                    </div>
-                </template>
-            </Dialog>
-        </div>
+        <!-- Browse Credential Dialog -->
+        <ResponsiveDialog v-model:visible="showBrowseDialog" :header="browsingCredential?.name ?? 'Credential'" size="lg">
+            <JsonBlock title="Credential content" :value="prettyBrowseJson" default-open />
+            <template #footer>
+                <Button label="Close" severity="secondary" outlined @click="showBrowseDialog = false" />
+            </template>
+        </ResponsiveDialog>
 
-        <!-- Not Found State -->
-        <div v-else class="text-center py-12 px-4">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
-                <i class="pi pi-exclamation-triangle text-3xl text-red-600"></i>
-            </div>
-            <h1 class="text-2xl font-bold text-gray-900 mb-2">Wallet Not Found</h1>
-            <p class="text-gray-500 mb-6">The wallet you're looking for doesn't exist.</p>
-            <Button @click="router.push('/')" label="Back to Home" icon="pi pi-home" />
-        </div>
+        <ConfirmActionDialog
+            v-model:visible="showDeleteDialog"
+            title="Delete credential"
+            :item-name="credentialToDelete?.name ?? ''"
+            :loading="isDeleting"
+            @confirm="confirmDelete"
+        />
+    </div>
+
+    <!-- Not Found State -->
+    <div v-else class="rounded-card border border-line bg-surface shadow-card">
+        <EmptyState
+            icon="pi-exclamation-triangle"
+            title="Wallet not found"
+            description="The wallet you are looking for does not exist."
+        >
+            <Button @click="router.push('/')" label="Back to wallets" icon="pi pi-home" />
+        </EmptyState>
     </div>
 </template>

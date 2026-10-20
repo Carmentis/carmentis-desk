@@ -5,6 +5,8 @@ import { iconButtonClass } from './classes.ts';
 
 const props = withDefaults(defineProps<{
     label: string;
+    /** Plain-language explanation of what the secret is for, shown under the label. */
+    description?: string;
     /** The secret. It is only put in the DOM while revealed. */
     value: string | null | undefined;
     /** Long secrets (JWK, mnemonic) are shown in a scrollable, wrapping block. */
@@ -42,8 +44,11 @@ watch(() => props.value, hide);
 <template>
     <div class="min-w-0 space-y-2">
         <div class="flex items-center justify-between gap-2">
-            <span class="text-sm font-medium text-fg">{{ props.label }}</span>
-            <div class="flex items-center">
+            <div class="min-w-0">
+                <span class="block text-sm font-medium text-fg">{{ props.label }}</span>
+                <span v-if="props.description" class="block text-xs text-fg-muted">{{ props.description }}</span>
+            </div>
+            <div class="flex shrink-0 items-center">
                 <button
                     type="button"
                     :class="iconButtonClass"
