@@ -9,6 +9,8 @@ import {OrganizationDto} from "../../../api/indexer/model";
 import ResponsiveDialog from "../../../components/ui/ResponsiveDialog.vue";
 import SegmentedControl from "../../../components/ui/SegmentedControl.vue";
 import StatusBadge from "../../../components/ui/StatusBadge.vue";
+import PublicationBadge from "../../../components/ui/PublicationBadge.vue";
+import {useSettledOnChainSearch} from "../../../composables/useSettledOnChainSearch.ts";
 import CopyableValue from "../../../components/ui/CopyableValue.vue";
 import EmptyState from "../../../components/ui/EmptyState.vue";
 import ErrorState from "../../../components/ui/ErrorState.vue";
@@ -21,7 +23,7 @@ const router = useRouter();
 const route = useRoute();
 
 // organization management
-const {walletOrganizations, createOrganization, importExistingOrganization, useFoundOrganizationsOnchain} = useCurrentWallet();
+const {walletOrganizations, createOrganization, importExistingOrganization, useFoundOrganizationsOnchain, useAccountIdQuery, indexer} = useCurrentWallet();
 const walletId = computed(() => Number(route.params.walletId));
 const showOrgDialog = ref(false);
 const orgName = ref('');
@@ -103,7 +105,15 @@ const place = (city?: string, countryCode?: string) => [city, countryCode].filte
 // A local organization is published once the same organization is found on-chain.
 const onChainIds = computed(() => new Set(foundOrganizations.data.value?.map((o) => o.virtualBlockchainId) ?? []));
 const isPublished = (vbId?: string) => !!vbId && onChainIds.value.has(vbId);
-const canTellPublication = computed(() => !!foundOrganizations.data.value);
+// The search needs the account ID and the indexer: until it ran with them, an empty result means nothing yet.
+const accountIdQuery = useAccountIdQuery();
+const isSearchSettled = useSettledOnChainSearch(
+    foundOrganizations,
+    computed(() => accountIdQuery.isSuccess.value && !!indexer.value),
+);
+const canTellPublication = computed(() => !foundOrganizations.error.value && !accountIdQuery.error.value);
+const publicationState = (vbId?: string) =>
+    !isSearchSettled.value ? 'loading' : isPublished(vbId) ? 'published' : 'draft';
 
 const localIds = computed(() => new Set(walletOrganizations.value.map((o) => o.organizationVbId).filter(Boolean)));
 </script>
@@ -147,12 +157,7 @@ const localIds = computed(() => new Set(walletOrganizations.value.map((o) => o.o
                         </div>
                         <Button label="Open" icon="pi pi-arrow-right" icon-pos="right" severity="secondary" outlined size="small" @click="visitOrganization(org.id)" />
                     </div>
-                    <StatusBadge
-                        v-if="canTellPublication"
-                        :tone="isPublished(org.organizationVbId) ? 'success' : 'warning'"
-                        :label="isPublished(org.organizationVbId) ? 'Published' : 'Draft'"
-                        :icon="isPublished(org.organizationVbId) ? 'pi-check-circle' : 'pi-file-edit'"
-                    />
+                    <PublicationBadge v-if="canTellPublication" :state="publicationState(org.organizationVbId)" />
                     <p v-if="org.website" class="truncate text-sm text-fg-muted">{{ org.website }}</p>
                     <CopyableValue v-if="org.organizationVbId" :value="org.organizationVbId" label="organization ID" :head="10" :tail="8" />
                 </li>

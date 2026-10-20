@@ -14,6 +14,8 @@ import FieldNameAndDescription from "../../../../components/utils/FieldNameAndDe
 import ResponsiveDialog from "../../../../components/ui/ResponsiveDialog.vue";
 import SegmentedControl from "../../../../components/ui/SegmentedControl.vue";
 import StatusBadge from "../../../../components/ui/StatusBadge.vue";
+import PublicationBadge from "../../../../components/ui/PublicationBadge.vue";
+import {useSettledOnChainSearch} from "../../../../composables/useSettledOnChainSearch.ts";
 import CopyableValue from "../../../../components/ui/CopyableValue.vue";
 import EmptyState from "../../../../components/ui/EmptyState.vue";
 import ErrorState from "../../../../components/ui/ErrorState.vue";
@@ -25,7 +27,7 @@ const route = useRoute();
 const navigation = useNavigation();
 
 const {indexer} = useCurrentWallet();
-const {organizationNodes: nodes, createNode, useFoundNodesOnChain} = useCurrentOrganization();
+const {organizationNodes: nodes, organizationVbId, createNode, useFoundNodesOnChain} = useCurrentOrganization();
 
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
@@ -137,7 +139,14 @@ const viewOptions = computed<SegmentedOption<NodesView>[]>(() => [
 // A local node is published once the same node is found on-chain.
 const onChainIds = computed(() => new Set(foundNodesOnChain.data.value?.map((n) => n.virtualBlockchainId) ?? []));
 const isPublished = (vbId?: string) => !!vbId && onChainIds.value.has(vbId);
-const canTellPublication = computed(() => !!foundNodesOnChain.data.value);
+// The search needs the indexer and the organization ID: until it ran with them, an empty result means nothing yet.
+const isSearchSettled = useSettledOnChainSearch(
+    foundNodesOnChain,
+    computed(() => !!organizationVbId.value && !!indexer.value),
+);
+const canTellPublication = computed(() => !foundNodesOnChain.error.value);
+const publicationState = (vbId?: string) =>
+    !isSearchSettled.value ? 'loading' : isPublished(vbId) ? 'published' : 'draft';
 const localIds = computed(() => new Set(nodes.value.map((n) => n.nodeVbId).filter(Boolean)));
 </script>
 <template>
@@ -186,12 +195,7 @@ const localIds = computed(() => new Set(nodes.value.map((n) => n.nodeVbId).filte
                         </div>
                         <Button label="Open" icon="pi pi-arrow-right" icon-pos="right" severity="secondary" outlined size="small" @click="visitNode(node.id)" />
                     </div>
-                    <StatusBadge
-                        v-if="canTellPublication"
-                        :tone="isPublished(node.nodeVbId) ? 'success' : 'warning'"
-                        :label="isPublished(node.nodeVbId) ? 'Published' : 'Draft'"
-                        :icon="isPublished(node.nodeVbId) ? 'pi-check-circle' : 'pi-file-edit'"
-                    />
+                    <PublicationBadge v-if="canTellPublication" :state="publicationState(node.nodeVbId)" />
                     <CopyableValue v-if="node.nodeVbId" :value="node.nodeVbId" label="node ID" :head="10" :tail="8" />
                 </li>
             </ul>

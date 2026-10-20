@@ -6,6 +6,8 @@ import UiCard from "../../../../../components/ui/UiCard.vue";
 import StatusBadge from "../../../../../components/ui/StatusBadge.vue";
 import CopyableValue from "../../../../../components/ui/CopyableValue.vue";
 import EmptyState from "../../../../../components/ui/EmptyState.vue";
+import PublicationBadge from "../../../../../components/ui/PublicationBadge.vue";
+import {useCurrentNode} from "../../../../../composables/useCurrentNode.ts";
 
 defineProps<{
     node: Node;
@@ -16,6 +18,8 @@ defineProps<{
     nodeOwnerAccountId?: string;
     isOwnedByWallet?: boolean;
 }>();
+
+const {isLoadingNode} = useCurrentNode();
 </script>
 
 <template>
@@ -26,6 +30,12 @@ defineProps<{
             title="Not published yet"
             description="This node has no virtual blockchain ID."
         />
+
+        <!-- The status comes from several searches on the blockchain: say so while they run. -->
+        <dl v-else-if="isLoadingNode" class="text-sm">
+            <dt class="mb-1 text-fg-muted">Publication</dt>
+            <dd><PublicationBadge state="loading" /></dd>
+        </dl>
 
         <dl v-else class="space-y-4 text-sm">
             <div>

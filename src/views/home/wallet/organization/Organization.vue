@@ -25,6 +25,7 @@ import SkeletonBlock from '../../../../components/ui/SkeletonBlock.vue';
 import ConfirmActionDialog from '../../../../components/ui/ConfirmActionDialog.vue';
 import type { TabItem } from '../../../../components/ui/types.ts';
 import { usePublicationStatus } from '../../../../composables/usePublicationStatus.ts';
+import { useSettledOnChainSearch } from '../../../../composables/useSettledOnChainSearch.ts';
 
 const toast = useToast();
 const route = useRoute();
@@ -42,7 +43,7 @@ const hasWaited = ref(false);
 useTimeoutFn(() => hasWaited.value = true, 1000);
 
 // fetch the organization online using the indexer
-const { data: organizationFetchedOnline, isLoading: isFetchingOrganizationFromChain } = useQuery({
+const organizationQuery = useQuery({
     enabled: computed(() => !!organizationVbId.value && !!indexer),
     queryKey: ['organization-online', organizationVbId],
     refetchInterval: 2000,
@@ -59,13 +60,21 @@ const { data: organizationFetchedOnline, isLoading: isFetchingOrganizationFromCh
     }
 })
 
+const { data: organizationFetchedOnline, isLoading: isFetchingOrganizationFromChain } = organizationQuery;
+
+// The query answers "not found" while the indexer is not available yet: wait for a real answer before saying so.
+const isSearchSettled = useSettledOnChainSearch(
+    organizationQuery,
+    computed(() => !!organizationVbId.value && !!indexer.value),
+);
+
 // define some computed properties based on the fetched organization
 const isOrganizationFoundOnChain = computed(() => !!organizationFetchedOnline.value);
 
 // ---- publication status: always an icon and a text, never color alone ----
 const publication = usePublicationStatus('organization', {
     hasVbId: computed(() => !!organization.value?.organizationVbId),
-    isChecking: isFetchingOrganizationFromChain,
+    isChecking: computed(() => isFetchingOrganizationFromChain.value || !isSearchSettled.value),
     isFound: isOrganizationFoundOnChain,
 });
 

@@ -21,7 +21,7 @@ export function usePublicationStatus(
             return { tone: 'warning', label: 'Draft', icon: 'pi-file-edit', hint: `This ${noun} is not published on the blockchain yet.` };
         }
         if (state.isChecking.value) {
-            return { tone: 'neutral', label: 'Checking…', icon: 'pi-spin pi-spinner', hint: 'Checking the blockchain…' };
+            return { tone: 'neutral', label: 'Loading', icon: 'pi-spin pi-spinner', hint: 'Searching the blockchain…' };
         }
         if (state.isFound.value) {
             return { tone: 'success', label: 'Published', icon: 'pi-check-circle', hint: `This ${noun} is published on the blockchain.` };

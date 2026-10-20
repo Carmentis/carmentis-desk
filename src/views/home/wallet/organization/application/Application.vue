@@ -158,7 +158,7 @@ const applicationVbId = computed(() =>
 );
 
 
-const { data: applicationFoundOnChain, isLoading: isFetchingApplicationFromChain } = useQuery({
+const { data: applicationFoundOnChain, isLoading: isFetchingApplicationFromChain, isFetched: isApplicationFetched } = useQuery({
     enabled: computed(() => !!applicationVbId.value && !!walletIndexer.value),
     queryKey: ['application-on-chain', applicationVbId, walletIndexer],
     queryFn: async () => {
@@ -189,7 +189,8 @@ const hasAccountOnChain = useHasAccountOnChainQuery();
 // ---- presentation ----
 const publication = usePublicationStatus('application', {
     hasVbId: computed(() => !!application.value?.applicationVbId),
-    isChecking: isFetchingApplicationFromChain,
+    // the query only runs once the indexer is available: until it answered, nothing is known
+    isChecking: computed(() => isFetchingApplicationFromChain.value || !isApplicationFetched.value),
     isFound: isApplicationFoundOnChain,
 });
 

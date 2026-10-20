@@ -8,6 +8,9 @@ import {useCurrentOrganization} from "../../../../composables/useCurrentOrganiza
 import {ApplicationDto} from "../../../../api/indexer/model";
 import SegmentedControl from "../../../../components/ui/SegmentedControl.vue";
 import StatusBadge from "../../../../components/ui/StatusBadge.vue";
+import PublicationBadge from "../../../../components/ui/PublicationBadge.vue";
+import {useSettledOnChainSearch} from "../../../../composables/useSettledOnChainSearch.ts";
+import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
 import CopyableValue from "../../../../components/ui/CopyableValue.vue";
 import EmptyState from "../../../../components/ui/EmptyState.vue";
 import ErrorState from "../../../../components/ui/ErrorState.vue";
@@ -25,6 +28,7 @@ const orgId = computed(() => Number(route.params.orgId));
 
 const {
     organizationApplications: applications,
+    organizationVbId,
     importExistingApplication,
     useFoundApplicationsOnChain,
 } = useCurrentOrganization();
@@ -76,7 +80,15 @@ const viewOptions = computed<SegmentedOption<ApplicationsView>[]>(() => [
 // A local application is published once the same application is found on-chain.
 const onChainIds = computed(() => new Set(foundApplicationsOnChain.data.value?.map((a) => a.virtualBlockchainId) ?? []));
 const isPublished = (vbId?: string) => !!vbId && onChainIds.value.has(vbId);
-const canTellPublication = computed(() => !!foundApplicationsOnChain.data.value);
+// The search needs the indexer and the organization ID: until it ran with them, an empty result means nothing yet.
+const {indexer} = useCurrentWallet();
+const isSearchSettled = useSettledOnChainSearch(
+    foundApplicationsOnChain,
+    computed(() => !!organizationVbId.value && !!indexer.value),
+);
+const canTellPublication = computed(() => !foundApplicationsOnChain.error.value);
+const publicationState = (vbId?: string) =>
+    !isSearchSettled.value ? 'loading' : isPublished(vbId) ? 'published' : 'draft';
 const localIds = computed(() => new Set(applications.value.map((a) => a.applicationVbId).filter(Boolean)));
 </script>
 <template>
@@ -122,12 +134,7 @@ const localIds = computed(() => new Set(applications.value.map((a) => a.applicat
                         <p class="min-w-0 truncate font-semibold text-fg">{{ app.name }}</p>
                         <Button label="Open" icon="pi pi-arrow-right" icon-pos="right" severity="secondary" outlined size="small" @click="visitApplication(app.id)" />
                     </div>
-                    <StatusBadge
-                        v-if="canTellPublication"
-                        :tone="isPublished(app.applicationVbId) ? 'success' : 'warning'"
-                        :label="isPublished(app.applicationVbId) ? 'Published' : 'Draft'"
-                        :icon="isPublished(app.applicationVbId) ? 'pi-check-circle' : 'pi-file-edit'"
-                    />
+                    <PublicationBadge v-if="canTellPublication" :state="publicationState(app.applicationVbId)" />
                     <CopyableValue v-if="app.applicationVbId" :value="app.applicationVbId" label="application ID" :head="10" :tail="8" />
                 </li>
             </ul>
