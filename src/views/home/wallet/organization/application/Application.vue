@@ -2,21 +2,27 @@
 import { computed, ref, watch, inject, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Button from 'primevue/button';
-import Card from 'primevue/card';
-import Breadcrumb from 'primevue/breadcrumb';
-import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import { useOnChainActions } from '../../../../../composables/useOnChainActions.ts';
-import { useAsyncState } from '@vueuse/core';
+import { useTimeoutFn } from '@vueuse/core';
 import { useToast } from 'primevue/usetoast';
-import { createIndexerClient } from '../../../../../api/indexer/client.ts';
 import { useQuery } from '@tanstack/vue-query';
 import Message from "primevue/message";
 import {useAsyncFn} from "../../../../../composables/useAsyncFn.ts";
 import {useCurrentApplication} from "../../../../../composables/useCurrentApplication.ts";
 import {useCurrentWallet} from "../../../../../composables/useCurrentWallet.ts";
 import {useCurrentOrganization} from "../../../../../composables/useCurrentOrganization.ts";
+import {usePublicationStatus} from "../../../../../composables/usePublicationStatus.ts";
+import FieldNameAndDescription from "../../../../../components/utils/FieldNameAndDescription.vue";
+import PageHeader from "../../../../../components/ui/PageHeader.vue";
+import UiCard from "../../../../../components/ui/UiCard.vue";
+import StatusBadge from "../../../../../components/ui/StatusBadge.vue";
+import CopyableValue from "../../../../../components/ui/CopyableValue.vue";
+import StickyActionBar from "../../../../../components/ui/StickyActionBar.vue";
+import ConfirmActionDialog from "../../../../../components/ui/ConfirmActionDialog.vue";
+import EmptyState from "../../../../../components/ui/EmptyState.vue";
+import SkeletonBlock from "../../../../../components/ui/SkeletonBlock.vue";
 
 const toast = useToast();
 const route = useRoute();
@@ -95,17 +101,14 @@ watch(
     { immediate: true },
 );
 
+// inline validation, shown once the user tried to save
+const submitted = ref(false);
+const nameError = computed(() => submitted.value && !appName.value.trim() ? 'Enter the name of the application.' : '');
+
 const {execute: updateApplicationDetails, isLoading: isUpdating} = useAsyncFn(async () => {
     if (!application.value) return;
-    if (!appName.value.trim()) {
-        toast.add({
-            severity: 'error',
-            summary: 'Validation error',
-            detail: 'Application name is required',
-            life: 3000,
-        });
-        return;
-    }
+    submitted.value = true;
+    if (nameError.value) return;
 
     await updateApplication({
         ...application.value,
@@ -183,6 +186,18 @@ const isDescriptionDifferentFromForm = computed(() => isApplicationFoundOnChain.
 const isWebsiteDifferentFromForm = computed(() => isApplicationFoundOnChain.value && fetchedApplicationWebsite.value !== appWebsite.value);
 const hasAccountOnChain = useHasAccountOnChainQuery();
 
+// ---- presentation ----
+const publication = usePublicationStatus('application', {
+    hasVbId: computed(() => !!application.value?.applicationVbId),
+    isChecking: isFetchingApplicationFromChain,
+    isFound: isApplicationFoundOnChain,
+});
+
+// The application arrives asynchronously and a missing one looks the same as a loading one:
+// show a skeleton for a moment before concluding that it does not exist.
+const hasWaited = ref(false);
+useTimeoutFn(() => hasWaited.value = true, 1000);
+
 // Register navbar actions
 onMounted(() => {
     if (registerNavbarActions) {
@@ -213,244 +228,156 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="space-y-6">
-        <div v-if="application">
-            <!-- Application Header -->
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-semibold text-gray-900">Application - {{ application.name }}</h2>
-                <Button
-                    @click="showDeleteConfirmDialog = true"
-                    icon="pi pi-trash"
-                    severity="danger"
-                    text
-                    rounded
-                    size="large"
-                />
-            </div>
+    <div v-if="application" class="space-y-6">
+        <PageHeader :title="application.name" :back-to="`/wallet/${walletId}/organization/${orgId}`">
+            <template #meta>
+                <StatusBadge :tone="publication.tone" :label="publication.label" :icon="publication.icon" />
+            </template>
+        </PageHeader>
 
-            <!-- Application Cards Side-by-Side -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
-                <!-- Application Info Card -->
-                <Card>
-                    <template #title>
-                        <div class="flex items-center gap-2">
-                            <i class="pi pi-info-circle text-xl"></i>
-                            <span>Application Info</span>
-                        </div>
+        <div class="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-start">
+            <UiCard title="Identity">
+                <dl class="space-y-4">
+                    <div>
+                        <dt class="text-sm text-fg-muted">Status</dt>
+                        <dd class="mt-1 space-y-1">
+                            <StatusBadge :tone="publication.tone" :label="publication.label" :icon="publication.icon" />
+                            <p class="text-sm text-fg-muted">{{ publication.hint }}</p>
+                        </dd>
+                    </div>
+                    <div v-if="application.applicationVbId">
+                        <dt class="text-sm text-fg-muted">Application ID</dt>
+                        <dd>
+                            <CopyableValue
+                                :value="application.applicationVbId"
+                                label="application ID"
+                                :head="12"
+                                :tail="10"
+                            />
+                        </dd>
+                    </div>
+                </dl>
+            </UiCard>
+
+            <form novalidate class="space-y-4" @submit.prevent="updateApplicationDetails">
+                <UiCard title="Edit your application">
+                    <template v-if="isFormDirty" #header-actions>
+                        <StatusBadge tone="warning" label="Unsaved changes" icon="pi-exclamation-circle" />
                     </template>
-                    <template #content>
-                        <div v-if="application.applicationVbId" class="space-y-4">
-                            <!-- Virtual Blockchain ID -->
-                            <div class="border-2 border-gray-50 rounded-lg p-4">
-                                <div class="text-sm text-gray-600 font-medium mb-1">Application ID</div>
-                                <div class="font-bold text-gray-900 text-sm">
-                                    {{ application.applicationVbId }}
-                                </div>
-                            </div>
 
-                            <!-- On-Chain Status -->
-                            <div
-                                v-if="isApplicationFoundOnChain === true"
-                                class="flex items-center gap-3 px-4 py-3 bg-green-50 border border-green-200 rounded-lg"
-                            >
-                                <i class="pi pi-check-circle text-green-600 text-lg"></i>
-                                <span class="text-sm text-green-800 font-medium">Application confirmed on-chain</span>
-                            </div>
-                            <div
-                                v-else-if="isApplicationFoundOnChain === false"
-                                class="flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg"
-                            >
-                                <i class="pi pi-exclamation-triangle text-amber-600 text-lg flex-shrink-0 mt-0.5"></i>
-                                <span class="text-sm text-amber-800">
-                                    Application not found on-chain. This may be due to network transaction processing delays.
-                                </span>
-                            </div>
-                            <div
-                                v-else-if="isFetchingApplicationFromChain"
-                                class="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg"
-                            >
-                                <i class="pi pi-spin pi-spinner text-blue-600 text-lg"></i>
-                                <span class="text-sm text-blue-800 font-medium">Checking on-chain status...</span>
-                            </div>
-
-
-
-                            <!-- Website -->
-                            <div v-if="application.website" class="bg-gray-50 rounded-lg p-4">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <i class="pi pi-globe text-gray-600 text-sm"></i>
-                                    <label class="text-sm font-semibold text-gray-700">Website</label>
-                                </div>
-                                <a
-                                    :href="application.website"
-                                    target="_blank"
-                                    class="text-blue-600 hover:text-blue-700 text-sm break-all flex items-center gap-1"
-                                >
-                                    {{ application.website }}
-                                    <i class="pi pi-external-link text-xs"></i>
-                                </a>
-                            </div>
-
-                            <!-- Description -->
-                            <div v-if="application.description" class="bg-gray-50 rounded-lg p-4">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <i class="pi pi-align-left text-gray-600 text-sm"></i>
-                                    <label class="text-sm font-semibold text-gray-700">Description</label>
-                                </div>
-                                <p class="text-gray-700 text-sm leading-relaxed">
-                                    {{ application.description }}
-                                </p>
-                            </div>
-
-
+                    <div class="space-y-5">
+                        <div>
+                            <FieldNameAndDescription name="Name" input-id="app-name" required />
+                            <InputText
+                                id="app-name"
+                                v-model="appName"
+                                fluid
+                                autocomplete="off"
+                                placeholder="e.g. Customer portal"
+                                :invalid="!!nameError"
+                                :aria-invalid="!!nameError"
+                                aria-describedby="app-name-error"
+                            />
+                            <p v-if="nameError" id="app-name-error" class="mt-1 text-sm text-danger">{{ nameError }}</p>
+                            <Message v-if="isNameDifferentFromForm" class="mt-2" severity="info" size="small">
+                                The name published on the blockchain is different: {{ fetchedApplicationName }}
+                            </Message>
                         </div>
-                        <div v-else class="text-center py-8">
-                            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 mb-3">
-                                <i class="pi pi-exclamation-circle text-2xl text-amber-600"></i>
-                            </div>
-                            <p class="text-gray-600 text-sm">
-                                Publish your application on-chain to see information.
-                            </p>
+                        <div>
+                            <FieldNameAndDescription name="Description" input-id="app-description" />
+                            <Textarea
+                                id="app-description"
+                                v-model="appDescription"
+                                fluid
+                                rows="3"
+                                placeholder="What does this application do?"
+                            />
+                            <Message v-if="isDescriptionDifferentFromForm" class="mt-2" severity="info" size="small">
+                                The description published on the blockchain is different.
+                            </Message>
                         </div>
-                    </template>
-                </Card>
-
-                <!-- Application Details Form Card -->
-                <Card>
-                    <template #title>
-                        <div class="flex items-center gap-2">
-                            <i class="pi pi-pencil text-xl"></i>
-                            <span>Edit your application</span>
-                        </div>
-                    </template>
-                    <template #content>
-                        <form @submit.prevent="updateApplicationDetails" class="space-y-4">
-                            <div>
-                                <label for="app-name" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Name
-                                    <span class="text-red-500">*</span>
-                                </label>
-                                <InputText
-                                    id="app-name"
-                                    v-model="appName"
-                                    placeholder="Application name"
-                                    class="w-full"
-                                    required
-                                />
-                                <Message class="my-2" v-if="isNameDifferentFromForm"> This application has a different name online: {{ fetchedApplicationName }} </Message>
-
-                            </div>
-                            <div>
-                                <label for="app-description" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Description
-                                </label>
-                                <Textarea
-                                    id="app-description"
-                                    v-model="appDescription"
-                                    placeholder="Application description"
-                                    class="w-full"
-                                    rows="3"
-                                />
-                                <Message class="my-2" v-if="isDescriptionDifferentFromForm"> This application has a different description online. </Message>
-
-                            </div>
-                            <div>
-                                <label for="app-website" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Website
-                                </label>
-                                <InputText
-                                    id="app-website"
-                                    v-model="appWebsite"
-                                    placeholder="https://..."
-                                    class="w-full"
-                                />
-                                <Message class="my-2" v-if="isWebsiteDifferentFromForm"> This application has a different website online: {{ fetchedApplicationWebsite }} </Message>
-                            </div>
-                            <div class="flex justify-end gap-2">
-                                <Button
-                                    type="button"
-                                    label="Publish"
-                                    icon="pi pi-cloud-upload"
-                                    @click="showPublishConfirmDialog = true"
-                                    :loading="isPublishingApplication"
-                                    :disabled="isPublishingApplication || !hasAccountOnChain"
-                                    severity="secondary"
-                                    :hidden="!hasAccountOnChain"
-                                    v-if="!isFormDirty"
-                                />
-                                <Button type="submit" label="Update Details" icon="pi pi-check" v-if="isFormDirty" :disabled="isUpdating" :loading="isUpdating" />
-                            </div>
-                        </form>
-                    </template>
-                </Card>
-            </div>
-
-            <!-- Publish Confirmation Dialog -->
-            <Dialog
-                v-model:visible="showPublishConfirmDialog"
-                header="Publish Application"
-                modal
-                class="w-full max-w-md"
-            >
-                <div class="space-y-4">
-                    <p class="text-gray-600">Are you sure you want to publish this application on-chain?</p>
-                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                        <div class="flex gap-2">
-                            <i class="pi pi-info-circle text-amber-600 mt-0.5"></i>
-                            <p class="text-sm text-amber-800">
-                                This action will create a virtual blockchain for your application and cannot be undone.
-                            </p>
+                        <div>
+                            <FieldNameAndDescription name="Website" input-id="app-website" />
+                            <InputText
+                                id="app-website"
+                                v-model="appWebsite"
+                                fluid
+                                inputmode="url"
+                                autocomplete="url"
+                                autocapitalize="off"
+                                spellcheck="false"
+                                placeholder="https://example.com"
+                            />
+                            <Message v-if="isWebsiteDifferentFromForm" class="mt-2" severity="info" size="small">
+                                The website published on the blockchain is different: {{ fetchedApplicationWebsite }}
+                            </Message>
                         </div>
                     </div>
-                </div>
-                <template #footer>
-                    <div class="flex justify-end gap-2">
+                </UiCard>
+
+                <UiCard title="Danger zone" variant="danger">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <p class="max-w-md text-sm text-fg-muted">
+                            Deleting this application removes it from this device. This cannot be undone.
+                        </p>
                         <Button
-                            label="Cancel"
-                            @click="showPublishConfirmDialog = false"
-                            severity="secondary"
+                            type="button"
+                            label="Delete application"
+                            icon="pi pi-trash"
+                            severity="danger"
                             outlined
-                        />
-                        <Button
-                            label="Confirm Publish"
-                            @click="confirmPublishApplication"
-                            icon="pi pi-cloud-upload"
-                            :loading="isPublishingApplication"
+                            @click="showDeleteConfirmDialog = true"
                         />
                     </div>
-                </template>
-            </Dialog>
+                </UiCard>
 
-            <!-- Delete Confirmation Dialog -->
-            <Dialog v-model:visible="showDeleteConfirmDialog" header="Delete Application" modal class="w-full max-w-md">
-                <div class="space-y-4">
-                    <p class="text-gray-600">
-                        Are you sure you want to delete the application "{{ application.name }}"?
-                    </p>
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-3">
-                        <div class="flex gap-2">
-                            <i class="pi pi-exclamation-triangle text-red-600 mt-0.5"></i>
-                            <p class="text-sm text-red-800">This action cannot be undone.</p>
-                        </div>
-                    </div>
-                </div>
-                <template #footer>
-                    <div class="flex justify-end gap-2">
-                        <Button label="Cancel" @click="showDeleteConfirmDialog = false" severity="secondary" outlined />
-                        <Button label="Delete" @click="confirmDeleteApplication" icon="pi pi-trash" severity="danger" />
-                    </div>
-                </template>
-            </Dialog>
+                <StickyActionBar v-if="isFormDirty || hasAccountOnChain">
+                    <template v-if="isFormDirty">
+                        <Button type="button" label="Discard changes" severity="secondary" outlined @click="initializeForm" />
+                        <Button type="submit" label="Save details" icon="pi pi-check" :loading="isUpdating" :disabled="isUpdating" />
+                    </template>
+                    <Button
+                        v-else
+                        type="button"
+                        label="Publish"
+                        icon="pi pi-cloud-upload"
+                        :loading="isPublishingApplication"
+                        :disabled="isPublishingApplication"
+                        @click="showPublishConfirmDialog = true"
+                    />
+                </StickyActionBar>
+            </form>
         </div>
 
-        <!-- Not Found State -->
-        <div v-else class="text-center py-12">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
-                <i class="pi pi-exclamation-triangle text-3xl text-red-600"></i>
-            </div>
-            <h1 class="text-2xl font-bold text-gray-900 mb-2">Application Not Found</h1>
-            <p class="text-gray-500 mb-6">The application you're looking for doesn't exist.</p>
-            <Button @click="goBack" label="Back to Organization" icon="pi pi-arrow-left" />
-        </div>
+        <ConfirmActionDialog
+            v-model:visible="showPublishConfirmDialog"
+            title="Publish application"
+            action="publish"
+            tone="primary"
+            confirm-label="Publish"
+            :item-name="appName"
+            message="This creates a virtual blockchain for your application on-chain and cannot be undone."
+            @confirm="confirmPublishApplication"
+        />
+
+        <ConfirmActionDialog
+            v-model:visible="showDeleteConfirmDialog"
+            title="Delete application"
+            :item-name="application.name"
+            @confirm="confirmDeleteApplication"
+        />
     </div>
+
+    <SkeletonBlock v-else-if="!hasWaited" :lines="4" />
+
+    <!-- Not Found State -->
+    <EmptyState
+        v-else
+        framed
+        icon="pi-exclamation-triangle"
+        title="Application not found"
+        description="The application you are looking for does not exist."
+    >
+        <Button label="Back to organization" icon="pi pi-arrow-left" @click="goBack" />
+    </EmptyState>
 </template>

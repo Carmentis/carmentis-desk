@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import InputNumber from 'primevue/inputnumber';
 import { computed, ref, watch } from 'vue';
@@ -8,8 +7,10 @@ import { CMTSToken } from '@cmts-dev/carmentis-sdk-core';
 import { useOnChainActions } from '../../../../../composables/useOnChainActions.ts';
 import FieldNameAndDescription from "../../../../../components/utils/FieldNameAndDescription.vue";
 import {useCurrentNode} from "../../../../../composables/useCurrentNode.ts";
+import ResponsiveDialog from "../../../../../components/ui/ResponsiveDialog.vue";
+import AmountDisplay from "../../../../../components/ui/AmountDisplay.vue";
 
-const isOpen = defineModel<boolean>('isOpen');
+const isOpen = defineModel<boolean>('isOpen', { default: false });
 
 const route = useRoute();
 const onChainStore = useOnChainActions();
@@ -60,44 +61,44 @@ async function submitStake() {
 </script>
 
 <template>
-    <Dialog v-model:visible="isOpen" modal header="Stake Tokens" :style="{ width: '30rem' }">
-        <div class="space-y-4">
+    <ResponsiveDialog v-model:visible="isOpen" header="Stake tokens" :closable="!isStakingOnNode">
+        <form id="stake-form" class="space-y-4" novalidate @submit.prevent="submitStake">
+            <p class="text-sm text-fg-muted">
+                The amount is added to your current stake, if any. Currently staked:
+                <AmountDisplay :value="currentStakedAmount" size="sm" />
+            </p>
+
             <div>
-                <p class="text-gray-700 text-sm block mb-4">
-                    Enter the amount of CMTS tokens you want to stake, which will be added to your
-                    current stake (if any). You have currently {{currentStakedAmount}} staked tokens.
-                </p>
-                <FieldNameAndDescription name="Amount (CMTS)" description="Amount of tokens to stake" required/>
+                <FieldNameAndDescription name="Amount (CMTS)" input-id="stake-amount" required />
                 <InputNumber
                     v-model="stakeAmount"
+                    input-id="stake-amount"
                     :min="0"
                     :max="MAX_STAKE"
                     :minFractionDigits="0"
                     :maxFractionDigits="2"
                     locale="en-US"
-                    class="w-full"
-                    placeholder="Enter amount to stake"
+                    fluid
+                    placeholder="0.00"
+                    :invalid="!!stakeAmountError"
+                    aria-describedby="stake-amount-hint"
                 />
-                <small class="text-gray-500 mt-1 block">
-                    Max: {{ MAX_STAKE.toLocaleString() }} CMTS
-                </small>
-                <small v-if="stakeAmountError" class="text-red-500 mt-1 block">
-                    {{ stakeAmountError }}
-                </small>
+                <p id="stake-amount-hint" class="mt-1 text-sm" :class="stakeAmountError ? 'text-danger' : 'text-fg-muted'">
+                    {{ stakeAmountError ?? `Maximum: ${MAX_STAKE.toLocaleString()} CMTS` }}
+                </p>
             </div>
-        </div>
+        </form>
 
         <template #footer>
-            <div class="flex justify-end gap-2">
-                <Button label="Cancel" @click="isOpen = false" text />
-                <Button
-                    label="Stake"
-                    @click="submitStake"
-                    :disabled="!canStake || isStakingOnNode"
-                    :loading="isStakingOnNode"
-                    icon="pi pi-check"
-                />
-            </div>
+            <Button label="Cancel" severity="secondary" outlined :disabled="isStakingOnNode" @click="isOpen = false" />
+            <Button
+                type="submit"
+                form="stake-form"
+                label="Stake"
+                icon="pi pi-check"
+                :disabled="!canStake || isStakingOnNode"
+                :loading="isStakingOnNode"
+            />
         </template>
-    </Dialog>
+    </ResponsiveDialog>
 </template>

@@ -23,7 +23,8 @@ import SectionTabs from '../../../../components/ui/SectionTabs.vue';
 import EmptyState from '../../../../components/ui/EmptyState.vue';
 import SkeletonBlock from '../../../../components/ui/SkeletonBlock.vue';
 import ConfirmActionDialog from '../../../../components/ui/ConfirmActionDialog.vue';
-import type { StatusTone, TabItem } from '../../../../components/ui/types.ts';
+import type { TabItem } from '../../../../components/ui/types.ts';
+import { usePublicationStatus } from '../../../../composables/usePublicationStatus.ts';
 
 const toast = useToast();
 const route = useRoute();
@@ -62,23 +63,10 @@ const { data: organizationFetchedOnline, isLoading: isFetchingOrganizationFromCh
 const isOrganizationFoundOnChain = computed(() => !!organizationFetchedOnline.value);
 
 // ---- publication status: always an icon and a text, never color alone ----
-interface PublicationStatus { tone: StatusTone; label: string; icon: string; hint: string }
-const publication = computed<PublicationStatus>(() => {
-    if (!organization.value?.organizationVbId) {
-        return { tone: 'warning', label: 'Draft', icon: 'pi-file-edit', hint: 'This organization is not published on the blockchain yet.' };
-    }
-    if (isFetchingOrganizationFromChain.value) {
-        return { tone: 'neutral', label: 'Checking…', icon: 'pi-spin pi-spinner', hint: 'Checking the blockchain…' };
-    }
-    if (isOrganizationFoundOnChain.value) {
-        return { tone: 'success', label: 'Published', icon: 'pi-check-circle', hint: 'This organization is published on the blockchain.' };
-    }
-    return {
-        tone: 'warning',
-        label: 'Not found on-chain',
-        icon: 'pi-exclamation-triangle',
-        hint: 'This organization was not found on the blockchain. This may be due to network transaction processing delays.',
-    };
+const publication = usePublicationStatus('organization', {
+    hasVbId: computed(() => !!organization.value?.organizationVbId),
+    isChecking: isFetchingOrganizationFromChain,
+    isFound: isOrganizationFoundOnChain,
 });
 
 // ---- tabs: a single level; Local/On-chain are filters inside the tabs ----

@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import Card from 'primevue/card';
 import type { Hash } from '@cmts-dev/carmentis-sdk-core';
 import type { NodeEntity } from '../../../../../stores/storage.ts';
 import {Node} from "../../../../../types/types.ts";
+import UiCard from "../../../../../components/ui/UiCard.vue";
+import StatusBadge from "../../../../../components/ui/StatusBadge.vue";
+import CopyableValue from "../../../../../components/ui/CopyableValue.vue";
+import EmptyState from "../../../../../components/ui/EmptyState.vue";
 
 defineProps<{
     node: Node;
@@ -16,80 +19,58 @@ defineProps<{
 </script>
 
 <template>
-    <Card>
-        <template #title>
-            <div class="flex items-center gap-2">
-                <i class="pi pi-info-circle text-xl"></i>
-                <span>Publication Status</span>
-            </div>
-        </template>
-        <template #content>
-            <div v-if="!node.nodeVbId" class="text-center py-8">
-                <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
-                    <i class="pi pi-question-circle text-2xl text-gray-400"></i>
-                </div>
-                <p class="text-sm text-gray-500">Node has no Virtual Blockchain ID</p>
-            </div>
-            <div v-else class="space-y-4">
-                <!-- Publication Status -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Publication Status</label>
-                    <div class="flex items-center gap-2">
-                        <div
-                            class="px-3 py-1 rounded-full text-sm font-medium"
-                            :class="isNodePublished ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
-                        >
-                            <i class="pi" :class="isNodePublished ? 'pi-check-circle' : 'pi-times-circle'"></i>
-                            {{ isNodePublished ? 'Published' : 'Not Published' }}
-                        </div>
-                        <div
-                            class="px-3 py-1 rounded-full text-sm font-medium"
-                            :class="isNodeValidator ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
-                        >
-                            <i class="pi" :class="isNodeValidator ? 'pi-check-circle' : 'pi-times-circle'"></i>
-                            {{ isNodeValidator ? 'Validator' : 'Replicator' }}
-                        </div>
-                    </div>
-                </div>
+    <UiCard title="Publication status">
+        <EmptyState
+            v-if="!node.nodeVbId"
+            icon="pi-question-circle"
+            title="Not published yet"
+            description="This node has no virtual blockchain ID."
+        />
 
-                <!-- Claimed Status -->
-                <div v-if="isNodePublished">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Claim Status</label>
-                    <div class="flex items-center gap-2">
-                        <div
-                            class="px-3 py-1 rounded-full text-sm font-medium"
-                            :class="isNodeClaimed ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'"
-                        >
-                            <i class="pi" :class="isNodeClaimed ? 'pi-lock' : 'pi-unlock'"></i>
-                            {{
-                                isNodeClaimed
-                                    ? nodeOwnerName
-                                        ? `Claimed by ${nodeOwnerName}`
-                                        : 'Claimed'
-                                    : 'Not Claimed'
-                            }}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Owner Information -->
-                <div v-if="isNodeClaimed && nodeOwnerAccountId">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Owner</label>
-                    <div class="space-y-2">
-                        <code class="bg-gray-100 px-3 py-2 rounded text-xs block overflow-x-auto">
-                            {{ nodeOwnerAccountId }}
-                        </code>
-                        <div v-if="isOwnedByWallet" class="flex items-center gap-2 text-sm text-green-700">
-                            <i class="pi pi-check-circle"></i>
-                            <span>Owned by this wallet</span>
-                        </div>
-                        <div v-else class="flex items-center gap-2 text-sm text-orange-700">
-                            <i class="pi pi-exclamation-triangle"></i>
-                            <span>Owned by another account</span>
-                        </div>
-                    </div>
-                </div>
+        <dl v-else class="space-y-4 text-sm">
+            <div>
+                <dt class="mb-1 text-fg-muted">Publication</dt>
+                <dd class="flex flex-wrap items-center gap-2">
+                    <StatusBadge
+                        :tone="isNodePublished ? 'success' : 'neutral'"
+                        :label="isNodePublished ? 'Published' : 'Not published'"
+                        :icon="isNodePublished ? 'pi-check-circle' : 'pi-times-circle'"
+                    />
+                    <StatusBadge
+                        :tone="isNodeValidator ? 'info' : 'neutral'"
+                        :label="isNodeValidator ? 'Validator' : 'Replicator'"
+                        :icon="isNodeValidator ? 'pi-verified' : 'pi-copy'"
+                    />
+                </dd>
             </div>
-        </template>
-    </Card>
+
+            <div v-if="isNodePublished">
+                <dt class="mb-1 text-fg-muted">Claim</dt>
+                <dd>
+                    <StatusBadge
+                        :tone="isNodeClaimed ? 'info' : 'warning'"
+                        :label="isNodeClaimed ? (nodeOwnerName ? `Claimed by ${nodeOwnerName}` : 'Claimed') : 'Not claimed'"
+                        :icon="isNodeClaimed ? 'pi-lock' : 'pi-unlock'"
+                    />
+                </dd>
+            </div>
+
+            <div v-if="isNodeClaimed && nodeOwnerAccountId">
+                <dt class="mb-1 text-fg-muted">Owner</dt>
+                <dd class="space-y-2">
+                    <CopyableValue :value="nodeOwnerAccountId" label="owner account ID" :head="12" :tail="10" />
+                    <StatusBadge
+                        v-if="isOwnedByWallet"
+                        tone="success"
+                        label="Owned by this wallet"
+                    />
+                    <StatusBadge
+                        v-else
+                        tone="warning"
+                        label="Owned by another account"
+                    />
+                </dd>
+            </div>
+        </dl>
+    </UiCard>
 </template>

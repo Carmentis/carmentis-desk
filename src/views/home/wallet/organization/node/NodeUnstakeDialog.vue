@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import InputNumber from 'primevue/inputnumber';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { CMTSToken } from '@cmts-dev/carmentis-sdk-core';
 import { useOnChainActions } from '../../../../../composables/useOnChainActions.ts';
+import ResponsiveDialog from '../../../../../components/ui/ResponsiveDialog.vue';
+import FieldNameAndDescription from '../../../../../components/utils/FieldNameAndDescription.vue';
 
 const props = defineProps<{
     maxUnstakeAmount: number;
 }>();
 
-const isOpen = defineModel<boolean>('isOpen');
+const isOpen = defineModel<boolean>('isOpen', { default: false });
 
 const route = useRoute();
 const onChainStore = useOnChainActions();
@@ -59,39 +60,37 @@ async function submitUnstake() {
 </script>
 
 <template>
-    <Dialog v-model:visible="isOpen" modal header="Unstake Tokens" :style="{ width: '30rem' }">
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Amount (CMTS)</label>
-                <InputNumber
-                    v-model="unstakeAmount"
-                    :min="0"
-                    :max="maxUnstakeAmount"
-                    :minFractionDigits="0"
-                    :maxFractionDigits="2"
-                    locale="en-US"
-                    class="w-full"
-                    placeholder="Enter amount to unstake"
-                />
-                <small class="text-gray-500 mt-1 block"> Max available: {{ maxUnstakeAmount.toLocaleString() }} CMTS </small>
-                <small v-if="unstakeAmountError" class="text-red-500 mt-1 block">
-                    {{ unstakeAmountError }}
-                </small>
-            </div>
-        </div>
+    <ResponsiveDialog v-model:visible="isOpen" header="Unstake tokens" :closable="!isUnstakingFromNode">
+        <form id="unstake-form" novalidate @submit.prevent="submitUnstake">
+            <FieldNameAndDescription name="Amount (CMTS)" input-id="unstake-amount" required />
+            <InputNumber
+                v-model="unstakeAmount"
+                input-id="unstake-amount"
+                :min="0"
+                :max="maxUnstakeAmount"
+                :minFractionDigits="0"
+                :maxFractionDigits="2"
+                locale="en-US"
+                fluid
+                placeholder="0.00"
+                :invalid="!!unstakeAmountError"
+                aria-describedby="unstake-amount-hint"
+            />
+            <p id="unstake-amount-hint" class="mt-1 text-sm" :class="unstakeAmountError ? 'text-danger' : 'text-fg-muted'">
+                {{ unstakeAmountError ?? `Maximum available: ${maxUnstakeAmount.toLocaleString()} CMTS` }}
+            </p>
+        </form>
 
         <template #footer>
-            <div class="flex justify-end gap-2">
-                <Button label="Cancel" @click="isOpen = false" text />
-                <Button
-                    label="Unstake"
-                    @click="submitUnstake"
-                    :disabled="!canUnstake"
-                    :loading="isUnstakingFromNode"
-                    icon="pi pi-check"
-                    severity="secondary"
-                />
-            </div>
+            <Button label="Cancel" severity="secondary" outlined :disabled="isUnstakingFromNode" @click="isOpen = false" />
+            <Button
+                type="submit"
+                form="unstake-form"
+                label="Unstake"
+                icon="pi pi-check"
+                :disabled="!canUnstake"
+                :loading="isUnstakingFromNode"
+            />
         </template>
-    </Dialog>
+    </ResponsiveDialog>
 </template>
