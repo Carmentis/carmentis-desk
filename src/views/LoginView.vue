@@ -4,10 +4,11 @@ import { useRouter, useRoute } from 'vue-router';
 import { useSessionStore } from '../stores/sessionStore';
 import Button from 'primevue/button';
 import Password from 'primevue/password';
-import Card from 'primevue/card';
 import Message from 'primevue/message';
 import { storeToRefs } from 'pinia';
 import {useAppStore} from "../stores/appStore.ts";
+import AuthLayout from "../components/layout/AuthLayout.vue";
+import FieldNameAndDescription from "../components/utils/FieldNameAndDescription.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -37,44 +38,37 @@ async function handleSubmit() {
 </script>
 
 <template>
-    <div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <Card class="w-full max-w-sm">
-            <template #header>
-                <div class="px-6 pt-6 text-center">
-                    <img src="/carmentis-logo.png" alt="Carmentis" class="h-12 w-auto mx-auto mb-3" />
-                    <h1 class="text-2xl font-bold text-gray-900">Unlock vault</h1>
-                    <p class="text-sm text-gray-500 mt-1">Provide your password to access the secure vault.</p>
-                </div>
-            </template>
-            <template #content>
-                <form class="flex flex-col gap-4" @submit.prevent="handleSubmit">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                        <Password
-                            v-model="password"
-                            placeholder="Enter your vault password"
-                            :feedback="false"
-                            toggleMask
-                            class="w-full"
-                            input-class="w-full"
-                            autofocus
-                        />
-                    </div>
+    <AuthLayout title="Unlock vault" subtitle="Enter your password to open the secure vault.">
+        <template #icon>
+            <img src="/carmentis-logo.png" alt="Carmentis" class="mx-auto mb-3 h-12 w-auto" />
+        </template>
 
-                    <Message v-if="errorMessage" severity="error" :closable="false">
-                        {{ errorMessage }}
-                    </Message>
+        <form class="flex flex-col gap-5" @submit.prevent="handleSubmit">
+            <div>
+                <FieldNameAndDescription name="Password" input-id="login-password" />
+                <Password
+                    v-model="password"
+                    input-id="login-password"
+                    :input-props="{ autocomplete: 'current-password', autofocus: true }"
+                    placeholder="Your vault password"
+                    :feedback="false"
+                    toggleMask
+                    fluid
+                />
+            </div>
 
-                    <Button
-                        type="submit"
-                        label="Unlock"
-                        icon="pi pi-unlock"
-                        class="w-full"
-                        :loading="isLoading"
-                        :disabled="!password"
-                    />
-                </form>
-            </template>
-        </Card>
-    </div>
+            <Message v-if="errorMessage" severity="error" :closable="false" role="alert">
+                {{ errorMessage }}
+            </Message>
+
+            <Button
+                type="submit"
+                label="Unlock"
+                icon="pi pi-unlock"
+                class="w-full"
+                :loading="isLoading"
+                :disabled="!password"
+            />
+        </form>
+    </AuthLayout>
 </template>

@@ -3,11 +3,11 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSessionStore } from '../stores/sessionStore';
 import Button from 'primevue/button';
-import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
-import Card from 'primevue/card';
 import Message from 'primevue/message';
 import {useAppStore} from "../stores/appStore.ts";
+import AuthLayout from "../components/layout/AuthLayout.vue";
+import FieldNameAndDescription from "../components/utils/FieldNameAndDescription.vue";
 
 const router = useRouter();
 const sessionStore = useAppStore();
@@ -43,56 +43,50 @@ async function handleSubmit() {
 </script>
 
 <template>
-    <div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <Card class="w-full max-w-md">
-            <template #header>
-                <div class="px-6 pt-6 text-center">
-                    <i class="pi pi-lock text-4xl text-primary mb-3"></i>
-                    <h1 class="text-2xl font-bold text-gray-900">Welcome to Carmentis Desk</h1>
-                    <p class="text-sm text-gray-500 mt-1">
-                        Set up your secure vault.
-                    </p>
-                </div>
-            </template>
-            <template #content>
-                <form class="flex flex-col gap-4" @submit.prevent="handleSubmit">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Vault password</label>
-                        <Password
-                            v-model="password"
-                            placeholder="At least 8 characters"
-                            :feedback="true"
-                            toggleMask
-                            class="w-full"
-                            input-class="w-full"
-                        />
-                    </div>
+    <AuthLayout title="Welcome to Carmentis Desk" subtitle="Set up your secure vault.">
+        <template #icon>
+            <span class="mx-auto mb-3 flex size-14 items-center justify-center rounded-full bg-accent-soft text-accent">
+                <i class="pi pi-lock text-2xl" aria-hidden="true" />
+            </span>
+        </template>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>
-                        <Password
-                            v-model="confirmPassword"
-                            placeholder="Repeat your password"
-                            :feedback="false"
-                            toggleMask
-                            class="w-full"
-                            input-class="w-full"
-                        />
-                    </div>
+        <form class="flex flex-col gap-5" novalidate @submit.prevent="handleSubmit">
+            <div>
+                <FieldNameAndDescription
+                    name="Vault password"
+                    description="At least 8 characters. You will need it every time you open Carmentis Desk."
+                    input-id="vault-password"
+                    required
+                />
+                <Password
+                    v-model="password"
+                    input-id="vault-password"
+                    :input-props="{ autocomplete: 'new-password' }"
+                    placeholder="Choose a strong password"
+                    :feedback="true"
+                    toggleMask
+                    fluid
+                />
+            </div>
 
-                    <Message v-if="errorMessage" severity="error" :closable="false" class="mt-1">
-                        {{ errorMessage }}
-                    </Message>
+            <div>
+                <FieldNameAndDescription name="Confirm password" input-id="vault-password-confirm" required />
+                <Password
+                    v-model="confirmPassword"
+                    input-id="vault-password-confirm"
+                    :input-props="{ autocomplete: 'new-password' }"
+                    placeholder="Type the password again"
+                    :feedback="false"
+                    toggleMask
+                    fluid
+                />
+            </div>
 
-                    <Button
-                        type="submit"
-                        label="Create vault"
-                        icon="pi pi-shield"
-                        class="w-full mt-2"
-                        :loading="isLoading"
-                    />
-                </form>
-            </template>
-        </Card>
-    </div>
+            <Message v-if="errorMessage" severity="error" :closable="false" role="alert">
+                {{ errorMessage }}
+            </Message>
+
+            <Button type="submit" label="Create vault" icon="pi pi-shield" class="w-full" :loading="isLoading" />
+        </form>
+    </AuthLayout>
 </template>

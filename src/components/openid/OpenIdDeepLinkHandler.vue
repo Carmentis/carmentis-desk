@@ -36,7 +36,7 @@ async function handleQuery() {
         console.log('Exporting keys in JWK');
         const privateKeyJwk = await jose.exportJWK(privateKey);
         const publicKeyJwk = await jose.exportJWK(publicKey);
-        console.log('Private key JWK:', privateKeyJwk, publicKeyJwk);
+        console.log('Public key JWK:', publicKeyJwk);
 
         console.log('Generating DID');
         // @ts-ignore

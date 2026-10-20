@@ -1,28 +1,25 @@
 <script setup lang="ts">
-import Card from 'primevue/card';
-import Tabs from 'primevue/tabs';
-import Tab from 'primevue/tab';
-import TabList from 'primevue/tablist';
-import TabPanel from 'primevue/tabpanel';
-import TabPanels from 'primevue/tabpanels';
 import Button from 'primevue/button';
 import Logs from './Logs.vue';
-import {ToggleSwitch} from "primevue";
 import { useTheme } from '../../../composables/useTheme.ts';
-import { ref, computed } from 'vue';
-import { check } from '@tauri-apps/plugin-updater';
+import { ref, computed, shallowRef } from 'vue';
+import { check, type Update } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
-import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import Oid4vp from "./oid4vp.vue";
 import {useAppStore} from "../../../stores/appStore.ts";
+import ToggleSwitch from 'primevue/toggleswitch';
+import PageHeader from '../../../components/ui/PageHeader.vue';
+import UiCard from '../../../components/ui/UiCard.vue';
+import SectionTabs from '../../../components/ui/SectionTabs.vue';
+import ConfirmActionDialog from '../../../components/ui/ConfirmActionDialog.vue';
+import type { TabItem } from '../../../components/ui/types.ts';
 
 const { hasDeveloperRole, hasNodeHolderRole, setNodeHolderRoleToUser, setDeveloperRoleToUser } = useAppStore();
 const { currentTheme, toggleTheme } = useTheme();
 
 
 
-const confirm = useConfirm();
 const toast = useToast();
 
 const isSearchingForUpdate = ref(false);
@@ -35,38 +32,18 @@ const updateButtonLabel = computed(() => {
     return 'Check for update';
 });
 
+// The update found by the check, waiting for the user's confirmation.
+// A shallowRef: the update is a class instance with private fields, which a reactive proxy would break.
+const pendingUpdate = shallowRef<Update | null>(null);
+const showUpdateDialog = ref(false);
+
 async function checkForUpdate() {
     isSearchingForUpdate.value = true;
     try {
         const update = await check();
         if (update) {
-            confirm.require({
-                message: `Version ${update.version} is available. Update now?`,
-                header: 'Update Available',
-                icon: 'pi pi-exclamation-triangle',
-                rejectLabel: 'Cancel',
-                acceptLabel: 'Update',
-                acceptClass: 'p-button-success',
-                accept: async () => {
-                    let downloaded = 0;
-                    let contentLength = 0;
-                    isDownloadingUpdate.value = true;
-                    await update.downloadAndInstall((event) => {
-                        switch (event.event) {
-                            case 'Started':
-                                contentLength = event.data.contentLength ?? 0;
-                                break;
-                            case 'Progress':
-                                downloaded += event.data.chunkLength;
-                                downloadingProgress.value = Math.round((downloaded / contentLength) * 100);
-                                break;
-                        }
-                    });
-                    isDownloadingUpdate.value = false;
-                    downloadingProgress.value = 0;
-                    await relaunch();
-                },
-            });
+            pendingUpdate.value = update;
+            showUpdateDialog.value = true;
         } else {
             toast.add({ severity: 'info', summary: 'Up to date', detail: 'No update available.', life: 3000 });
         }
@@ -74,112 +51,124 @@ async function checkForUpdate() {
         isSearchingForUpdate.value = false;
     }
 }
+
+async function installUpdate() {
+    const update = pendingUpdate.value;
+    if (!update) return;
+    showUpdateDialog.value = false;
+    let downloaded = 0;
+    let contentLength = 0;
+    isDownloadingUpdate.value = true;
+    await update.downloadAndInstall((event) => {
+        switch (event.event) {
+            case 'Started':
+                contentLength = event.data.contentLength ?? 0;
+                break;
+            case 'Progress':
+                downloaded += event.data.chunkLength;
+                downloadingProgress.value = Math.round((downloaded / contentLength) * 100);
+                break;
+        }
+    });
+    isDownloadingUpdate.value = false;
+    downloadingProgress.value = 0;
+    await relaunch();
+}
+
+// ---- presentation ----
+const tab = ref('general');
+const tabs = computed<TabItem[]>(() => [
+    { value: 'general', label: 'General', icon: 'pi-sliders-h' },
+    { value: 'logs', label: 'Logs', icon: 'pi-list', hidden: !hasDeveloperRole.value },
+    { value: 'developer', label: 'Developer', icon: 'pi-code', hidden: !hasDeveloperRole.value },
+]);
 </script>
 
 <template>
-    <div class="space-y-4">
-        <h1 class="text-2xl font-semibold text-surface-900">Settings</h1>
+    <div class="space-y-6">
+        <PageHeader title="Settings" />
 
-        <Tabs value="general">
-            <TabList>
-                <Tab value="general">
-                    <i class="pi pi-sliders-h mr-2"></i>
-                    General
-                </Tab>
-                <Tab value="logs" v-if="hasDeveloperRole">
-                    <i class="pi pi-list mr-2"></i>
-                    Logs
-                </Tab>
-                <Tab value="Developer" v-if="hasDeveloperRole">
-                    <i class="pi pi-code mr-2"></i>
-                    Developer
-                </Tab>
-            </TabList>
-
-            <TabPanels>
+        <SectionTabs v-model="tab" :tabs="tabs" ariaLabel="Settings sections" persist-key="settingsTab">
+            <template #default="{ active }">
                 <!-- General -->
-                <TabPanel value="general">
-                    <div class="flex flex-col gap-4 pt-2">
-                        <Card>
-                            <template #content>
-                                <div class="mb-4">
-                                    <p class="text-sm font-semibold text-surface-800">
-                                        User Roles
-                                    </p>
-                                    <p class="text-xs text-surface-500 mt-0.5">
-                                        Adapt the application based on your needs
-                                    </p>
-                                </div>
+                <div v-if="active === 'general'" class="mx-auto max-w-2xl space-y-4">
+                    <UiCard title="User roles" subtitle="Adapt the application to your needs.">
+                        <ul class="divide-y divide-line">
+                            <li class="flex min-h-11 items-center justify-between gap-4 py-3 first:pt-0">
+                                <label for="role-developer" class="min-w-0 flex-1">
+                                    <span class="block text-sm font-medium text-fg">Developer</span>
+                                    <span class="block text-sm text-fg-muted">
+                                        Manage applications and publish custom data on-chain.
+                                    </span>
+                                </label>
+                                <ToggleSwitch
+                                    input-id="role-developer"
+                                    :model-value="hasDeveloperRole"
+                                    @update:model-value="(value: boolean) => setDeveloperRoleToUser(value)"
+                                />
+                            </li>
+                            <li class="flex min-h-11 items-center justify-between gap-4 py-3 last:pb-0">
+                                <label for="role-node-holder" class="min-w-0 flex-1">
+                                    <span class="block text-sm font-medium text-fg">Node holder</span>
+                                    <span class="block text-sm text-fg-muted">
+                                        You run a node, or you want to set one up.
+                                    </span>
+                                </label>
+                                <ToggleSwitch
+                                    input-id="role-node-holder"
+                                    :model-value="hasNodeHolderRole"
+                                    @update:model-value="(value: boolean) => setNodeHolderRoleToUser(value)"
+                                />
+                            </li>
+                        </ul>
+                    </UiCard>
 
-                                <div class="flex flex-col">
-                                    <div>
-                                        <p class="text-sm font-semibold text-surface-800">Developer</p>
-                                        <p class="text-xs text-surface-500 mt-0.5 mb-2">
-                                            If you are a developer, you can enable the management of application.
-                                        </p>
-                                        <ToggleSwitch :model-value="hasDeveloperRole" @update:model-value="(value: boolean) => setDeveloperRoleToUser(value)" />
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-semibold text-surface-800">Node Holder</p>
-                                        <p class="text-xs text-surface-500 mt-0.5 mb-2">
-                                           If you are the owner of a running node or if you want to set up one.
-                                        </p>
-                                        <ToggleSwitch :model-value="hasNodeHolderRole" @update:model-value="(value: boolean) => setNodeHolderRoleToUser(value)"  />
-                                    </div>
-                                </div>
-                            </template>
-                        </Card>
-                        <Card>
-                            <template #content>
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-sm font-semibold text-surface-800">Theme</p>
-                                        <p class="text-xs text-surface-500 mt-0.5">
-                                            Currently using {{ currentTheme }} mode
-                                        </p>
-                                    </div>
-                                    <Button
-                                        :icon="currentTheme === 'light' ? 'pi pi-moon' : 'pi pi-sun'"
-                                        :label="currentTheme === 'light' ? 'Dark Mode' : 'Light Mode'"
-                                        outlined
-                                        size="small"
-                                        @click="toggleTheme"
-                                    />
-                                </div>
-                            </template>
-                        </Card>
+                    <UiCard title="Appearance">
+                        <div class="flex min-h-11 items-center justify-between gap-4">
+                            <label for="dark-mode" class="min-w-0 flex-1">
+                                <span class="block text-sm font-medium text-fg">Dark mode</span>
+                                <span class="block text-sm text-fg-muted">Currently using {{ currentTheme }} mode.</span>
+                            </label>
+                            <ToggleSwitch
+                                input-id="dark-mode"
+                                :model-value="currentTheme === 'dark'"
+                                @update:model-value="toggleTheme"
+                            />
+                        </div>
+                    </UiCard>
 
-                        <Card>
-                            <template #content>
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-sm font-semibold text-surface-800">Application Update</p>
-                                        <p class="text-xs text-surface-500 mt-0.5">Check for the latest version</p>
-                                    </div>
-                                    <Button
-                                        icon="pi pi-refresh"
-                                        :label="updateButtonLabel"
-                                        outlined
-                                        size="small"
-                                        :loading="isSearchingForUpdate || isDownloadingUpdate"
-                                        @click="checkForUpdate"
-                                    />
-                                </div>
-                            </template>
-                        </Card>
-                    </div>
-                </TabPanel>
+                    <UiCard title="Application update">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <p class="text-sm text-fg-muted">Check whether a newer version is available.</p>
+                            <Button
+                                icon="pi pi-refresh"
+                                :label="updateButtonLabel"
+                                severity="secondary"
+                                outlined
+                                :loading="isSearchingForUpdate || isDownloadingUpdate"
+                                @click="checkForUpdate"
+                            />
+                        </div>
+                    </UiCard>
+                </div>
 
                 <!-- Logs -->
-                <TabPanel value="logs">
-                    <Logs />
-                </TabPanel>
+                <Logs v-else-if="active === 'logs'" />
 
                 <!-- Developer -->
-                <TabPanel value="Developer">
-                    <oid4vp />
-                </TabPanel>
-            </TabPanels>
-        </Tabs>
+                <oid4vp v-else-if="active === 'developer'" />
+            </template>
+        </SectionTabs>
+
+        <ConfirmActionDialog
+            v-model:visible="showUpdateDialog"
+            title="Update available"
+            action="install"
+            tone="primary"
+            confirm-label="Update"
+            :item-name="`Version ${pendingUpdate?.version ?? ''}`"
+            message="The application restarts once the update is installed."
+            @confirm="installUpdate"
+        />
     </div>
 </template>

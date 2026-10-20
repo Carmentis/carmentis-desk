@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import {computed, ref, watch} from 'vue';
-import Card from 'primevue/card';
 import JsonViewer from '../../JsonViewer.vue';
 import Button from 'primevue/button';
-import Dropdown from 'primevue/dropdown';
 import {useToast} from 'primevue/usetoast';
 import stringify from 'canonical-json'
 import {
@@ -22,6 +20,8 @@ import {DeskLogger} from "../../../../utils/DeskLogger.ts";
 import {SignJsonParams} from "./SignJsonRequestType.ts";
 import {useAppStore} from "../../../../stores/appStore.ts";
 import {useWalletStore} from "../../../../stores/walletStore.ts";
+import RpcRequestLayout from "../../RpcRequestLayout.vue";
+import RpcWalletPicker from "../../RpcWalletPicker.vue";
 
 const props = defineProps<{ params: SignJsonParams }>();
 
@@ -82,7 +82,6 @@ async function approve() {
     isProcessing.value = true;
     try {
         const {walletPrivateKey: sk} = chosenWalletStore.value;
-        console.log("SK:", sk.value)
         if (!sk.value) return;
         // create the json signer
         const context: SignatureContext = {
@@ -110,103 +109,38 @@ async function approve() {
 </script>
 
 <template>
-    <div class="flex items-center justify-center h-full p-4">
-        <Card class="w-full max-w-md">
-            <template #title>
-                <div class="flex items-center gap-3">
-                    <i class="pi pi-key text-3xl text-blue-500"></i>
-                    <span>Signature Request</span>
-                </div>
-                <p class="text-sm text-gray-700 mb-5">
-                    An application wants you to authenticate some data.
-                </p>
-            </template>
+    <RpcRequestLayout
+        title="Signature request"
+        description="An application wants you to sign some data."
+        icon="pi-pencil"
+        :requester="{ label: 'Purpose', value: purpose }"
+    >
+        <p v-if="isRequestingAllowedOnChainDecision" class="flex items-start gap-2 text-sm text-fg-muted">
+            <i class="pi pi-info-circle mt-0.5" aria-hidden="true" />
+            <span v-if="shouldBeAllowedOnChain === true">
+                This application is requesting a signature that should be allowed on chain.
+            </span>
+            <span v-else>
+                This application is requesting a signature that should not be allowed on chain.
+            </span>
+        </p>
 
-            <template #content>
-                <div class="space-y-4">
-                    <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-                        <p class="text-xs text-blue-500 font-semibold uppercase tracking-wide mb-1">
-                            Purpose
-                        </p>
-                        <p class="text-sm font-semibold text-blue-800">
-                            {{ purpose }}
-                        </p>
-                    </div>
+        <RpcWalletPicker v-model="chosenWallet" :wallets="wallets" label="Wallet to sign with" />
 
-                    <div>
-                        <p v-if="isRequestingAllowedOnChainDecision">
-                            <p v-if="shouldBeAllowedOnChain === true">
-                                This application is requesting a signature that should be allowed on chain.
-                            </p>
-                            <p v-else-if="shouldBeAllowedOnChain === false">
-                                This application is requesting a signature that should not be allowed on chain.
-                            </p>
-                        </p>
-                        <p v-else>
+        <div>
+            <p class="mb-1 text-sm font-medium text-fg">Payload to sign</p>
+            <JsonViewer :data="params.payload" max-height="16rem" />
+        </div>
 
-                        </p>
-                    </div>
-
-
-
-                    <div>
-                        <p class="text-xs text-gray-500 mb-1">Wallet for authentication</p>
-                        <Dropdown
-                            v-model="chosenWallet"
-                            :options="wallets"
-                            optionLabel="name"
-                            placeholder="Choose a wallet"
-                            class="w-full"
-                        >
-                            <template #value="slotProps">
-                                <div v-if="slotProps.value" class="flex items-center gap-2">
-                                    <i class="pi pi-wallet text-surface-500"></i>
-                                    <span>{{ slotProps.value.name }}</span>
-                                </div>
-                                <span v-else class="text-surface-500">
-                                    {{ slotProps.placeholder }}
-                                </span>
-                            </template>
-                            <template #option="slotProps">
-                                <div class="flex items-center gap-2">
-                                    <i class="pi pi-wallet text-surface-500"></i>
-                                    <div>
-                                        <div class="font-semibold">
-                                            {{ slotProps.option.name }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </template>
-                        </Dropdown>
-                    </div>
-
-                    <div>
-                        <p class="text-xs text-gray-500 mb-1">Payload to sign</p>
-                        <div class="text-xs bg-surface-50 rounded p-2 max-h-64 overflow-auto">
-                            <JsonViewer :data="params.payload" />
-                        </div>
-                    </div>
-
-                    <div class="flex gap-3 mt-6">
-                        <Button
-                            label="Decline"
-                            severity="secondary"
-                            outlined
-                            @click="emit('reject')"
-                            :disabled="isProcessing"
-                            class="flex-1"
-                        />
-                        <Button
-                            label="Authenticate"
-                            severity="primary"
-                            @click="approve"
-                            :disabled="!chosenWalletStore || !chosenWalletStore.walletPrivateKey.value"
-                            :loading="isProcessing"
-                            class="flex-1"
-                        />
-                    </div>
-                </div>
-            </template>
-        </Card>
-    </div>
+        <template #actions>
+            <Button label="Decline" severity="secondary" outlined :disabled="isProcessing" @click="emit('reject')" />
+            <Button
+                label="Sign"
+                icon="pi pi-pencil"
+                :disabled="!chosenWalletStore || !chosenWalletStore.walletPrivateKey.value"
+                :loading="isProcessing"
+                @click="approve"
+            />
+        </template>
+    </RpcRequestLayout>
 </template>

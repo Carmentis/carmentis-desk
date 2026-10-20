@@ -2,7 +2,8 @@
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Button from 'primevue/button';
-import Card from 'primevue/card';
+import UiCard from '../ui/UiCard.vue';
+import StatusBadge from '../ui/StatusBadge.vue';
 import { useToast } from 'primevue/usetoast';
 import * as v from 'valibot';
 import { Responder } from '@cmts-dev/carmentis-relay-client';
@@ -134,56 +135,38 @@ onMounted(async () => {
 
 <template>
     <!-- Active request view -->
-    <div v-if="activeRequest" class="min-h-screen">
-        <component
-            :is="activeRequest.component"
-            :params="activeRequest.params"
-            @done="onMethodDone"
-            @reject="closeConnect"
-        />
-    </div>
+    <component
+        :is="activeRequest.component"
+        v-if="activeRequest"
+        :params="activeRequest.params"
+        @done="onMethodDone"
+        @reject="closeConnect"
+    />
 
     <!-- Waiting state -->
-    <div v-else class="min-h-screen bg-surface-50 p-4">
-        <div class="max-w-2xl mx-auto flex flex-col gap-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div>
-                    <span class="text-sm font-medium text-surface-600">Connected to relay</span>
+    <div v-else class="mx-auto flex max-w-md flex-col gap-4">
+        <UiCard>
+            <div class="flex flex-col items-center gap-5 py-4 text-center" role="status">
+                <StatusBadge tone="success" label="Connected to relay" />
+                <span class="flex size-16 items-center justify-center rounded-full bg-accent-soft text-accent">
+                    <i class="pi pi-spin pi-spinner text-2xl" aria-hidden="true" />
+                </span>
+                <div>
+                    <h1 class="mb-1 text-lg font-semibold text-fg">Waiting for a request</h1>
+                    <p class="text-sm text-fg-muted">
+                        Keep this window open. A request will appear here once the application sends one.
+                    </p>
                 </div>
-                <Button
-                    label="Disconnect"
-                    icon="pi pi-times"
-                    severity="secondary"
-                    size="small"
-                    outlined
-                    @click="closeConnect"
-                />
+                <p class="flex w-full min-w-0 items-center gap-2 rounded-control bg-surface-muted px-3 py-2 text-xs text-fg-muted">
+                    <i class="pi pi-server shrink-0" aria-hidden="true" />
+                    <span class="truncate font-mono" :title="relay">{{ relay }}</span>
+                </p>
             </div>
-
-            <Card>
-                <template #content>
-                    <div class="flex flex-col items-center gap-6 py-8">
-                        <div class="w-16 h-16 rounded-full bg-primary-50 flex items-center justify-center">
-                            <i class="pi pi-spin pi-spinner text-primary text-2xl"></i>
-                        </div>
-                        <div class="text-center">
-                            <h2 class="text-lg font-semibold text-surface-800 mb-1">Waiting for a request</h2>
-                            <p class="text-sm text-surface-500">
-                                Keep this window open. A request will appear here once the application sends one.
-                            </p>
-                        </div>
-                        <div class="w-full border border-surface-200 rounded-lg p-3 bg-surface-50">
-                            <div class="flex items-center gap-2 text-xs text-surface-500">
-                                <i class="pi pi-server"></i>
-                                <span class="font-mono truncate">
-                                    {{ relay }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-            </Card>
-        </div>
+            <template #footer>
+                <div class="flex justify-center">
+                    <Button label="Disconnect" icon="pi pi-times" severity="secondary" outlined @click="closeConnect" />
+                </div>
+            </template>
+        </UiCard>
     </div>
 </template>

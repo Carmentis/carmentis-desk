@@ -2,7 +2,9 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { attachConsole } from '@tauri-apps/plugin-log';
 import Button from 'primevue/button';
-import Tag from 'primevue/tag';
+import StatusBadge from '../../../components/ui/StatusBadge.vue';
+import EmptyState from '../../../components/ui/EmptyState.vue';
+import type { StatusTone } from '../../../components/ui/types.ts';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -74,40 +76,48 @@ function exportLogs() {
     URL.revokeObjectURL(url);
 }
 
-const levelSeverity: Record<LogLevel, string> = {
-    debug: 'secondary',
+const levelTone: Record<LogLevel, StatusTone> = {
+    debug: 'neutral',
     info: 'info',
-    warn: 'warn',
+    warn: 'warning',
     error: 'danger',
 };
 </script>
 
 <template>
-    <div class="flex flex-col gap-3">
+    <div class="space-y-3">
         <!-- Toolbar -->
-        <div class="flex items-center justify-between">
-            <span class="text-sm text-surface-500">{{ entries.length }} entries</span>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <span class="text-sm text-fg-muted" role="status">{{ entries.length }} entries</span>
             <div class="flex gap-2">
-                <Button icon="pi pi-download" label="Export" size="small" outlined @click="exportLogs" :disabled="entries.length === 0" />
-                <Button icon="pi pi-trash" label="Clear" size="small" severity="danger" outlined @click="clear" :disabled="entries.length === 0" />
+                <Button icon="pi pi-download" label="Export" severity="secondary" outlined :disabled="entries.length === 0" @click="exportLogs" />
+                <Button icon="pi pi-trash" label="Clear" severity="danger" outlined :disabled="entries.length === 0" @click="clear" />
             </div>
         </div>
 
         <!-- Log list -->
-        <div class="border border-surface-200 rounded-lg overflow-auto max-h-[60vh] font-mono text-xs bg-surface-50">
-            <div v-if="entries.length === 0" class="flex flex-col items-center justify-center py-16 text-surface-400">
-                <i class="pi pi-list text-3xl mb-2"></i>
-                <p>No logs yet</p>
-            </div>
-            <div
+        <EmptyState
+            v-if="entries.length === 0"
+            framed
+            icon="pi-list"
+            title="No logs yet"
+            description="Messages written by the application appear here while this tab is open."
+        />
+        <ul
+            v-else
+            class="max-h-[60vh] overflow-auto rounded-card border border-line bg-surface-muted font-mono text-xs"
+            tabindex="0"
+            aria-label="Application logs"
+        >
+            <li
                 v-for="entry in entries"
                 :key="entry.id"
-                class="flex items-start gap-3 px-3 py-1.5 border-b border-surface-100 last:border-0 hover:bg-surface-100"
+                class="flex flex-wrap items-start gap-x-3 gap-y-1 border-b border-line px-3 py-2 last:border-0"
             >
-                <span class="text-surface-400 flex-shrink-0 pt-0.5">{{ entry.timestamp.toISOString().slice(11, 23) }}</span>
-                <Tag :value="entry.level.toUpperCase()" :severity="levelSeverity[entry.level]" class="flex-shrink-0 text-xs" />
-                <span class="break-all text-surface-800 leading-relaxed">{{ entry.message }}</span>
-            </div>
-        </div>
+                <span class="shrink-0 pt-0.5 text-fg-muted">{{ entry.timestamp.toISOString().slice(11, 23) }}</span>
+                <StatusBadge :tone="levelTone[entry.level]" :label="entry.level.toUpperCase()" class="shrink-0" />
+                <span class="min-w-0 basis-full break-all leading-relaxed text-fg sm:basis-0 sm:flex-1">{{ entry.message }}</span>
+            </li>
+        </ul>
     </div>
 </template>

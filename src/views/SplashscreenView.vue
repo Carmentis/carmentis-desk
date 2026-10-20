@@ -45,10 +45,13 @@ watch([isLoading, isOnboarded, isUnlocked], () => {
 
 
 <template>
-    <div class="flex justify-center items-center w-screen h-screen">
-        <div class="flex flex-col items-center">
-            <img src="/carmentis-logo.png" alt="Carmentis" class="h-32 w-auto mx-auto" />
-            <span>Loading</span>
+    <main class="flex min-h-dvh items-center justify-center bg-page p-4">
+        <div class="flex flex-col items-center gap-4" role="status">
+            <img src="/carmentis-logo.png" alt="Carmentis" class="h-24 w-auto" />
+            <span class="flex items-center gap-2 text-sm text-fg-muted">
+                <i class="pi pi-spin pi-spinner" aria-hidden="true" />
+                Loading…
+            </span>
         </div>
-    </div>
+    </main>
 </template>

@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import {computed, ref, watch} from 'vue';
-import Card from 'primevue/card';
 import Button from 'primevue/button';
-import Dropdown from 'primevue/dropdown';
 import {useToast} from 'primevue/usetoast';
 import stringify from 'canonical-json'
 import {
@@ -23,6 +21,9 @@ import {importJWK} from "jose";
 import {WalletUtils} from "../../../../../utils/WalletUtils.ts";
 import {DeskLogger} from "../../../../../utils/DeskLogger.ts";
 import {useAppStore} from "../../../../../stores/appStore.ts";
+import RpcRequestLayout from "../../../RpcRequestLayout.vue";
+import RpcWalletPicker from "../../../RpcWalletPicker.vue";
+import CopyableValue from "../../../../ui/CopyableValue.vue";
 
 const props = defineProps<{ params: AuthByPublicKeyV1Params }>();
 
@@ -114,85 +115,27 @@ async function approve() {
 </script>
 
 <template>
-    <div class="flex items-center justify-center h-full p-4">
-        <Card class="w-full max-w-md">
-            <template #title>
-                <div class="flex items-center gap-3">
-                    <i class="pi pi-key text-3xl text-blue-500"></i>
-                    <span>Authentication Request</span>
-                </div>
-            </template>
+    <RpcRequestLayout
+        title="Authentication request"
+        description="This application asks you to authenticate with your public key."
+        icon="pi-key"
+        :requester="{ label: 'Requesting party', value: params.origin }"
+    >
+        <RpcWalletPicker v-model="chosenWallet" :wallets="wallets" label="Wallet to authenticate with" />
 
-            <template #content>
-                <div class="space-y-4">
-                    <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-                        <p class="text-xs text-blue-500 font-semibold uppercase tracking-wide mb-1">Requesting party</p>
-                        <p class="text-sm font-semibold text-blue-800">
-                            {{ params.origin }}
-                        </p>
-                    </div>
+        <div>
+            <p class="mb-1 text-sm font-medium text-fg">Challenge to sign</p>
+            <CopyableValue :value="params.challenge" label="challenge" :head="20" :tail="10" />
+        </div>
 
-                    <p class="text-sm text-gray-700">
-                        This application is requesting you to authenticate with your public key.
-                    </p>
-
-                    <div>
-                        <p class="text-xs text-gray-500 mb-1">Wallet for authentication</p>
-                        <Dropdown
-                            v-model="chosenWallet"
-                            :options="wallets"
-                            optionLabel="name"
-                            placeholder="Choose a wallet"
-                            class="w-full"
-                        >
-                            <template #value="slotProps">
-                                <div v-if="slotProps.value" class="flex items-center gap-2">
-                                    <i class="pi pi-wallet text-surface-500"></i>
-                                    <span>{{ slotProps.value.name }}</span>
-                                </div>
-                                <span v-else class="text-surface-500">
-                                    {{ slotProps.placeholder }}
-                                </span>
-                            </template>
-                            <template #option="slotProps">
-                                <div class="flex items-center gap-2">
-                                    <i class="pi pi-wallet text-surface-500"></i>
-                                    <div>
-                                        <div class="font-semibold">
-                                            {{ slotProps.option.name }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </template>
-                        </Dropdown>
-                    </div>
-
-                    <div>
-                        <p class="text-xs text-gray-500 mb-1">Challenge to sign</p>
-                        <p class="text-xs font-mono text-surface-600 break-all bg-surface-50 rounded p-2">
-                            {{ params.challenge }}
-                        </p>
-                    </div>
-
-                    <div class="flex gap-3 mt-6">
-                        <Button
-                            label="Decline"
-                            severity="secondary"
-                            outlined
-                            @click="emit('reject')"
-                            :disabled="isProcessing"
-                            class="flex-1"
-                        />
-                        <Button
-                            label="Authenticate"
-                            severity="primary"
-                            @click="approve"
-                            :loading="isProcessing"
-                            class="flex-1"
-                        />
-                    </div>
-                </div>
-            </template>
-        </Card>
-    </div>
+        <template #actions>
+            <Button label="Decline" severity="secondary" outlined :disabled="isProcessing" @click="emit('reject')" />
+            <Button
+                label="Authenticate"
+                icon="pi pi-key"
+                :loading="isProcessing"
+                @click="approve"
+            />
+        </template>
+    </RpcRequestLayout>
 </template>

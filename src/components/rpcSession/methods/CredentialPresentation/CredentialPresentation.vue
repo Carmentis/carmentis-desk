@@ -2,7 +2,6 @@
 import { WalletSdJwtSigner } from '../../../../utils/WalletSdJwtSigner.ts';
 import {computed, onMounted, ref, watch} from 'vue';
 import type { CredentialPresentation } from './CredentialPresentationRequestType.ts';
-import DropdownWalletSelection from '../../../../views/home/wallet/DropdownWalletSelection.vue';
 import { useStorageStore } from '../../../../stores/storage.ts';
 import { storeToRefs } from 'pinia';
 import { useAsyncState } from '@vueuse/core';
@@ -14,11 +13,14 @@ import { convertSdJwtToDcqlCredential } from '../../../../utils/utils.ts';
 import { parseSdJwtEnvelope } from '../../../../composables/credentials/useCredentialType.ts';
 import { useToast } from 'primevue/usetoast';
 import { useSessionStore } from '../../../../stores/sessionStore.ts';
-import Card from 'primevue/card';
 import Button from 'primevue/button';
-import Tag from 'primevue/tag';
 import Message from 'primevue/message';
-import Dropdown from 'primevue/dropdown';
+import Select from 'primevue/select';
+import RpcRequestLayout from '../../RpcRequestLayout.vue';
+import RpcWalletPicker from '../../RpcWalletPicker.vue';
+import StatusBadge from '../../../ui/StatusBadge.vue';
+import JsonBlock from '../../../ui/JsonBlock.vue';
+import CredentialClaims from '../../../../views/home/wallet/credentials/CredentialClaims.vue';
 import {DeskLogger} from "../../../../utils/DeskLogger.ts";
 import {WalletUtils} from "../../../../utils/WalletUtils.ts";
 import {useAppStore} from "../../../../stores/appStore.ts";
@@ -221,6 +223,19 @@ function formatValue(v: unknown): string {
     return str.length > 80 ? str.slice(0, 80) + '…' : str;
 }
 
+// Claims as displayed: long values are truncated and can be expanded.
+const revealedClaimEntries = computed(() =>
+    revealedClaims.value.map((claim) => ({
+        id: claim.key,
+        key: claim.key,
+        preview: formatValue(claim.value),
+        full: typeof claim.value === 'object' && claim.value !== null
+            ? JSON.stringify(claim.value, null, 2)
+            : String(claim.value ?? 'null'),
+        expandable: typeof claim.value === 'string' && claim.value.length > 80,
+    })),
+);
+
 const isPresenting = ref(false);
 
 async function handlePresent() {
@@ -265,181 +280,87 @@ async function handlePresent() {
 </script>
 
 <template>
-    <div class="flex flex-col gap-4">
-        <!-- Wallet selector -->
-        <div class="flex items-center gap-3">
-            <span class="text-sm font-semibold">Wallet</span>
-            <Dropdown
-                id="walletSelect"
-                v-model="chosenWallet"
-                :options="wallets"
-                optionLabel="name"
-                placeholder="Choose a wallet for auth"
-                class="w-full"
-            >
-                <template #value="slotProps">
-                    <div v-if="slotProps.value" class="flex items-center gap-2">
-                        <i class="pi pi-wallet text-surface-500"></i>
-                        <span>{{ slotProps.value.name }}</span>
-                    </div>
-                    <span v-else class="text-surface-500">
-                        {{ slotProps.placeholder }}
-                    </span>
-                </template>
-                <template #option="slotProps">
-                    <div class="flex items-center gap-2">
-                        <i class="pi pi-wallet text-surface-500"></i>
-                        <div>
-                            <div class="font-semibold">{{ slotProps.option.name }}</div>
-                            <div class="text-xs text-surface-500">
-                                {{ slotProps.option.nodeEndpoint }}
-                            </div>
-                        </div>
-                    </div>
-                </template>
-            </Dropdown>
-        </div>
+    <RpcRequestLayout
+        wide
+        title="Presentation request"
+        description="An application asks you to present a credential."
+        icon="pi-send"
+        :requester="{ label: 'Requested by', value: params.audience }"
+    >
+        <RpcWalletPicker v-model="chosenWallet" :wallets="wallets" label="Wallet to present from" />
 
-        <!-- Two cards side by side -->
-        <div class="flex gap-4">
-            <!-- Left card: Presentation request -->
-            <Card class="flex-1">
-                <template #header>
-                    <div class="flex items-center gap-2 px-4 pt-4">
-                        <i class="pi pi-send text-primary"></i>
-                        <span class="font-bold text-lg">Presentation Request</span>
-                    </div>
-                </template>
-                <template #content>
-                    <div class="flex flex-col gap-4">
-                        <div>
-                            <p class="text-xs font-semibold uppercase text-gray-400">Audience</p>
-                            <p class="font-mono text-sm mt-1">{{ params.audience }}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold uppercase text-gray-400">Nonce</p>
-                            <p class="font-mono text-sm mt-1">{{ params.nonce }}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold uppercase text-gray-400">Requested Claims</p>
-                            <div v-if="desiredClaims.length > 0" class="flex flex-wrap gap-2 mt-2">
-                                <Tag
-                                    v-for="claim in desiredClaims"
-                                    :key="String(claim)"
-                                    :value="String(claim)"
-                                    severity="info"
-                                    icon="pi pi-key"
-                                />
-                            </div>
-                            <p v-else class="text-sm text-gray-400 mt-1">No specific claims requested</p>
-                        </div>
-                    </div>
-                </template>
-                <template #footer>
-                    <Tag
-                        v-if="canBeSatisfied"
-                        value="Satisfiable"
-                        severity="success"
-                        icon="pi pi-check-circle"
-                    />
-                    <Tag
-                        v-else
-                        value="Cannot be satisfied"
-                        severity="danger"
-                        icon="pi pi-times-circle"
-                    />
-                </template>
-            </Card>
+        <!-- What is asked -->
+        <section>
+            <h2 class="mb-2 text-sm font-medium text-fg">Requested claims</h2>
+            <div v-if="desiredClaims.length > 0" class="flex flex-wrap gap-2">
+                <StatusBadge v-for="claim in desiredClaims" :key="String(claim)" tone="info" icon="pi-key" :label="String(claim)" />
+            </div>
+            <p v-else class="text-sm text-fg-muted">No specific claims requested: all claims will be disclosed.</p>
+            <div class="mt-3">
+                <StatusBadge v-if="canBeSatisfied" tone="success" label="Satisfiable" />
+                <StatusBadge v-else tone="danger" label="Cannot be satisfied" />
+            </div>
+        </section>
 
-            <!-- Right card: Matching credential(s) -->
-            <Card class="flex-1">
-                <template #header>
-                    <div class="flex items-center gap-2 px-4 pt-4">
-                        <i class="pi pi-id-card text-primary"></i>
-                        <span class="font-bold text-lg">Credential</span>
-                        <Tag
-                            v-if="satisfyingCredentials.length > 1"
-                            :value="`${satisfyingCredentials.length} matches`"
-                            severity="secondary"
-                            class="ml-auto"
-                        />
-                    </div>
-                </template>
-                <template #content>
-                    <div v-if="satisfyingCredentials.length > 0" class="flex flex-col gap-4">
-                        <!-- Credential selector (only when multiple matches) -->
-                        <div v-if="satisfyingCredentials.length > 1">
-                            <p class="text-xs font-semibold uppercase text-gray-400">Select a credential</p>
-                            <Dropdown
-                                v-model="selectedCredentialIndex"
-                                :options="satisfyingCredentials.map((_, idx) => idx)"
-                                class="w-full mt-2"
-                            >
-                                <template #value="{ value }">
-                                    <span class="font-mono text-xs text-gray-600">
-                                        {{ satisfyingCredentials[value]?.slice(0, 60) }}…
-                                    </span>
-                                </template>
-                                <template #option="{ option }">
-                                    <span class="font-mono text-xs text-gray-600 break-all">
-                                        {{ satisfyingCredentials[option]?.slice(0, 60) }}…
-                                    </span>
-                                </template>
-                            </Dropdown>
-                        </div>
+        <!-- What would be shared -->
+        <section>
+            <div class="mb-2 flex items-center justify-between gap-2">
+                <h2 class="text-sm font-medium text-fg">Credential</h2>
+                <StatusBadge
+                    v-if="satisfyingCredentials.length > 1"
+                    tone="neutral"
+                    icon="pi-clone"
+                    :label="`${satisfyingCredentials.length} matches`"
+                />
+            </div>
 
-                        <!-- Type -->
-                        <div>
-                            <p class="text-xs font-semibold uppercase text-gray-400">Type</p>
-                            <div class="mt-2">
-                                <Tag value="SD-JWT VC" severity="info" icon="pi pi-verified" />
-                            </div>
-                        </div>
+            <div v-if="satisfyingCredentials.length > 0" class="space-y-4">
+                <!-- Credential selector (only when multiple matches) -->
+                <div v-if="satisfyingCredentials.length > 1">
+                    <label for="rpc-credential" class="mb-1 block text-sm text-fg-muted">Select a credential</label>
+                    <Select
+                        v-model="selectedCredentialIndex"
+                        input-id="rpc-credential"
+                        :options="satisfyingCredentials.map((_, idx) => idx)"
+                        fluid
+                    >
+                        <template #value="{ value }">
+                            <span class="font-mono text-xs">Credential {{ value + 1 }}: {{ satisfyingCredentials[value]?.slice(0, 40) }}…</span>
+                        </template>
+                        <template #option="{ option }">
+                            <span class="break-all font-mono text-xs">Credential {{ option + 1 }}: {{ satisfyingCredentials[option]?.slice(0, 40) }}…</span>
+                        </template>
+                    </Select>
+                </div>
 
-                        <!-- Disclosed claims with values -->
-                        <div>
-                            <p class="text-xs font-semibold uppercase text-gray-400">Disclosed Claims</p>
-                            <div v-if="revealedClaims.length > 0" class="flex flex-col gap-1 mt-2">
-                                <div
-                                    v-for="claim in revealedClaims"
-                                    :key="claim.key"
-                                    class="flex items-center gap-3 rounded border border-gray-100 bg-gray-50 px-3 py-2"
-                                >
-                                    <span class="font-mono text-xs font-semibold text-blue-600 shrink-0">{{ claim.key }}</span>
-                                    <span class="text-gray-300 text-xs">:</span>
-                                    <span class="font-mono text-sm text-gray-700 truncate">{{ formatValue(claim.value) }}</span>
-                                </div>
-                            </div>
-                            <p v-else-if="desiredClaims.length === 0" class="text-sm text-gray-400 mt-1">All claims will be disclosed</p>
-                            <p v-else class="text-sm text-gray-400 mt-1 flex items-center gap-1">
-                                <i class="pi pi-spin pi-spinner text-xs"></i>
-                                Loading claim values…
-                            </p>
-                        </div>
-                    </div>
-                    <Message v-else severity="warn" :closable="false">
-                        No matching credential found in this wallet.
-                    </Message>
-                </template>
-                <template #footer>
-                    <div class="flex justify-end gap-2">
-                        <Button
-                            label="Reject"
-                            severity="secondary"
-                            outlined
-                            icon="pi pi-times"
-                            @click="emit('reject')"
-                        />
-                        <Button
-                            label="Present"
-                            icon="pi pi-send"
-                            :loading="isPresenting"
-                            :disabled="!canBeSatisfied || !selectedCredential || !chosenWalletStore"
-                            @click="handlePresent"
-                        />
-                    </div>
-                </template>
-            </Card>
-        </div>
-    </div>
+                <StatusBadge tone="neutral" icon="pi-verified" label="SD-JWT VC" />
+
+                <div>
+                    <h3 class="mb-2 text-sm text-fg-muted">Claims that will be shared</h3>
+                    <CredentialClaims v-if="revealedClaimEntries.length > 0" :entries="revealedClaimEntries" tone="accent" />
+                    <p v-else-if="desiredClaims.length === 0" class="text-sm text-fg-muted">All claims will be disclosed.</p>
+                    <p v-else class="flex items-center gap-2 text-sm text-fg-muted" role="status">
+                        <i class="pi pi-spin pi-spinner text-xs" aria-hidden="true" />
+                        Loading claim values…
+                    </p>
+                </div>
+            </div>
+            <Message v-else severity="warn" :closable="false">
+                No matching credential found in this wallet.
+            </Message>
+        </section>
+
+        <JsonBlock title="Technical details" :value="{ audience: params.audience, nonce: params.nonce }" />
+
+        <template #actions>
+            <Button label="Reject" severity="secondary" outlined :disabled="isPresenting" @click="emit('reject')" />
+            <Button
+                label="Present"
+                icon="pi pi-send"
+                :loading="isPresenting"
+                :disabled="!canBeSatisfied || !selectedCredential || !chosenWalletStore"
+                @click="handlePresent"
+            />
+        </template>
+    </RpcRequestLayout>
 </template>

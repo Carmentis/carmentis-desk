@@ -26,6 +26,7 @@ configureSync({
  */
 
 import './style.css';
+import { useTheme } from './composables/useTheme.ts';
 
 // create a query client
 const queryClient = new QueryClient({
@@ -75,6 +76,9 @@ app.config.warnHandler = (msg, instance, trace) => {
 
     console.warn(msg, trace)
 }
+
+// restore the theme chosen in Settings
+useTheme().initTheme();
 
 app.mount('#app');
 

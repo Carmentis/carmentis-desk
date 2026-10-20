@@ -5,7 +5,7 @@ import {useClipboard} from '../../composables/useClipboard.ts';
 const props = withDefaults(defineProps<{
     /** Any JSON-serializable value. */
     data: unknown;
-    /** Colour scheme of the viewer. */
+    /** @deprecated Ignored: the viewer follows the application theme. */
     theme?: 'dark' | 'light';
     /** Levels expanded on first display (0 = fully collapsed, Infinity = everything). */
     expandDepth?: number;
@@ -164,7 +164,7 @@ const copyAll = () => copyToClipboard(JSON.stringify(props.data, null, 2), 'JSON
 </script>
 
 <template>
-    <div class="jv" :class="`jv--${theme}`">
+    <div class="jv">
         <div v-if="toolbar && containers.length > 0" class="jv__toolbar">
             <button type="button" title="Expand all" @click="expandAll"><i class="pi pi-plus-circle" /> Expand</button>
             <button type="button" title="Collapse all" @click="collapseAll"><i class="pi pi-minus-circle" /> Collapse</button>
@@ -178,7 +178,12 @@ const copyAll = () => copyToClipboard(JSON.stringify(props.data, null, 2), 'JSON
                 class="jv__row"
                 :class="{'jv__row--clickable': row.kind === 'node' && row.childCount > 0}"
                 :style="{paddingLeft: `${row.depth * 16 + 4}px`}"
+                :tabindex="row.kind === 'node' && row.childCount > 0 ? 0 : undefined"
+                :role="row.kind === 'node' && row.childCount > 0 ? 'button' : undefined"
+                :aria-expanded="row.kind === 'node' && row.childCount > 0 ? !collapsed.has(row.id) : undefined"
                 @click="row.kind === 'node' && row.childCount > 0 && toggle(row.id)"
+                @keydown.enter.self.prevent="row.kind === 'node' && row.childCount > 0 && toggle(row.id)"
+                @keydown.space.self.prevent="row.kind === 'node' && row.childCount > 0 && toggle(row.id)"
             >
                 <!-- "N more" row -->
                 <template v-if="row.kind === 'more'">
@@ -241,6 +246,7 @@ const copyAll = () => copyToClipboard(JSON.stringify(props.data, null, 2), 'JSON
                         type="button"
                         class="jv__copy"
                         title="Copy value"
+                        aria-label="Copy value"
                         @click.stop="copyValue(row)"
                     ><i class="pi pi-copy" /></button>
                 </template>
@@ -250,46 +256,35 @@ const copyAll = () => copyToClipboard(JSON.stringify(props.data, null, 2), 'JSON
 </template>
 
 <style scoped>
+/* Syntax colors come from the semantic tokens, so the viewer follows the light and dark themes. */
 .jv {
-    --jv-bg: #111827;
-    --jv-border: #374151;
-    --jv-hover: #1f2937;
-    --jv-key: #7dd3fc;
-    --jv-string: #86efac;
-    --jv-number: #fde047;
-    --jv-boolean: #c4b5fd;
-    --jv-null: #9ca3af;
-    --jv-punct: #9ca3af;
-    --jv-muted: #6b7280;
-    --jv-link: #60a5fa;
+    --jv-bg: var(--surface-muted);
+    --jv-border: var(--line);
+    --jv-hover: var(--surface);
+    --jv-key: var(--info);
+    --jv-string: var(--success);
+    --jv-number: var(--warning);
+    --jv-boolean: var(--accent);
+    --jv-null: var(--fg-muted);
+    --jv-punct: var(--fg-muted);
+    --jv-muted: var(--fg-muted);
+    --jv-link: var(--info);
     border: 1px solid var(--jv-border);
     background: var(--jv-bg);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-control);
     overflow: hidden;
     font-size: 0.75rem;
-}
-.jv--light {
-    --jv-bg: #ffffff;
-    --jv-border: #e5e7eb;
-    --jv-hover: #f3f4f6;
-    --jv-key: #0369a1;
-    --jv-string: #15803d;
-    --jv-number: #b45309;
-    --jv-boolean: #7e22ce;
-    --jv-null: #6b7280;
-    --jv-punct: #6b7280;
-    --jv-muted: #9ca3af;
-    --jv-link: #2563eb;
 }
 .jv__toolbar {
     display: flex;
     gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
+    padding: 0 0.25rem;
     border-bottom: 1px solid var(--jv-border);
     color: var(--jv-punct);
 }
 .jv__toolbar button {
-    padding: 0.125rem 0.5rem;
+    min-height: 2.75rem;
+    padding: 0 0.75rem;
     border-radius: 0.25rem;
     color: inherit;
 }
@@ -298,7 +293,7 @@ const copyAll = () => copyToClipboard(JSON.stringify(props.data, null, 2), 'JSON
 .jv__body {
     overflow: auto;
     padding: 0.25rem 0;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-family: var(--font-mono), monospace;
     line-height: 1.5;
 }
 .jv__row {
@@ -345,6 +340,11 @@ const copyAll = () => copyToClipboard(JSON.stringify(props.data, null, 2), 'JSON
     opacity: 0;
     transition: opacity 0.1s;
 }
-.jv__row:hover .jv__copy { opacity: 1; }
+.jv__row:hover .jv__copy,
+.jv__copy:focus-visible { opacity: 1; }
 .jv__copy:hover { color: var(--jv-link); }
+/* No hover on touch screens: keep the copy button visible. */
+@media (hover: none) {
+    .jv__copy { opacity: 0.7; }
+}
 </style>

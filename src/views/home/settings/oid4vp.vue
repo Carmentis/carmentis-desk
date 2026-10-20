@@ -13,6 +13,8 @@ import { ref } from 'vue';
 import * as jose from 'jose';
 import { Openid4vpClient } from '@openid4vc/openid4vp';
 import { Button, InputText, Message } from 'primevue';
+import JsonBlock from '../../../components/ui/JsonBlock.vue';
+import FieldNameAndDescription from '../../../components/utils/FieldNameAndDescription.vue';
 
 // ─── Wallet en dur ────────────────────────────────────────────────────────────
 
@@ -300,24 +302,37 @@ const format = (value: unknown) =>
 </script>
 
 <template>
-    <div class="flex flex-col gap-3">
-        <div class="flex gap-2">
-            <InputText
-                v-model="uri"
-                class="flex-1"
-                placeholder="openid4vp://?client_id=...&request_uri=..."
-                @keyup.enter="run"
+    <div class="mx-auto max-w-3xl space-y-4">
+        <p class="text-sm text-fg-muted">
+            Developer tool: play the OID4VP wallet flow against a verifier with built-in test credentials.
+        </p>
+
+        <form class="space-y-2" novalidate @submit.prevent="run">
+            <FieldNameAndDescription
+                name="Presentation request link"
+                description="Paste the openid4vp:// link of the verifier."
+                input-id="oid4vp-uri"
             />
-            <Button label="Présenter" icon="pi pi-send" :loading="running" :disabled="!uri" @click="run" />
-        </div>
+            <div class="flex flex-col gap-2 sm:flex-row">
+                <InputText
+                    id="oid4vp-uri"
+                    v-model="uri"
+                    class="sm:flex-1"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    spellcheck="false"
+                    placeholder="openid4vp://?client_id=…&request_uri=…"
+                />
+                <Button type="submit" label="Present" icon="pi pi-send" :loading="running" :disabled="!uri" />
+            </div>
+        </form>
 
-        <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
+        <Message v-if="error" severity="error" :closable="false" role="alert">{{ error }}</Message>
 
-        <div v-for="(entry, i) in logs" :key="i" class="text-sm">
-            <div class="font-semibold">{{ i + 1 }}. {{ entry.label }}</div>
-            <pre class="m-0 overflow-x-auto whitespace-pre-wrap break-all text-xs opacity-70">{{
-                format(entry.value)
-            }}</pre>
-        </div>
+        <ol v-if="logs.length > 0" class="space-y-2">
+            <li v-for="(entry, i) in logs" :key="i">
+                <JsonBlock :title="`${i + 1}. ${entry.label}`" :value="format(entry.value)" />
+            </li>
+        </ol>
     </div>
 </template>
