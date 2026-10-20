@@ -14,7 +14,7 @@ import Tooltip from 'primevue/tooltip';
 import { getDb } from './db/database.ts';
 import {Logger} from '@cmts-dev/carmentis-sdk-core';
 import { configureSync, getConsoleSink } from "@logtape/logtape";
-
+/*
 configureSync({
     sinks: { console: getConsoleSink() },
     loggers: [
@@ -22,6 +22,8 @@ configureSync({
         { category: "@cmts-dev/carmentis-sdk-core", lowestLevel: "debug", sinks: ["console"] }
     ]
 });
+
+ */
 
 import './style.css';
 

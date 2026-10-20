@@ -11,7 +11,6 @@ import {useAsyncState} from '@vueuse/core';
 import * as walletRepo from '../../../db/repositories/walletRepository.ts';
 import * as orgRepo from '../../../db/repositories/organizationRepository.ts';
 import * as participationRepo from '../../../db/repositories/participationRepository.ts';
-import {useOnChainStore} from '../../../stores/onchain.ts';
 
 import {useToast} from 'primevue/usetoast';
 import {useAccountBreakdownQuery, useAccountStateQuery,} from '../../../composables/useAccountBreakdown.ts';

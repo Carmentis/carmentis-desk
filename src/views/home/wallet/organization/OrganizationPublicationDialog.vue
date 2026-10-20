@@ -2,17 +2,16 @@
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import {useRoute, useRouter} from "vue-router";
-import {useOnChainStore} from "../../../../stores/onchain.ts";
+import { useOnChainActions } from "../../../../composables/useOnChainActions.ts";
 import {computed} from "vue";
-import {storeToRefs} from "pinia";
 
 const showPublishConfirmDialog = defineModel<boolean>('showPublishConfirmDialog');
 const emits = defineEmits(['updateOrganizationDetails'])
 
 const route = useRoute();
-const onChainStore = useOnChainStore();
+const onChainStore = useOnChainActions();
 const orgId = computed(() => Number(route.params.orgId));
-const { isPublishingOrganization } = storeToRefs(onChainStore);
+const { isPublishingOrganization } = onChainStore;
 
 
 async function confirmPublishOrganization() {

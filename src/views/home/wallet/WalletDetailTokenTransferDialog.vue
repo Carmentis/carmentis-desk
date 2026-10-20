@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {useToast} from "primevue/usetoast";
 import {useRoute} from "vue-router";
-import {useOnChainStore} from "../../../stores/onchain.ts";
+import { useOnChainActions } from "../../../composables/useOnChainActions.ts";
 import {computed, ref, watch} from "vue";
 import {useWalletStore} from "../../../stores/walletStore.ts";
 import {CMTSToken, CryptoEncoderFactory} from "@cmts-dev/carmentis-sdk-core";
@@ -12,7 +12,7 @@ import {useCurrentWallet} from "../../../composables/useCurrentWallet.ts";
 
 const toast = useToast();
 const route = useRoute();
-const onChainStore = useOnChainStore();
+const onChainStore = useOnChainActions();
 const walletId = computed(() => Number(route.params.walletId));
 
 
@@ -61,7 +61,6 @@ async function submitTransferDialog() {
     try {
         const amount = CMTSToken.createCMTS(Number(transferAmount.value));
         await onChainStore.transferTokens({
-            walletId: walletId.value,
             recipientPublicKey: transferPublicKey.value,
             amount: amount,
         });

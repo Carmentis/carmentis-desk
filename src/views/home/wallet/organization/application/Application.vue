@@ -7,8 +7,7 @@ import Breadcrumb from 'primevue/breadcrumb';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
-import { useOnChainStore } from '../../../../../stores/onchain.ts';
-import { storeToRefs } from 'pinia';
+import { useOnChainActions } from '../../../../../composables/useOnChainActions.ts';
 import { useAsyncState } from '@vueuse/core';
 import { useToast } from 'primevue/usetoast';
 import { createIndexerClient } from '../../../../../api/indexer/client.ts';
@@ -22,8 +21,8 @@ import {useCurrentOrganization} from "../../../../../composables/useCurrentOrgan
 const toast = useToast();
 const route = useRoute();
 const router = useRouter();
-const onchainStore = useOnChainStore();
-const { isPublishingApplication } = storeToRefs(onchainStore);
+const onchainStore = useOnChainActions();
+const { isPublishingApplication } = onchainStore;
 const registerNavbarActions = inject<(actions: any[]) => void>('registerNavbarActions');
 
 const walletId = computed(() => Number(route.params.walletId));

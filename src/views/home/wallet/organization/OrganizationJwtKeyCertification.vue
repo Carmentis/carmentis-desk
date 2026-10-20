@@ -29,8 +29,7 @@ import {JwkSignatureKeyExporter} from "../../../../utils/jwk-signature-key-expor
 import {importJWK} from "jose";
 import {useClipboard} from "../../../../composables/useClipboard.ts";
 import {useRoute} from "vue-router";
-import {useOnChainStore} from "../../../../stores/onchain.ts";
-import {storeToRefs} from "pinia";
+import { useOnChainActions } from "../../../../composables/useOnChainActions.ts";
 import * as orgRepo from "../../../../db/repositories/organizationRepository.ts";
 import {CustomSection, SectionType, Hash, ProviderFactory} from "@cmts-dev/carmentis-sdk-core";
 import {useAsyncState} from "@vueuse/core";
@@ -51,8 +50,8 @@ const logger = DeskLogger.getLogger().getChild("organization")
 const clipboard = useClipboard();
 const toast = useToast();
 const route = useRoute();
-const onChainStore = useOnChainStore();
-const { isPublishingCustomJson } = storeToRefs(onChainStore);
+const onChainStore = useOnChainActions();
+const { isPublishingCustomJson } = onChainStore;
 const isSigningWithStore = ref(false);
 const {encodedWalletPublicKey} = useCurrentWallet();
 

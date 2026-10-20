@@ -13,8 +13,7 @@ import * as walletRepo from '../../../../db/repositories/walletRepository.ts';
 import * as orgRepo from '../../../../db/repositories/organizationRepository.ts';
 import { createIndexerClient } from '../../../../api/indexer/client.ts';
 import { useToast } from 'primevue/usetoast';
-import { useOnChainStore } from '../../../../stores/onchain.ts';
-import { storeToRefs } from 'pinia';
+import { useOnChainActions } from '../../../../composables/useOnChainActions.ts';
 import { useQuery } from '@tanstack/vue-query';
 import OrganizationDeletionDialog from "./OrganizationDeletionDialog.vue";
 import OrganizationPublicationDialog from "./OrganizationPublicationDialog.vue";
@@ -26,8 +25,8 @@ import {useNavigation} from "../../../../composables/useNavigation.ts";
 
 const toast = useToast();
 const nav = useNavigation();
-const onChainStore = useOnChainStore();
-const { isPublishingOrganization  } = storeToRefs(onChainStore);
+const onChainStore = useOnChainActions();
+const { isPublishingOrganization  } = onChainStore;
 
 const { organization, organizationVbId, updateOrganization } = useCurrentOrganization();
 const {walletId, indexer, useHasAccountOnChainQuery} = useCurrentWallet();

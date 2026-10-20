@@ -1,191 +1,350 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { useClipboard } from '../../composables/useClipboard.ts';
+import {computed, ref, watch} from 'vue';
+import {useClipboard} from '../../composables/useClipboard.ts';
 
-const props = defineProps<{ data: any }>();
+const props = withDefaults(defineProps<{
+    /** Any JSON-serializable value. */
+    data: unknown;
+    /** Colour scheme of the viewer. */
+    theme?: 'dark' | 'light';
+    /** Levels expanded on first display (0 = fully collapsed, Infinity = everything). */
+    expandDepth?: number;
+    /** Maximum height of the viewer (any CSS length), content scrolls beyond it. `none` disables it. */
+    maxHeight?: string;
+    /** Strings longer than this are truncated with a "show more" link. */
+    maxStringLength?: number;
+    /** Number of children rendered at once in large arrays/objects. */
+    pageSize?: number;
+    /** Show the toolbar (expand all, collapse all, copy). */
+    toolbar?: boolean;
+    /** Show a copy button on hover for each value. */
+    copyable?: boolean;
+    /** Show array indexes in front of array items. */
+    showIndexes?: boolean;
+}>(), {
+    theme: 'dark',
+    expandDepth: 2,
+    maxHeight: '24rem',
+    maxStringLength: 120,
+    pageSize: 50,
+    toolbar: true,
+    copyable: true,
+    showIndexes: true,
+});
 
 type JsonType = 'string' | 'number' | 'boolean' | 'null' | 'array' | 'object';
 
-interface VisibleNode {
+interface Row {
     id: string;
+    kind: 'node' | 'close' | 'more';
     depth: number;
-    displayKey: string;
-    value: any;
+    key: string | null;
     type: JsonType;
-    isExpandable: boolean;
+    value: unknown;
     childCount: number;
-    isTruncation?: boolean;
-    truncParentId?: string;
-    truncTotal?: number;
-    truncShown?: number;
+    comma: boolean;
+    parentId?: string;
+    remaining?: number;
 }
 
-const PAGE_SIZE = 50;
-const MAX_STRING_LENGTH = 150;
+const {copyToClipboard} = useClipboard();
 
 const collapsed = ref(new Set<string>());
+const fullStrings = ref(new Set<string>());
 const pageLimits = ref(new Map<string, number>());
-const { copyToClipboard } = useClipboard();
 
-function getType(v: any): JsonType {
-    if (v === null) return 'null';
+function typeOf(v: unknown): JsonType {
+    if (v === null || v === undefined) return 'null';
     if (Array.isArray(v)) return 'array';
-    return typeof v as JsonType;
+    if (typeof v === 'object') return 'object';
+    if (typeof v === 'number') return 'number';
+    if (typeof v === 'boolean') return 'boolean';
+    return 'string'; // string, bigint, symbol, ...
 }
 
-function limit(id: string, total: number): number {
-    return pageLimits.value.get(id) ?? Math.min(PAGE_SIZE, total);
+const isContainer = (t: JsonType) => t === 'array' || t === 'object';
+const entriesOf = (v: unknown, t: JsonType): [string, unknown][] =>
+    t === 'array' ? (v as unknown[]).map((x, i) => [String(i), x]) : Object.entries(v as object);
+
+/** Ids of every non-empty container below `depth >= from`, used to compute the default collapsed state. */
+function collectContainers(value: unknown, id: string, depth: number, out: {id: string; depth: number}[]) {
+    const t = typeOf(value);
+    if (!isContainer(t)) return;
+    const entries = entriesOf(value, t);
+    if (entries.length === 0) return;
+    out.push({id, depth});
+    for (const [k, v] of entries) collectContainers(v, `${id}/${encodeURIComponent(k)}`, depth + 1, out);
 }
 
-function showMore(parentId: string, total: number) {
-    const cur = limit(parentId, total);
-    const next = Math.min(cur + PAGE_SIZE, total);
-    pageLimits.value = new Map(pageLimits.value).set(parentId, next);
+const containers = computed(() => {
+    const out: {id: string; depth: number}[] = [];
+    collectContainers(props.data, 'root', 0, out);
+    return out;
+});
+
+function resetCollapsed() {
+    collapsed.value = new Set(containers.value.filter(c => c.depth >= props.expandDepth).map(c => c.id));
+    pageLimits.value = new Map();
+    fullStrings.value = new Set();
 }
+
+watch(() => [props.data, props.expandDepth], resetCollapsed, {immediate: true});
+
+const expandAll = () => (collapsed.value = new Set());
+const collapseAll = () => (collapsed.value = new Set(containers.value.map(c => c.id)));
 
 function toggle(id: string) {
     const s = new Set(collapsed.value);
-    if (s.has(id)) s.delete(id);
-    else s.add(id);
+    s.has(id) ? s.delete(id) : s.add(id);
     collapsed.value = s;
 }
 
-function walk(value: any, id: string, depth: number, displayKey: string, out: VisibleNode[]) {
-    const type = getType(value);
-    const isExpandable = type === 'object' || type === 'array';
-    const childCount = isExpandable ? (type === 'array' ? value.length : Object.keys(value).length) : 0;
-
-    out.push({ id, depth, displayKey, value, type, isExpandable, childCount });
-
-    if (!isExpandable || collapsed.value.has(id)) return;
-
-    if (type === 'array') {
-        const shown = limit(id, value.length);
-        for (let i = 0; i < shown; i++) {
-            walk(value[i], `${id}[${i}]`, depth + 1, String(i), out);
-        }
-        if (shown < value.length) {
-            out.push({
-                id: `${id}.__trunc__`,
-                depth: depth + 1,
-                displayKey: '',
-                value: null,
-                type: 'null',
-                isExpandable: false,
-                childCount: 0,
-                isTruncation: true,
-                truncParentId: id,
-                truncTotal: value.length,
-                truncShown: shown,
-            });
-        }
-    } else {
-        for (const [k, v] of Object.entries(value)) {
-            walk(v, `${id}.${k}`, depth + 1, k, out);
-        }
-    }
+function toggleString(id: string) {
+    const s = new Set(fullStrings.value);
+    s.has(id) ? s.delete(id) : s.add(id);
+    fullStrings.value = s;
 }
 
-const nodes = computed<VisibleNode[]>(() => {
-    if (props.data == null && typeof props.data !== 'boolean' && typeof props.data !== 'number') return [];
-    const out: VisibleNode[] = [];
-    walk(props.data, 'root', 0, '', out);
-    // skip the synthetic root wrapper — show its children directly
-    return out.slice(1);
+function showMore(parentId: string, total: number) {
+    const current = pageLimits.value.get(parentId) ?? props.pageSize;
+    pageLimits.value = new Map(pageLimits.value).set(parentId, Math.min(current + props.pageSize, total));
+}
+
+function walk(value: unknown, id: string, depth: number, key: string | null, comma: boolean, out: Row[]) {
+    const type = typeOf(value);
+    const entries = isContainer(type) ? entriesOf(value, type) : [];
+    out.push({id, kind: 'node', depth, key, type, value, childCount: entries.length, comma});
+
+    if (entries.length === 0 || collapsed.value.has(id)) return;
+
+    const shown = Math.min(pageLimits.value.get(id) ?? props.pageSize, entries.length);
+    entries.slice(0, shown).forEach(([k, v], i) => {
+        const last = i === entries.length - 1;
+        walk(v, `${id}/${encodeURIComponent(k)}`, depth + 1, type === 'array' ? (props.showIndexes ? k : null) : k, !last, out);
+    });
+    if (shown < entries.length) {
+        out.push({
+            id: `${id}/__more__`, kind: 'more', depth: depth + 1, key: null, type: 'null', value: null,
+            childCount: entries.length, comma: false, parentId: id, remaining: entries.length - shown,
+        });
+    }
+    out.push({id: `${id}/__close__`, kind: 'close', depth, key: null, type, value: null, childCount: 0, comma});
+}
+
+const rows = computed(() => {
+    const out: Row[] = [];
+    walk(props.data, 'root', 0, null, false, out);
+    return out;
 });
 
-// Track expanded long strings
-const expandedStrings = ref(new Set<string>());
+const open = (t: JsonType) => (t === 'array' ? '[' : '{');
+const close = (t: JsonType) => (t === 'array' ? ']' : '}');
+
+/** One-line summary shown when a container is collapsed, e.g. `{ name, age, … }` or `[3 items]`. */
+function preview(row: Row): string {
+    if (row.type === 'array') return `${row.childCount} ${row.childCount === 1 ? 'item' : 'items'}`;
+    const keys = Object.keys(row.value as object);
+    const head = keys.slice(0, 4).join(', ');
+    return keys.length > 4 ? `${head}, …` : head;
+}
+
+function displayString(row: Row): string {
+    const s = String(row.value);
+    return s.length > props.maxStringLength && !fullStrings.value.has(row.id)
+        ? s.slice(0, props.maxStringLength)
+        : s;
+}
+const isTruncated = (row: Row) => row.type === 'string' && String(row.value).length > props.maxStringLength;
+
+function copyValue(row: Row) {
+    const text = row.type === 'string' ? String(row.value) : JSON.stringify(row.value, null, 2);
+    copyToClipboard(text, 'Value');
+}
+const copyAll = () => copyToClipboard(JSON.stringify(props.data, null, 2), 'JSON');
 </script>
 
 <template>
-    <div class="bg-gray-900 rounded-lg overflow-hidden border border-gray-700 py-2">
-        <template v-if="nodes.length === 0">
-            <span class="block px-4 py-3 text-gray-400 italic text-sm">empty</span>
-        </template>
+    <div class="jv" :class="`jv--${theme}`">
+        <div v-if="toolbar && containers.length > 0" class="jv__toolbar">
+            <button type="button" title="Expand all" @click="expandAll"><i class="pi pi-plus-circle" /> Expand</button>
+            <button type="button" title="Collapse all" @click="collapseAll"><i class="pi pi-minus-circle" /> Collapse</button>
+            <button type="button" title="Copy JSON" class="jv__toolbar-end" @click="copyAll"><i class="pi pi-copy" /> Copy</button>
+        </div>
 
-        <div v-else class="font-mono text-xs overflow-auto max-h-96">
+        <div class="jv__body" :style="{maxHeight: maxHeight === 'none' ? undefined : maxHeight}">
             <div
-                v-for="node in nodes"
-                :key="node.id"
-                class="flex items-start py-1 px-2 hover:bg-gray-800 transition-colors group"
-                :style="{ paddingLeft: `${node.depth * 16 + 16}px` }"
+                v-for="row in rows"
+                :key="row.id"
+                class="jv__row"
+                :class="{'jv__row--clickable': row.kind === 'node' && row.childCount > 0}"
+                :style="{paddingLeft: `${row.depth * 16 + 4}px`}"
+                @click="row.kind === 'node' && row.childCount > 0 && toggle(row.id)"
             >
-                <!-- Toggle chevron -->
-                <button
-                    v-if="node.isExpandable"
-                    class="flex-shrink-0 w-4 text-gray-400 hover:text-gray-200 focus:outline-none mr-1"
-                    @click="toggle(node.id)"
-                >
-                    <i
-                        :class="collapsed.has(node.id) ? 'pi pi-chevron-right' : 'pi pi-chevron-down'"
-                        class="text-[9px]"
-                    />
-                </button>
-                <span v-else class="flex-shrink-0 w-4 mr-1" />
-
-                <!-- Key label -->
-                <span v-if="node.displayKey" class="text-blue-400 mr-2 flex-shrink-0">{{ node.displayKey }}</span>
-                <span v-if="node.displayKey" class="text-gray-500 mr-1 flex-shrink-0">:</span>
-
-                <!-- Value -->
-                <template v-if="node.isExpandable">
-                    <span v-if="collapsed.has(node.id)" class="text-gray-400">
-                        <span v-if="node.type === 'array'">[<span class="text-gray-300">{{ node.childCount }}</span>]</span>
-                        <span v-else>{<span class="text-gray-300">{{ node.childCount }}</span>}</span>
-                    </span>
-                    <span v-else class="text-gray-400">
-                        {{ node.type === 'array' ? '[' : '{' }}
-                    </span>
+                <!-- "N more" row -->
+                <template v-if="row.kind === 'more'">
+                    <span class="jv__gutter" />
+                    <button type="button" class="jv__link" @click.stop="showMore(row.parentId!, row.childCount)">
+                        Show {{ Math.min(row.remaining!, pageSize) }} more ({{ row.remaining }} hidden)
+                    </button>
                 </template>
 
-                <template v-else-if="node.type === 'string'">
-                    <span class="text-green-400 flex items-center gap-1">
-                        <span class="break-words whitespace-normal">
-                            "{{ node.value.length <= MAX_STRING_LENGTH && !expandedStrings.has(node.id) ? node.value.slice(0, MAX_STRING_LENGTH) : node.value }}"
+                <!-- closing bracket -->
+                <template v-else-if="row.kind === 'close'">
+                    <span class="jv__gutter" />
+                    <span class="jv__punct">{{ close(row.type) }}{{ row.comma ? ',' : '' }}</span>
+                </template>
+
+                <!-- key / value -->
+                <template v-else>
+                    <span class="jv__gutter">
+                        <i
+                            v-if="row.childCount > 0"
+                            class="pi"
+                            :class="collapsed.has(row.id) ? 'pi-chevron-right' : 'pi-chevron-down'"
+                        />
+                    </span>
+
+                    <span v-if="row.key !== null" class="jv__key">{{ row.key }}</span>
+                    <span v-if="row.key !== null" class="jv__punct jv__colon">:</span>
+
+                    <!-- containers -->
+                    <template v-if="row.type === 'array' || row.type === 'object'">
+                        <span v-if="row.childCount === 0" class="jv__punct">{{ open(row.type) }}{{ close(row.type) }}{{ row.comma ? ',' : '' }}</span>
+                        <template v-else-if="collapsed.has(row.id)">
+                            <span class="jv__punct">{{ open(row.type) }}</span>
+                            <span class="jv__preview">{{ preview(row) }}</span>
+                            <span class="jv__punct">{{ close(row.type) }}{{ row.comma ? ',' : '' }}</span>
+                        </template>
+                        <template v-else>
+                            <span class="jv__punct">{{ open(row.type) }}</span>
+                            <span class="jv__count">{{ row.childCount }}</span>
+                        </template>
+                    </template>
+
+                    <!-- primitives -->
+                    <template v-else>
+                        <span class="jv__value" :class="`jv__value--${row.type}`">
+                            <template v-if="row.type === 'string'">"{{ displayString(row) }}<template v-if="isTruncated(row) && !fullStrings.has(row.id)">…</template>"</template>
+                            <template v-else>{{ row.type === 'null' ? 'null' : String(row.value) }}</template>
                         </span>
+                        <span v-if="row.comma" class="jv__punct">,</span>
                         <button
-                            v-if="node.value.length > MAX_STRING_LENGTH && !expandedStrings.has(node.id)"
-                            class="text-gray-400 hover:text-gray-200 flex-shrink-0 text-[9px] opacity-0 group-hover:opacity-100"
-                            @click="expandedStrings.add(node.id)"
-                            title="Expand full value"
-                        >
-                            <i class="pi pi-arrow-right-arrow-left" />
-                        </button>
-                        <button
-                            class="text-gray-400 hover:text-gray-200 flex-shrink-0 text-[9px] opacity-0 group-hover:opacity-100"
-                            @click="copyToClipboard(node.value, 'Value copied')"
-                            title="Copy value"
-                        >
-                            <i class="pi pi-copy" />
-                        </button>
-                    </span>
-                </template>
+                            v-if="isTruncated(row)"
+                            type="button"
+                            class="jv__link"
+                            @click.stop="toggleString(row.id)"
+                        >{{ fullStrings.has(row.id) ? 'show less' : 'show more' }}</button>
+                    </template>
 
-                <span v-else-if="node.type === 'number'" class="text-yellow-300 flex items-center gap-1">
-                    {{ node.value }}
                     <button
-                        class="text-gray-400 hover:text-gray-200 flex-shrink-0 text-[9px] opacity-0 group-hover:opacity-100"
-                        @click="copyToClipboard(String(node.value), 'Value copied')"
+                        v-if="copyable"
+                        type="button"
+                        class="jv__copy"
                         title="Copy value"
-                    >
-                        <i class="pi pi-copy" />
-                    </button>
-                </span>
-
-                <span v-else-if="node.type === 'boolean'" class="text-purple-400">{{ node.value }}</span>
-                <span v-else class="text-gray-500 italic">null</span>
-
-                <!-- Truncation / load-more row -->
-                <template v-if="node.isTruncation">
-                    <button
-                        class="text-blue-400 hover:underline text-[9px] ml-2"
-                        @click="showMore(node.truncParentId!, node.truncTotal!)"
-                    >
-                        +{{ node.truncTotal! - node.truncShown! }} more
-                    </button>
+                        @click.stop="copyValue(row)"
+                    ><i class="pi pi-copy" /></button>
                 </template>
             </div>
         </div>
     </div>
 </template>
+
+<style scoped>
+.jv {
+    --jv-bg: #111827;
+    --jv-border: #374151;
+    --jv-hover: #1f2937;
+    --jv-key: #7dd3fc;
+    --jv-string: #86efac;
+    --jv-number: #fde047;
+    --jv-boolean: #c4b5fd;
+    --jv-null: #9ca3af;
+    --jv-punct: #9ca3af;
+    --jv-muted: #6b7280;
+    --jv-link: #60a5fa;
+    border: 1px solid var(--jv-border);
+    background: var(--jv-bg);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    font-size: 0.75rem;
+}
+.jv--light {
+    --jv-bg: #ffffff;
+    --jv-border: #e5e7eb;
+    --jv-hover: #f3f4f6;
+    --jv-key: #0369a1;
+    --jv-string: #15803d;
+    --jv-number: #b45309;
+    --jv-boolean: #7e22ce;
+    --jv-null: #6b7280;
+    --jv-punct: #6b7280;
+    --jv-muted: #9ca3af;
+    --jv-link: #2563eb;
+}
+.jv__toolbar {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-bottom: 1px solid var(--jv-border);
+    color: var(--jv-punct);
+}
+.jv__toolbar button {
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    color: inherit;
+}
+.jv__toolbar button:hover { background: var(--jv-hover); }
+.jv__toolbar-end { margin-left: auto; }
+.jv__body {
+    overflow: auto;
+    padding: 0.25rem 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    line-height: 1.5;
+}
+.jv__row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    padding-right: 0.5rem;
+    min-width: max-content;
+}
+.jv__row:hover { background: var(--jv-hover); }
+.jv__row--clickable { cursor: pointer; }
+.jv__gutter {
+    flex: none;
+    width: 1rem;
+    text-align: center;
+    color: var(--jv-muted);
+    font-size: 0.6rem;
+}
+.jv__key { color: var(--jv-key); }
+.jv__colon { margin-right: 0.125rem; }
+.jv__punct { color: var(--jv-punct); }
+.jv__preview { color: var(--jv-muted); font-style: italic; margin: 0 0.25rem; }
+.jv__count {
+    color: var(--jv-muted);
+    font-size: 0.65rem;
+    margin-left: 0.25rem;
+}
+.jv__value { white-space: pre-wrap; word-break: break-all; }
+.jv__value--string { color: var(--jv-string); }
+.jv__value--number { color: var(--jv-number); }
+.jv__value--boolean { color: var(--jv-boolean); }
+.jv__value--null { color: var(--jv-null); font-style: italic; }
+.jv__link {
+    color: var(--jv-link);
+    margin-left: 0.5rem;
+    font-size: 0.65rem;
+    white-space: nowrap;
+}
+.jv__link:hover { text-decoration: underline; }
+.jv__copy {
+    margin-left: 0.5rem;
+    color: var(--jv-muted);
+    font-size: 0.65rem;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+.jv__row:hover .jv__copy { opacity: 1; }
+.jv__copy:hover { color: var(--jv-link); }
+</style>

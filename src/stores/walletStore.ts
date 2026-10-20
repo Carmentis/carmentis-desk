@@ -23,6 +23,7 @@ import {CredentialType, KeyType, Network, Organization, VerifiableCredential} fr
 import {db} from "../db/db.ts";
 import {useQuery} from "@tanstack/vue-query";
 import {createIndexerClient} from "../api/indexer/client.ts";
+import type {OnChainContext} from "../onchain/onchainOperations.ts";
 
 
 
@@ -210,10 +211,13 @@ export const useWalletStore = (walletId: number) => {
             queryFn: async () => {
                 logger.info(`Searching account id for wallet id ${walletId}`)
                 console.log(walletProvider.value, walletPublicKey.value)
-                if (!walletProvider.value || !walletPublicKey.value) return undefined;
+                if (!walletProvider.value || !walletPublicKey.value) {
+                    console.warn(`Wallet provider or public key is undefined for wallet id ${walletId}`)
+                    return null;
+                };
                 logger.info(`Searching account id for wallet id ${walletId}`)
                 const accountId = await walletProvider.value.getAccountIdByPublicKey(walletPublicKey.value);
-                console.log(`Found account id: ${accountId}`)
+                console.log(`Found account id: ${Utils.binaryToHexa(accountId)}`)
                 return Hash.from(accountId).encode();
             },
             retry: 1,
@@ -272,7 +276,7 @@ export const useWalletStore = (walletId: number) => {
                     return await walletIndexer
                         .value
                         .getAccountHistory({
-                            account_id: accountId,
+                            account_id: accountIdQuery.data.value,
                             order: 'DESC',
                             sort: 'height',
                         });
@@ -415,6 +419,23 @@ export const useWalletStore = (walletId: number) => {
     }
 
 
+    /**
+     * Builds the context required by the stateless on-chain operations. Everything is read at call time
+     * from this wallet (the one bound to this store instance), so the operations are always signed and
+     * paid by this wallet.
+     */
+    async function createOnChainContext(): Promise<OnChainContext> {
+        const provider = walletProvider.value;
+        const indexer = walletIndexer.value;
+        const sk = walletPrivateKey.value;
+        if (!provider) throw new Error(`Provider of wallet ${walletId} not ready`);
+        if (!indexer) throw new Error(`Indexer of wallet ${walletId} not ready`);
+        if (!sk) throw new Error(`Private key of wallet ${walletId} not ready`);
+        const pk = await sk.getPublicKey();
+        const accountId = await provider.getAccountIdByPublicKey(pk);
+        return { walletId, provider, indexer, sk, pk, accountId };
+    }
+
     return {
         walletId: walletIdRef,
         wallet,
@@ -434,6 +455,7 @@ export const useWalletStore = (walletId: number) => {
         walletProvider,
 
         // methods
+        createOnChainContext,
         createSdJwtCredential,
         deleteCredential,
         updateNetwork,

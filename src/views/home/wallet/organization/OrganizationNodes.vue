@@ -5,7 +5,6 @@ import * as nodeRepo from "../../../../db/repositories/nodeRepository.ts";
 import {NodeEntity} from "../../../../stores/storage.ts";
 import {useToast} from "primevue/usetoast";
 import {useRoute, useRouter} from "vue-router";
-import {useOnChainStore} from "../../../../stores/onchain.ts";
 import {useSessionStore} from "../../../../stores/sessionStore.ts";
 import {storeToRefs} from "pinia";
 import {computed, ref, watch} from "vue";

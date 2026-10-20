@@ -11,7 +11,6 @@ import { useAsyncState } from '@vueuse/core';
 import * as walletRepo from '../../db/repositories/walletRepository';
 import { parseSdJwtEnvelope } from '../../composables/credentials/useCredentialType';
 import { useRoute, useRouter } from 'vue-router';
-import { useOnChainStore } from '../../stores/onchain.ts';
 import { useSessionStore } from '../../stores/sessionStore.ts';
 import { computedAsync } from '@vueuse/core';
 import {WalletSdJwtSigner} from "../../utils/WalletSdJwtSigner.ts";

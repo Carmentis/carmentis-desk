@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {computed, ref, watch} from 'vue';
 import Card from 'primevue/card';
+import JsonViewer from '../../JsonViewer.vue';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
 import {useToast} from 'primevue/usetoast';
@@ -180,10 +181,10 @@ async function approve() {
                     </div>
 
                     <div>
-                        <p class="text-xs text-gray-500 mb-1">Payload to sing</p>
-                        <p class="text-xs font-mono text-surface-600 break-all bg-surface-50 rounded p-2">
-                            {{ params.payload }}
-                        </p>
+                        <p class="text-xs text-gray-500 mb-1">Payload to sign</p>
+                        <div class="text-xs bg-surface-50 rounded p-2 max-h-64 overflow-auto">
+                            <JsonViewer :data="params.payload" />
+                        </div>
                     </div>
 
                     <div class="flex gap-3 mt-6">

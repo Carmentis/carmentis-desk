@@ -10,7 +10,6 @@ import TabPanels from "primevue/tabpanels";
 import OrganizationApplications from "./OrganizationApplications.vue";
 import {useToast} from "primevue/usetoast";
 import {useRoute, useRouter} from "vue-router";
-import {useOnChainStore} from "../../../../stores/onchain.ts";
 import {storeToRefs} from "pinia";
 import {computed} from "vue";
 import {useAsyncState} from "@vueuse/core";

@@ -22,7 +22,7 @@ import {JwkSignatureKeyExporter} from "../../../../utils/jwk-signature-key-expor
 import {importJWK} from "jose";
 import {useClipboard} from "../../../../composables/useClipboard.ts";
 import {useRoute} from "vue-router";
-import {useOnChainStore} from "../../../../stores/onchain.ts";
+import { useOnChainActions } from "../../../../composables/useOnChainActions.ts";
 import {storeToRefs} from "pinia";
 import * as orgRepo from "../../../../db/repositories/organizationRepository.ts";
 import {CustomSection, SectionType, Hash, ProviderFactory} from "@cmts-dev/carmentis-sdk-core";
@@ -39,13 +39,14 @@ import {
 } from "../../../../utils/signing.ts";
 import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
 import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
+import JsonViewer from "../../../../components/rpcSession/JsonViewer.vue";
 
 // define toast, clipboard and route
 const logger = DeskLogger.getLogger().getChild("organization")
 const clipboard = useClipboard();
 const toast = useToast();
 const route = useRoute();
-const onChainStore = useOnChainStore();
+const onChainStore = useOnChainActions();
 const isSigningWithStore = ref(false);
 
 const walletId =  computed(() => Number(route.params.walletId));
@@ -155,12 +156,18 @@ const anchorCertificate = async () => {
     try {
         isAnchoringCertificate.value = true;
 
-        // Publish the certificate chain and signed JWT as custom data
+        // Per RFC 7517 §4.7, x5c is an array of standard base64 (not base64url) DER certificates,
+        // leaf first, without PEM armor.
+        const x5c = await Promise.all(
+            certificatesChain.value.map(async (pem) => (await Certificate.importFromPem(pem)).getBase64EncodedDer())
+        );
+
+        // Publish the certificate chain as custom data
         const customData: CustomSection = {
             type: SectionType.CUSTOM,
             __certificate__: {
                 type: "X5C",
-                x5c: certificatesChain.value,
+                x5c,
             }
         }
 
@@ -183,7 +190,8 @@ const anchorCertificate = async () => {
 
 // Load anchored certificates from on-chain
 const {organization} = useCurrentOrganization();
-const {walletProvider} = useCurrentWallet();
+const {walletProvider, useAccountIdQuery} = useCurrentWallet();
+const {data: accountId} = useAccountIdQuery();
 
 interface CertificateSectionRow {
     height: number;
@@ -239,6 +247,8 @@ const {
                 Publish an X509 certificate to cryptographically prove your organization's identity on the Carmentis network.
             </p>
         </div>
+
+        {{walletId}} {{orgId}}
 
         <!-- Lock message if organization not on-chain -->
         <div

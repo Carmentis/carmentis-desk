@@ -4,17 +4,16 @@ import Button from 'primevue/button';
 import InputNumber from 'primevue/inputnumber';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { storeToRefs } from 'pinia';
 import { CMTSToken } from '@cmts-dev/carmentis-sdk-core';
-import { useOnChainStore } from '../../../../../stores/onchain.ts';
+import { useOnChainActions } from '../../../../../composables/useOnChainActions.ts';
 import FieldNameAndDescription from "../../../../../components/utils/FieldNameAndDescription.vue";
 import {useCurrentNode} from "../../../../../composables/useCurrentNode.ts";
 
 const isOpen = defineModel<boolean>('isOpen');
 
 const route = useRoute();
-const onChainStore = useOnChainStore();
-const { isStakingOnNode } = storeToRefs(onChainStore);
+const onChainStore = useOnChainActions();
+const { isStakingOnNode } = onChainStore;
 
 const walletId = computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));

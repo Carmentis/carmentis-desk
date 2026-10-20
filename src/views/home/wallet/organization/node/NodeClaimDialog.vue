@@ -3,9 +3,8 @@ import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { storeToRefs } from 'pinia';
 import type { Hash } from '@cmts-dev/carmentis-sdk-core';
-import { useOnChainStore } from '../../../../../stores/onchain.ts';
+import { useOnChainActions } from '../../../../../composables/useOnChainActions.ts';
 
 const props = defineProps<{
     nodeVbId?: string | null;
@@ -15,8 +14,8 @@ const props = defineProps<{
 const isOpen = defineModel<boolean>('isOpen');
 
 const route = useRoute();
-const onChainStore = useOnChainStore();
-const { isClaimingNode } = storeToRefs(onChainStore);
+const onChainStore = useOnChainActions();
+const { isClaimingNode } = onChainStore;
 const orgId = computed(() => Number(route.params.orgId));
 const nodeId = computed(() => Number(route.params.nodeId));
 
