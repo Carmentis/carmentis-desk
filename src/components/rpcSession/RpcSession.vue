@@ -10,6 +10,7 @@ import { Responder } from '@cmts-dev/carmentis-relay-client';
 import { JsonRpc } from '@cmts-dev/carmentis-sdk-json-rpc';
 import type { Component } from 'vue';
 import { rpcMethodRegistry } from './rpcMethodRegistry.ts';
+import {useNavigation} from "../../composables/useNavigation.ts";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -26,7 +27,7 @@ type ActiveRequest = { id: RequestId; component: Component; params: unknown };
 
 const toast = useToast();
 const route = useRoute();
-const router = useRouter();
+const navigation = useNavigation();
 
 // Session parameters come from the deep-link query string:
 // cmts://connect/carmentis-relay?relay=...&sessionId=...&symKey=...
@@ -46,7 +47,7 @@ function closeConnect() {
     setTimeout(() => {
         wantsToClose.value = true;
         responder.close();
-        router.back();
+        navigation.goToHome()
     }, 300);
 }
 
@@ -58,7 +59,7 @@ responder.onClose(() => {
             detail: 'The connection with the relay was lost unexpectedly.',
         });
     }
-    router.back();
+    navigation.goToHome()
 });
 
 // ── Message handling ───────────────────────────────────────────────────────────
