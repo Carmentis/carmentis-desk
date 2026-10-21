@@ -1,3 +1,10 @@
+## [1.36.1](https://github.com/Carmentis/carmentis-desk/compare/v1.36.0...v1.36.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* update @tauri-apps/api and @tauri-apps/cli to v2.12.4 ([8c7b963](https://github.com/Carmentis/carmentis-desk/commit/8c7b9636126df3f89c77893fe2a3119f715e2b66))
+
 # [1.36.0](https://github.com/Carmentis/carmentis-desk/compare/v1.35.0...v1.36.0) (2026-10-21)
 
 
