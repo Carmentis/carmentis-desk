@@ -1,3 +1,10 @@
+## [1.34.1](https://github.com/Carmentis/carmentis-desk/compare/v1.34.0...v1.34.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* log detailed error for JWT payload mismatch during signature verification ([9b99364](https://github.com/Carmentis/carmentis-desk/commit/9b99364b1255492894cd64b91bbea5e9941624fb))
+
 # [1.34.0](https://github.com/Carmentis/carmentis-desk/compare/v1.33.0...v1.34.0) (2026-10-20)
 
 
