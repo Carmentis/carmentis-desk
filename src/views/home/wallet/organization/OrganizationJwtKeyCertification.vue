@@ -291,6 +291,9 @@ const verifySignature = async () => {
             signatureVerificationResult.value = { valid: true };
             toast.add({ severity: 'success', summary: "Signature valid", detail: "The JWT signature is valid and matches the certificate chain", life: 3000 });
         } else {
+            console.error(`Payload mismatch: signed JWT contains different data than expected:`);
+            console.error(`Expected: ${JSON.stringify(unsignedPayload)}`);
+            console.error(`Received: ${JSON.stringify(signedPayload)}`);
             signatureVerificationResult.value = {
                 valid: false,
                 error: "Payload mismatch: signed JWT contains different data than expected"
