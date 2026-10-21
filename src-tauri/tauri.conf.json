@@ -37,7 +37,13 @@
     "deep-link": {
       "desktop": {
         "schemes": ["cmts", "openid", "openid-credential-offer"]
-      }
+      },
+      "mobile": [
+        {
+          "scheme": ["cmts"],
+          "appLink": false
+        }
+      ]
     },
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFCRDM5NDYxRTdGRTVBNjUKUldSbFd2N25ZWlRUcTRabWlFNUE1eWx5aVV4TlBieDZ2TU1CTEszZ296cnpWZWJONkd4MU84UnYK",
