@@ -20,6 +20,7 @@ import UiCard from "../../components/ui/UiCard.vue";
 import SegmentedControl from "../../components/ui/SegmentedControl.vue";
 import StickyActionBar from "../../components/ui/StickyActionBar.vue";
 import PageHeader from "../../components/ui/PageHeader.vue";
+import JwkKeyField from "./JwkKeyField.vue";
 import type {SegmentedOption} from "../../components/ui/types.ts";
 
 
@@ -35,24 +36,8 @@ const storageStore = useStorageStore();
 const keyMethod = ref<'jwk' | 'seedphrase'>('jwk');
 const jwkInput = ref('');
 
-// JWK validation: check if input is valid JSON with required 'kty' field
-const jwkParseError = computed<string | null>(() => {
-    const trimmed = jwkInput.value.trim();
-    if (!trimmed) return null; // empty is ok, not yet filled
-    try {
-        const parsed = JSON.parse(trimmed);
-        if (typeof parsed.kty !== 'string') {
-            return "The 'kty' field is missing: this is not a valid JWK.";
-        }
-        return null; // valid
-    } catch {
-        return "This is not valid JSON.";
-    }
-});
-
-const isJwkValid = computed(() =>
-    jwkInput.value.trim() !== '' && jwkParseError.value === null
-);
+// The JWK field validates what it holds (a private JWK the wallet can sign with) and reports it.
+const isJwkValid = ref(false);
 
 // Network selection (preset or custom)
 const network = ref<Network>(networkFromPreset('mainnet'));
@@ -240,32 +225,7 @@ const goBack = () => {
                 <SegmentedControl v-model="keyMethod" :options="keyMethodOptions" ariaLabel="How to create the private key" />
 
                 <!-- JWK -->
-                <div v-if="keyMethod === 'jwk'" class="space-y-2">
-                    <FieldNameAndDescription
-                        name="Private JWK"
-                        description="Paste a JSON Web Key containing at least the “kty” field."
-                        input-id="jwk-input"
-                        required
-                    />
-                    <Password
-                        v-model="jwkInput"
-                        input-id="jwk-input"
-                        :input-props="{ autocomplete: 'off', spellcheck: false }"
-                        placeholder='{"kty":"EC","crv":"P-256","x":"…","y":"…","d":"…"}'
-                        :feedback="false"
-                        toggleMask
-                        fluid
-                        :invalid="!!jwkParseError"
-                    />
-                    <p v-if="jwkParseError" role="alert" class="flex items-start gap-2 text-sm text-danger">
-                        <i class="pi pi-exclamation-circle mt-0.5" aria-hidden="true" />
-                        {{ jwkParseError }}
-                    </p>
-                    <p v-else-if="isJwkValid" class="flex items-start gap-2 text-sm text-success">
-                        <i class="pi pi-check-circle mt-0.5" aria-hidden="true" />
-                        JWK is valid
-                    </p>
-                </div>
+                <JwkKeyField v-if="keyMethod === 'jwk'" v-model="jwkInput" v-model:valid="isJwkValid" />
 
                 <!-- Seed / Passphrase -->
                 <div v-else class="space-y-5">
