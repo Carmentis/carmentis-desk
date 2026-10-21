@@ -11,20 +11,21 @@ pub struct CertificateInfo {
 #[cfg(target_os = "windows")]
 mod platform {
     use super::CertificateInfo;
-    use windows::Win32::Security::Cryptography::{
-        CertCloseStore, CertFindCertificateInStore, CertFreeCertificateContext, CertOpenStore,
-        CryptAcquireCertificatePrivateKey, NCryptSignHash, CertGetNameStringW, CertEnumCertificatesInStore,
-        CertGetCertificateContextProperty, CertGetCertificateChain, CertFreeCertificateChain,
-        CERT_FIND_HASH, CERT_QUERY_ENCODING_TYPE, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG,
-        CERT_STORE_PROV_SYSTEM_W, CERT_SYSTEM_STORE_CURRENT_USER, CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG,
-        NCRYPT_KEY_HANDLE, BCRYPT_PKCS1_PADDING_INFO, BCRYPT_SHA256_ALGORITHM,
-        NCRYPT_PAD_PKCS1_FLAG, CERT_KEY_SPEC, CERT_CONTEXT, CERT_HASH_PROP_ID, HCERTSTORE,
-        CERT_CHAIN_PARA, CERT_CHAIN_CONTEXT, HCERTCHAINENGINE,
-    };
+    use std::ffi::c_void;
+    use windows::Win32::Security::Cryptography::CERT_FRIENDLY_NAME_PROP_ID;
     use windows::Win32::Security::Cryptography::CERT_OPEN_STORE_FLAGS;
     use windows::Win32::Security::Cryptography::HCRYPTPROV_OR_NCRYPT_KEY_HANDLE;
-    use windows::Win32::Security::Cryptography::CERT_FRIENDLY_NAME_PROP_ID;
-    use std::ffi::c_void;
+    use windows::Win32::Security::Cryptography::{
+        CertCloseStore, CertEnumCertificatesInStore, CertFindCertificateInStore,
+        CertFreeCertificateChain, CertFreeCertificateContext, CertGetCertificateChain,
+        CertGetCertificateContextProperty, CertGetNameStringW, CertOpenStore,
+        CryptAcquireCertificatePrivateKey, NCryptSignHash, BCRYPT_PKCS1_PADDING_INFO,
+        BCRYPT_SHA256_ALGORITHM, CERT_CHAIN_CONTEXT, CERT_CHAIN_PARA, CERT_CONTEXT, CERT_FIND_HASH,
+        CERT_HASH_PROP_ID, CERT_KEY_SPEC, CERT_NAME_ISSUER_FLAG, CERT_NAME_SIMPLE_DISPLAY_TYPE,
+        CERT_QUERY_ENCODING_TYPE, CERT_STORE_PROV_SYSTEM_W, CERT_SYSTEM_STORE_CURRENT_USER,
+        CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG, HCERTCHAINENGINE, HCERTSTORE, NCRYPT_KEY_HANDLE,
+        NCRYPT_PAD_PKCS1_FLAG,
+    };
 
     // Manual equivalent of the Win32 CRYPT_HASH_BLOB struct.
     // Defined locally since windows-rs may not export it under this name;
@@ -65,12 +66,12 @@ mod platform {
             let mut chain_ctx: *mut CERT_CHAIN_CONTEXT = std::ptr::null_mut();
 
             CertGetCertificateChain(
-                HCERTCHAINENGINE::default(),  // default chain engine
+                HCERTCHAINENGINE::default(), // default chain engine
                 cert_ctx,
-                None,                                // pTime: use current system time
-                store,                    // also look into our own store for intermediates
+                None,  // pTime: use current system time
+                store, // also look into our own store for intermediates
                 &chain_para,
-                0u32,                              // no revocation checking, no policy constraints
+                0u32, // no revocation checking, no policy constraints
                 None,
                 &mut chain_ctx,
             )
@@ -83,8 +84,12 @@ mod platform {
             der_chain
         };
 
-        unsafe { let _ = CertFreeCertificateContext(Some(cert_ctx as *const CERT_CONTEXT)); }
-        unsafe { let _ = CertCloseStore(store, 0); }
+        unsafe {
+            let _ = CertFreeCertificateContext(Some(cert_ctx as *const CERT_CONTEXT));
+        }
+        unsafe {
+            let _ = CertCloseStore(store, 0);
+        }
 
         Ok(result)
     }
@@ -101,7 +106,8 @@ mod platform {
         // (additional entries only appear with cross-certification scenarios,
         // not relevant for a standard operator certificate chain).
         let simple_chain = &**ctx.rgpChain;
-        let elements = std::slice::from_raw_parts(simple_chain.rgpElement, simple_chain.cElement as usize);
+        let elements =
+            std::slice::from_raw_parts(simple_chain.rgpElement, simple_chain.cElement as usize);
 
         elements
             .iter()
@@ -162,8 +168,12 @@ mod platform {
         let cert_ctx = find_certificate_by_thumbprint(store, thumbprint)?;
         let der = get_certificate_der(cert_ctx);
 
-        unsafe { let _ = CertFreeCertificateContext(Some(cert_ctx as *const CERT_CONTEXT)); }
-        unsafe { let _ = CertCloseStore(store, 0); }
+        unsafe {
+            let _ = CertFreeCertificateContext(Some(cert_ctx as *const CERT_CONTEXT));
+        }
+        unsafe {
+            let _ = CertCloseStore(store, 0);
+        }
 
         der
     }
@@ -171,7 +181,9 @@ mod platform {
     pub fn list() -> Result<Vec<CertificateInfo>, String> {
         let store = open_store()?;
         let certs = list_certificates(store);
-        unsafe { let _ = CertCloseStore(store, 0); }
+        unsafe {
+            let _ = CertCloseStore(store, 0);
+        }
         Ok(certs)
     }
 
@@ -181,7 +193,8 @@ mod platform {
 
         unsafe {
             loop {
-                let next = CertEnumCertificatesInStore(store, Some(cert_ctx as *const CERT_CONTEXT));
+                let next =
+                    CertEnumCertificatesInStore(store, Some(cert_ctx as *const CERT_CONTEXT));
                 cert_ctx = match next {
                     p if !p.is_null() => p,
                     _ => break,
@@ -215,13 +228,8 @@ mod platform {
             let flags = if issuer { CERT_NAME_ISSUER_FLAG } else { 0 };
 
             // First call to get the required buffer length (in UTF-16 code units, including null terminator).
-            let len = CertGetNameStringW(
-                cert_ctx,
-                CERT_NAME_SIMPLE_DISPLAY_TYPE,
-                flags,
-                None,
-                None,
-            );
+            let len =
+                CertGetNameStringW(cert_ctx, CERT_NAME_SIMPLE_DISPLAY_TYPE, flags, None, None);
 
             let mut buf = vec![0u16; len as usize];
             CertGetNameStringW(
@@ -264,7 +272,9 @@ mod platform {
                 .chunks_exact(2)
                 .map(|b| u16::from_le_bytes([b[0], b[1]]))
                 .collect();
-            Some(String::from_utf16_lossy(&utf16[..utf16.len().saturating_sub(1)]))
+            Some(String::from_utf16_lossy(
+                &utf16[..utf16.len().saturating_sub(1)],
+            ))
         }
     }
 
@@ -418,16 +428,15 @@ pub fn is_certificate_store_available() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use base64::{Engine as _, engine::general_purpose};
+    use base64::{engine::general_purpose, Engine as _};
 
-    use windows::core::PCWSTR;
-    use windows::Win32::Security::Cryptography::{
-        CertOpenStore,
-        CERT_QUERY_ENCODING_TYPE,
-        CERT_STORE_PROV_SYSTEM_W, CERT_SYSTEM_STORE_CURRENT_USER,
-    };
-    use windows::Win32::Security::Cryptography::CERT_OPEN_STORE_FLAGS;
     use std::ffi::c_void;
+    use windows::core::PCWSTR;
+    use windows::Win32::Security::Cryptography::CERT_OPEN_STORE_FLAGS;
+    use windows::Win32::Security::Cryptography::{
+        CertOpenStore, CERT_QUERY_ENCODING_TYPE, CERT_STORE_PROV_SYSTEM_W,
+        CERT_SYSTEM_STORE_CURRENT_USER,
+    };
 
     #[test]
     fn list_all_certificates() {

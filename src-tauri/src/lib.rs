@@ -28,7 +28,7 @@ fn open_devtools(window: tauri::WebviewWindow) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let mut builder = tauri::Builder::default();
+    let mut builder = tauri::Builder::default().plugin(tauri_plugin_os::init());
 
     #[cfg(desktop)]
     {
@@ -62,15 +62,19 @@ pub fn run() {
 
             Ok(())
         })
-        .plugin(tauri_plugin_stronghold::Builder::new(|password| {
-            use argon2::{Argon2, Algorithm, Version, Params};
-            let params = Params::new(65536, 2, 1, Some(32)).expect("argon2 params");
-            let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
-            let mut key = vec![0u8; 32];
-            argon2.hash_password_into(password.as_bytes(), b"carmentis-desk-kdf-salt", &mut key)
-                .expect("argon2 key derivation failed");
-            key
-        }).build())
+        .plugin(
+            tauri_plugin_stronghold::Builder::new(|password| {
+                use argon2::{Algorithm, Argon2, Params, Version};
+                let params = Params::new(65536, 2, 1, Some(32)).expect("argon2 params");
+                let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
+                let mut key = vec![0u8; 32];
+                argon2
+                    .hash_password_into(password.as_bytes(), b"carmentis-desk-kdf-salt", &mut key)
+                    .expect("argon2 key derivation failed");
+                key
+            })
+            .build(),
+        )
         .plugin(
             tauri_plugin_sql::Builder::default()
                 .add_migrations(
@@ -85,7 +89,9 @@ pub fn run() {
                         Migration {
                             version: 2,
                             description: "add_scheme_and_blockchain_tables",
-                            sql: include_str!("../migrations/02_add_scheme_and_blockchain_tables.sql"),
+                            sql: include_str!(
+                                "../migrations/02_add_scheme_and_blockchain_tables.sql"
+                            ),
                             kind: MigrationKind::Up,
                         },
                     ],

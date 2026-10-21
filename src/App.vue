@@ -10,6 +10,7 @@ import OpenIdDeepLinkHandler from './components/openid/OpenIdDeepLinkHandler.vue
 import OpenIdCredentialOfferDeepLinkHandler from './components/openid/OpenIdCredentialOfferDeepLinkHandler.vue';
 import {useAppStore} from "./stores/appStore.ts";
 import {useNavigation} from "./composables/useNavigation.ts";
+import { platform } from '@tauri-apps/plugin-os';
 
 const appWindow = getCurrentWindow();
 const router = useRouter();
@@ -23,9 +24,13 @@ async function handleDeepLink(urls: string[]) {
     for (const url of urls) {
         console.log(`Handling deep link: ${url}`);
         if (url.startsWith('cmts://connect/carmentis-relay')) {
-            await appWindow.unminimize();
-            await appWindow.show();
-            await appWindow.setFocus();
+            // app window can only be accessed on linux, mac and windows
+            const currentPlatform = platform();
+            if (currentPlatform !== 'ios' && currentPlatform !== 'android') {
+                await appWindow.unminimize();
+                await appWindow.show();
+                await appWindow.setFocus();
+            }
             const path = url.replace('cmts://connect/carmentis-relay', '');
             await nav.goToRpc(path)
         }

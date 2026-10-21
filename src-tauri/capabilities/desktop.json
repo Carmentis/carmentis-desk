@@ -15,6 +15,7 @@
     "process:default",
     "deep-link:default",
     "log:default",
-    "stronghold:default"
+    "stronghold:default",
+    "os:default"
   ]
 }

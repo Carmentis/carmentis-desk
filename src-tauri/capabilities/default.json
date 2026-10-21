@@ -16,6 +16,7 @@
     "core:window:allow-show",
     "core:window:allow-set-focus",
     "log:default",
-    "stronghold:default"
+    "stronghold:default",
+    "os:default"
   ]
 }
