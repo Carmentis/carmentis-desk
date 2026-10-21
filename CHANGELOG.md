@@ -1,3 +1,10 @@
+# [1.35.0](https://github.com/Carmentis/carmentis-desk/compare/v1.34.1...v1.35.0) (2026-10-21)
+
+
+### Features
+
+* add JWK management field and integrate validation with wallet creation ([4f6d818](https://github.com/Carmentis/carmentis-desk/commit/4f6d818f9f4b15e9bd060a3987f1efc67a6462c5))
+
 ## [1.34.1](https://github.com/Carmentis/carmentis-desk/compare/v1.34.0...v1.34.1) (2026-10-21)
 
 
