@@ -1,3 +1,11 @@
+# [1.36.0](https://github.com/Carmentis/carmentis-desk/compare/v1.35.0...v1.36.0) (2026-10-21)
+
+
+### Features
+
+* extend deep linking support for mobile platforms ([46e2b13](https://github.com/Carmentis/carmentis-desk/commit/46e2b13e8b8200993279b899c21a85bf0609cc84))
+* integrate OS plugin and improve cross-platform support ([751eeba](https://github.com/Carmentis/carmentis-desk/commit/751eebab0eee3730f203116b7e4ae805c798e706))
+
 # [1.35.0](https://github.com/Carmentis/carmentis-desk/compare/v1.34.1...v1.35.0) (2026-10-21)
 
 
