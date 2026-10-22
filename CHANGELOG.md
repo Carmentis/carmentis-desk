@@ -1,3 +1,10 @@
+# [1.37.0](https://github.com/Carmentis/carmentis-desk/compare/v1.36.1...v1.37.0) (2026-10-22)
+
+
+### Features
+
+* integrate current organization and certificate refetch in OrganizationJwtKeyCertification ([d6cc14c](https://github.com/Carmentis/carmentis-desk/commit/d6cc14c9e61437485ddde346d290ea7f38eb17e2))
+
 ## [1.36.1](https://github.com/Carmentis/carmentis-desk/compare/v1.36.0...v1.36.1) (2026-10-21)
 
 
