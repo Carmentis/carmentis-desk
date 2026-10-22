@@ -42,6 +42,7 @@ import CopyableValue from "../../../../components/ui/CopyableValue.vue";
 import JsonBlock from "../../../../components/ui/JsonBlock.vue";
 import EmptyState from "../../../../components/ui/EmptyState.vue";
 import SkeletonBlock from "../../../../components/ui/SkeletonBlock.vue";
+import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
 
 // define toast and route
 const logger = DeskLogger.getLogger().getChild("organization")
@@ -50,8 +51,8 @@ const route = useRoute();
 const onChainStore = useOnChainActions();
 const { isPublishingCustomJson } = onChainStore;
 const isSigningWithStore = ref(false);
-const {encodedWalletPublicKey} = useCurrentWallet();
-
+const {wallet, walletProvider, encodedWalletPublicKey} = useCurrentWallet();
+const {organization} = useCurrentOrganization()
 const walletId =  computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 
@@ -218,7 +219,7 @@ const unsignedPayload = computedAsync(async () => {
 // compute the unsigned jwt
 const unsignedJwt = computed(() => {
     if (!unsignedPayload.value) return null;
-    return new UnsecuredJWT(unsignedPayload.value).setIssuedAt().encode();
+    return new UnsecuredJWT(unsignedPayload.value).encode();
 });
 
 // dialog opening state
@@ -386,6 +387,8 @@ const anchorCertificate = async () => {
     }
 };
 
+
+/*
 // Load anchored certificates from on-chain
 const { state: wallet } = useAsyncState(
     () => walletRepo.getWalletById(walletId.value),
@@ -399,6 +402,7 @@ const { state: organization } = useAsyncState(
     { immediate: true },
 );
 
+ */
 interface CertificateSectionRow {
     height: number;
     hash: string;
@@ -414,12 +418,13 @@ const {
     queryKey: ['organization-certificate-sections', orgId],
     enabled: computed(() => isOrganizationFoundOnChain.value === true),
     queryFn: async (): Promise<CertificateSectionRow[]> => {
-        if (!organization.value?.vbId || !wallet.value) {
+        if (!organization.value?.organizationVbId || !walletProvider.value) {
+            console.log("Some dependencies are not defined: aborting certificate searching")
             logger.warning("Some dependencies are not defined: aborting certificate searching")
             return [];
         };
-        const provider = ProviderFactory.createInMemoryProviderWithExternalProvider(wallet.value.nodeEndpoint);
-        const orgVB = await provider.loadOrganizationVirtualBlockchain(Hash.from(organization.value.vbId));
+        const provider = walletProvider.value;
+        const orgVB = await provider.loadOrganizationVirtualBlockchain(Hash.from(organization.value.organizationVbId));
         const vbHeight = orgVB.getHeight();
         const rows: CertificateSectionRow[] = [];
         for (let height = 1; height <= vbHeight; height++) {
@@ -427,6 +432,7 @@ const {
             const mb = await orgVB.getMicroblock(height);
             const customSecs = mb.getSectionsByType(SectionType.CUSTOM);
             for (const sec of customSecs) {
+                console.log(`Checking section of ${mb.getHash().encode()}`)
                 const data = sec as Record<string, unknown>;
                 if (!data.__certificate__) continue;
                 const certificateSection = data.__certificate__ as any;
@@ -473,7 +479,23 @@ function base64UrlEncodeString(str: string): string {
                     is then published on-chain.
                 </p>
             </div>
-            <Button label="Attach certificate" icon="pi pi-plus" @click="showOpenDialog = true" />
+            <div class="flex shrink-0 items-center gap-2">
+                <Button
+                    label="Refetch"
+                    icon="pi pi-refresh"
+                    severity="secondary"
+                    outlined
+                    :loading="isLoadingCertificateSections"
+                    :disabled="isLoadingCertificateSections"
+                    @click="() => refetchCertificateSections()"
+                />
+                <Button
+                    label="Attach certificate"
+                    icon="pi pi-plus"
+                    :disabled="isLoadingCertificateSections"
+                    @click="showOpenDialog = true"
+                />
+            </div>
         </div>
 
         <OrganizationSectionsList
