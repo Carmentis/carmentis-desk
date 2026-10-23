@@ -57,21 +57,24 @@ const {
     isLoading: isLoadingCustomSections,
     refetch: refetchCustomSections,
 } = useQuery({
+    refetchInterval: 5000,
     queryKey: ['organization-custom-sections', orgId],
     enabled: computed(() => isOrganizationFoundOnChain.value === true),
     queryFn: async (): Promise<CustomSectionRow[]> => {
-        if (!organization.value || !organization.value.organizationVbId || !walletProvider.value) return [];
+        if (!organization.value || !organization.value.organizationVbId || !walletProvider.value) {
+            console.warn('Organization or wallet provider not found:', organization.value, walletProvider.value);
+            return [];
+        }
         const provider = walletProvider.value;
         const orgVB = await provider.loadOrganizationVirtualBlockchain(Hash.from(organization.value.organizationVbId));
-        const hashes = orgVB.getAllMicroblockHashes();
         const rows: CustomSectionRow[] = [];
-        for (let i = 0; i < hashes.length; i++) {
+        for (let i = 0; i < orgVB.getHeight(); i++) {
             const height = i + 1;
             const mb = await orgVB.getMicroblock(height);
             const customSecs = mb.getSectionsByType(SectionType.CUSTOM);
             if (customSecs.length > 0) {
                 const { type: _type, ...data } = customSecs[0] as Record<string, unknown>;
-                rows.push({ height, hash: hashes[i].encode(), data });
+                rows.push({ height, hash: mb.getHash().encode(), data });
             }
         }
         return rows;
