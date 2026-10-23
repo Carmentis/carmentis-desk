@@ -1,90 +1,70 @@
 <script setup lang="ts">
 import {computed, ref} from "vue";
-import {useAsyncState} from "@vueuse/core";
-import * as walletRepo from "../../../db/repositories/walletRepository.ts";
-import {SignatureSchemeId} from "@cmts-dev/carmentis-sdk-core";
 import {useRoute} from "vue-router";
 import {useWalletStore} from "../../../stores/walletStore.ts";
-import {useToast} from "primevue/usetoast";
 import Button from "primevue/button";
 import {KeyType} from "../../../types/types.ts";
-import {match, P} from "ts-pattern";
 import UiCard from "../../../components/ui/UiCard.vue";
 import SecretField from "../../../components/ui/SecretField.vue";
 import CopyableValue from "../../../components/ui/CopyableValue.vue";
 import JsonBlock from "../../../components/ui/JsonBlock.vue";
-import StatusBadge from "../../../components/ui/StatusBadge.vue";
+import SegmentedControl from "../../../components/ui/SegmentedControl.vue";
+import type {SegmentedOption} from "../../../components/ui/types.ts";
 
 const route = useRoute();
 const walletStore = useWalletStore(Number(route.params.walletId));
-const walletId = computed(() => Number(route.params.walletId));
-
-const { state: wallet } = useAsyncState(
-    () => walletRepo.getWalletById(walletId.value),
-    null,
-    { immediate: true },
-);
-
-const toast = useToast();
-const {execute: checkKeyPair} = useAsyncState(
-    async () => {
-        let verified = false;
-        const message = "Hello world!"
-        try {
-            const {sk, pk} = walletStore.walletKeyPair.value;
-            if (sk && pk) {
-                const textEncoder = new TextEncoder();
-                const rawMessage = textEncoder.encode(message);
-                const sign = await sk.sign(rawMessage);
-                verified = await pk.verify(rawMessage, sign);
-                if (verified) {
-                    toast.add({
-                        severity: 'success',
-                        summary: `Key pair is valid`,
-                        detail: `Message "${message}" has been signed and verified successfully (type ${signatureScheme.value.toString()})`,
-                        life: 3000,
-                    })
-                } else {
-                    toast.add({
-                        severity: 'error',
-                        summary: 'Key pair check failed',
-                        detail: 'The key pair is invalid',
-                        life: 3000,
-                    });
-                }
-            }
-
-        } catch (e) {
-            console.error('Failed to verify key pair:', e);
-            toast.add({
-                severity: 'error',
-                summary: 'Key pair check failed',
-                detail: 'The key pair is invalid',
-                life: 3000,
-            });
-        }
-    },
-    undefined,
-)
-
-// JWK representations, only displayed for JWK wallets
-const privateJwkText = computed(() => {
-    const jwk = walletStore.walletPrivateJwk.value;
-    return jwk ? JSON.stringify(jwk, null, 2) : '';
-});
-const publicJwkText = computed(() => {
-    const jwk = walletStore.walletPublicJwk.value;
-    return jwk ? JSON.stringify(jwk, null, 2) : '';
-});
-
-const signatureScheme = computed(() => {
-    return match(wallet.value)
-        .with(P.nullish, () => SignatureSchemeId.SECP256K1)
-        .otherwise((wallet) => wallet.schemeId)
-});
+const {
+    walletKeyType,
+    walletKeyPair,
+    encodedWalletPublicKey,
+    encodedWalletPrivateKey,
+    walletKeyActorKeysPassphrase,
+    walletPublicJwk,
+    walletPrivateJwk,
+} = walletStore;
 
 // The section is closed on every visit: no secret is rendered until the user opens it and reveals a field.
 const isOpen = ref(false);
+
+// JWK wallets can show their keys in the encoded form or as JWK; other wallets only have the encoded form.
+type KeyFormat = 'encoded' | 'jwk';
+const FORMATS: SegmentedOption<KeyFormat>[] = [
+    {value: 'encoded', label: 'Encoded'},
+    {value: 'jwk', label: 'JWK'},
+];
+const format = ref<KeyFormat>('encoded');
+const isJwkWallet = computed(() => walletKeyType.value === KeyType.JWK);
+const showJwk = computed(() => isJwkWallet.value && format.value === 'jwk');
+
+const keyTypeLabel = computed(() =>
+    isJwkWallet.value ? 'Imported JWK key' : 'Standard wallet key',
+);
+
+const asJson = (jwk: unknown) => (jwk ? JSON.stringify(jwk, null, 2) : '');
+const publicJwkText = computed(() => asJson(walletPublicJwk.value));
+const privateJwkText = computed(() => asJson(walletPrivateJwk.value));
+const privateKeyText = computed(() => (showJwk.value ? privateJwkText.value : encodedWalletPrivateKey.value));
+
+// Signs and verifies a message so the user gets an immediate answer, shown next to the button.
+type CheckState = 'idle' | 'running' | 'ok' | 'failed';
+const checkState = ref<CheckState>('idle');
+
+async function checkKeys() {
+    checkState.value = 'running';
+    try {
+        const {sk, pk} = walletKeyPair.value;
+        if (!sk || !pk) {
+            checkState.value = 'failed';
+            return;
+        }
+        const message = new TextEncoder().encode("Hello world!");
+        const signature = await sk.sign(message);
+        checkState.value = (await pk.verify(message, signature)) ? 'ok' : 'failed';
+    } catch (e) {
+        console.error('Failed to verify key pair:', e);
+        checkState.value = 'failed';
+    }
+}
 </script>
 
 <template>
@@ -105,58 +85,88 @@ const isOpen = ref(false);
             </button>
         </template>
 
-        <div v-if="isOpen" id="wallet-keys-body" class="space-y-6">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-                <StatusBadge tone="neutral" icon="pi-key" :label="`Key type: ${walletStore.walletKeyType.value}`" />
-                <Button
-                    label="Check keys"
-                    icon="pi pi-check"
-                    severity="secondary"
-                    outlined
-                    size="small"
-                    @click="() => checkKeyPair()"
-                />
+        <Transition
+            enter-active-class="transition duration-200 ease-out motion-reduce:transition-opacity"
+            enter-from-class="-translate-y-1 opacity-0 motion-reduce:translate-y-0"
+            leave-active-class="transition duration-100 ease-in motion-reduce:transition-opacity"
+            leave-to-class="opacity-0"
+            mode="out-in"
+        >
+            <div v-if="isOpen" id="wallet-keys-body" class="space-y-6">
+                <div v-if="isJwkWallet" class="flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-sm text-fg-muted">Show keys as</p>
+                    <SegmentedControl v-model="format" :options="FORMATS" aria-label="Key format" />
+                </div>
+
+                <!-- Public: safe to share -->
+                <section class="space-y-3" aria-labelledby="wallet-keys-public">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <h3 id="wallet-keys-public" class="text-sm font-semibold text-fg">Public key</h3>
+                            <p class="text-xs text-fg-muted">{{ keyTypeLabel }} · Safe to share. Others use it to send you tokens.</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <p
+                                v-if="checkState === 'ok' || checkState === 'failed'"
+                                role="status"
+                                class="flex items-center gap-1.5 text-xs font-medium"
+                                :class="checkState === 'ok' ? 'text-success' : 'text-danger'"
+                            >
+                                <i class="pi" :class="checkState === 'ok' ? 'pi-check-circle' : 'pi-times-circle'" aria-hidden="true" />
+                                {{ checkState === 'ok' ? 'Your keys match' : 'Your keys do not match' }}
+                            </p>
+                            <Button
+                                label="Test my keys"
+                                icon="pi pi-check"
+                                severity="secondary"
+                                outlined
+                                size="small"
+                                :loading="checkState === 'running'"
+                                :disabled="checkState === 'running'"
+                                @click="checkKeys"
+                            />
+                        </div>
+                    </div>
+
+                    <JsonBlock v-if="showJwk" title="Public key (JWK)" :value="publicJwkText" default-open />
+                    <CopyableValue
+                        v-else
+                        :value="encodedWalletPublicKey"
+                        label="public key"
+                        :head="14"
+                        :tail="10"
+                    />
+                </section>
+
+                <!-- Private: never share -->
+                <section class="space-y-4 border-t border-line pt-5" aria-labelledby="wallet-keys-private">
+                    <div>
+                        <h3 id="wallet-keys-private" class="flex items-center gap-2 text-sm font-semibold text-fg">
+                            <i class="pi pi-lock text-xs text-danger" aria-hidden="true" />
+                            Private keys
+                        </h3>
+                        <p class="text-xs text-fg-muted">Never share these. Hidden until you reveal them.</p>
+                    </div>
+
+                    <SecretField
+                        :label="showJwk ? 'Private key (JWK)' : 'Private key'"
+                        description="Gives full control of this wallet."
+                        :multiline="showJwk"
+                        :value="privateKeyText"
+                    />
+
+                    <SecretField
+                        label="Actor keys passphrase"
+                        description="Used to generate technical access keys on demand."
+                        multiline
+                        :value="walletKeyActorKeysPassphrase"
+                    />
+                </section>
             </div>
 
-            <SecretField
-                label="Private key"
-                description="Gives full control of this wallet. Never share it."
-                :value="walletStore.encodedWalletPrivateKey.value"
-            />
-
-            <div>
-                <p class="text-sm font-medium text-fg">Public key</p>
-                <p class="mb-1 text-xs text-fg-muted">Safe to share. Others use it to send you tokens.</p>
-                <CopyableValue
-                    :value="walletStore.encodedWalletPublicKey.value"
-                    label="public key"
-                    :head="14"
-                    :tail="10"
-                />
-            </div>
-
-            <SecretField
-                label="Actor keys passphrase"
-                description="Used to generate technical access keys on demand. Keep it private."
-                multiline
-                :value="walletStore.walletKeyActorKeysPassphrase.value"
-            />
-
-            <!-- JWK-specific section -->
-            <div v-if="walletStore.walletKeyType.value === KeyType.JWK" class="space-y-4 border-t border-line pt-5">
-                <h3 class="text-sm font-semibold text-fg">Advanced: JWK format</h3>
-                <JsonBlock title="Public JWK" :value="publicJwkText" />
-                <SecretField
-                    label="Private JWK"
-                    description="Your private key in JWK format. Never share it."
-                    multiline
-                    :value="privateJwkText"
-                />
-            </div>
-        </div>
-
-        <p v-else class="text-sm text-fg-muted">
-            Hidden by default. Open this section to view or copy your keys.
-        </p>
+            <p v-else class="text-sm text-fg-muted">
+                Hidden by default. Open this section to view or copy your keys.
+            </p>
+        </Transition>
     </UiCard>
 </template>
