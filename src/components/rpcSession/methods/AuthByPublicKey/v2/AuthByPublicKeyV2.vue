@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import {useActivityRecorder} from "../../../../../composables/useWalletActivity.ts";
+import {activityEvents} from "../../../../../types/activity.ts";
 import {computed, ref, watch} from 'vue';
 import Button from 'primevue/button';
 import {useToast} from 'primevue/usetoast';
@@ -26,6 +28,7 @@ import CopyableValue from "../../../../ui/CopyableValue.vue";
 
 
 const props = defineProps<{ params: AuthByPublicKeyV2Params }>();
+const {recordActivity} = useActivityRecorder();
 const { logoUrl } = props.params;
 
 const emit = defineEmits<{
@@ -77,6 +80,7 @@ async function approve() {
 
         console.log("signature of auth:", signature)
 
+        void recordActivity(activityEvents.authenticated({requester: origin}), chosenWallet.value?.id);
         emit('done', {
             // returns both pk and publicKey for consistency
             pk: encodedPk,

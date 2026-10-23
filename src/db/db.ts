@@ -9,6 +9,7 @@ import {
     DeskState,
     VerifiableCredential
 } from "../types/types.ts";
+import type { Activity } from "../types/activity.ts";
 
 // primary key "id" (for the typings only)
 const db = new Dexie('CarmentisDesk') as Dexie & {
@@ -20,6 +21,7 @@ const db = new Dexie('CarmentisDesk') as Dexie & {
     applicationLedgers: EntityTable<ApplicationLedger, 'id'>,
     submittedMicroblocks: EntityTable<SubmittedMicroblock, 'id'>,
     deskState: EntityTable<DeskState, 'id'>,
+    activities: EntityTable<Activity, 'id'>,
 };
 
 db
@@ -34,5 +36,12 @@ db
         applicationLedgers: '++id, applicationId, applicationLedgerVbId',
         submittedMicroblocks: '++id, height, microblockHash, vbId, vbType',
         deskState: 'id',
+    });
+
+// version 2: activity history (walletId is optional: undefined means a Desk-scoped activity)
+db
+    .version(2)
+    .stores({
+        activities: '++id, walletId, date',
     });
 export { db };

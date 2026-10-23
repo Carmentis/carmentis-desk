@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import {useActivityRecorder} from "../../../../composables/useWalletActivity.ts";
+import {activityEvents} from "../../../../types/activity.ts";
 import { WalletSdJwtSigner } from '../../../../utils/WalletSdJwtSigner.ts';
 import {computed, onMounted, ref, watch} from 'vue';
 import type { CredentialPresentation } from './CredentialPresentationRequestType.ts';
@@ -29,6 +31,7 @@ import {VerifiableCredential} from "../../../../types/types.ts";
 
 const logger = DeskLogger.getLogger().getChild('presentation');
 const props = defineProps<{ params: CredentialPresentation }>();
+const {recordActivity} = useActivityRecorder();
 
 const emit = defineEmits<{
     done: [result: Record<string, unknown>];
@@ -270,6 +273,10 @@ async function handlePresent() {
             detail: 'The credential has been presented',
             life: 3000,
         });
+        void recordActivity(activityEvents.credentialPresented({
+            credentialName: credentialsInWallet.value.find((c) => c.sdjwt === credential)?.name ?? 'Credential',
+            verifier: props.params.audience,
+        }), chosenWallet.value?.id);
         emit('done', { vp_token: vp });
     } catch (e) {
         console.error('Error presenting credential:', e);

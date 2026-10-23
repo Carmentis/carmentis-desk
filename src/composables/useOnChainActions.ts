@@ -2,6 +2,8 @@ import {useMutation} from "@tanstack/vue-query";
 import {useToast} from "primevue/usetoast";
 import {useCurrentWallet} from "./useCurrentWallet.ts";
 import * as ops from "../onchain/onchainOperations.ts";
+import {useActivityRecorder} from "./useWalletActivity.ts";
+import {activityEvents} from "../types/activity.ts";
 
 /**
  * Component-level wrapper around the stateless on-chain operations.
@@ -12,19 +14,26 @@ import * as ops from "../onchain/onchainOperations.ts";
  */
 export function useOnChainActions() {
     const toast = useToast();
-    const { createOnChainContext } = useCurrentWallet();
+    const { createOnChainContext, walletId } = useCurrentWallet();
+    const { recordActivity } = useActivityRecorder();
 
     const errorDetail = (e: unknown) => e instanceof Error ? e.message : 'Unknown error';
 
     const { mutateAsync: publishOrganizationAsync, isPending: isPublishingOrganization } = useMutation({
         mutationFn: async (params: ops.PublishOrganizationParams) =>
             ops.publishOrganization(await createOnChainContext(), params),
-        onSuccess: (organization) => toast.add({
-            severity: 'success',
-            summary: 'Organization published',
-            detail: `Organization "${organization.name}" published successfully`,
-            life: 3000,
-        }),
+        onSuccess: (organization) => {
+            void recordActivity(activityEvents.organizationPublished({
+                organizationId: organization.id,
+                organizationName: organization.name,
+            }), walletId.value);
+            toast.add({
+                severity: 'success',
+                summary: 'Organization published',
+                detail: `Organization "${organization.name}" published successfully`,
+                life: 3000,
+            });
+        },
         onError: (e) => {
             console.error(e);
             toast.add({ severity: 'error', summary: `Error publishing organization: ${e}`, life: 3000 });
@@ -34,12 +43,19 @@ export function useOnChainActions() {
     const { mutateAsync: claimNodeAsync, isPending: isClaimingNode } = useMutation({
         mutationFn: async (params: ops.ClaimNodeParams) =>
             ops.claimNode(await createOnChainContext(), params),
-        onSuccess: ({ node }) => toast.add({
-            severity: 'success',
-            summary: 'Node claimed',
-            detail: `Node "${node.name}" claimed successfully`,
-            life: 3000,
-        }),
+        onSuccess: ({ node }) => {
+            void recordActivity(activityEvents.nodeClaimed({
+                organizationId: node.organizationId,
+                nodeId: node.id,
+                nodeName: node.name,
+            }), walletId.value);
+            toast.add({
+                severity: 'success',
+                summary: 'Node claimed',
+                detail: `Node "${node.name}" claimed successfully`,
+                life: 3000,
+            });
+        },
         onError: (e) => toast.add({
             severity: 'error', summary: 'Error claiming node', detail: errorDetail(e), life: 5000,
         }),
@@ -48,12 +64,20 @@ export function useOnChainActions() {
     const { mutateAsync: stakeOnNodeAsync, isPending: isStakingOnNode } = useMutation({
         mutationFn: async (params: ops.StakeOnNodeParams) =>
             ops.stakeOnNode(await createOnChainContext(), params),
-        onSuccess: ({ node }, { amount }) => toast.add({
-            severity: 'success',
-            summary: 'Staking successful',
-            detail: `Staked ${amount.toString()} on node "${node.name}"`,
-            life: 3000,
-        }),
+        onSuccess: ({ node }, { amount }) => {
+            void recordActivity(activityEvents.nodeStaked({
+                organizationId: node.organizationId,
+                nodeId: node.id,
+                nodeName: node.name,
+                amount: amount.toString(),
+            }), walletId.value);
+            toast.add({
+                severity: 'success',
+                summary: 'Staking successful',
+                detail: `Staked ${amount.toString()} on node "${node.name}"`,
+                life: 3000,
+            });
+        },
         onError: (e) => toast.add({
             severity: 'error', summary: 'Error staking', detail: errorDetail(e), life: 5000,
         }),
@@ -62,12 +86,20 @@ export function useOnChainActions() {
     const { mutateAsync: unstakeFromNodeAsync, isPending: isUnstakingFromNode } = useMutation({
         mutationFn: async (params: ops.UnstakeFromNodeParams) =>
             ops.unstakeFromNode(await createOnChainContext(), params),
-        onSuccess: ({ node }, { amount }) => toast.add({
-            severity: 'success',
-            summary: 'Unstaking successful',
-            detail: `Unstaked ${amount.toString()} from node "${node.name}"`,
-            life: 3000,
-        }),
+        onSuccess: ({ node }, { amount }) => {
+            void recordActivity(activityEvents.nodeUnstaked({
+                organizationId: node.organizationId,
+                nodeId: node.id,
+                nodeName: node.name,
+                amount: amount.toString(),
+            }), walletId.value);
+            toast.add({
+                severity: 'success',
+                summary: 'Unstaking successful',
+                detail: `Unstaked ${amount.toString()} from node "${node.name}"`,
+                life: 3000,
+            });
+        },
         onError: (e) => toast.add({
             severity: 'error', summary: 'Error unstaking', detail: errorDetail(e), life: 5000,
         }),
@@ -76,12 +108,19 @@ export function useOnChainActions() {
     const { mutateAsync: publishApplication, isPending: isPublishingApplication } = useMutation({
         mutationFn: async (params: ops.PublishApplicationParams) =>
             ops.publishApplication(await createOnChainContext(), params),
-        onSuccess: (_, { name }) => toast.add({
-            severity: 'success',
-            summary: 'Application published',
-            detail: `Application "${name}" published successfully`,
-            life: 3000,
-        }),
+        onSuccess: (_, { name, orgId, appId }) => {
+            void recordActivity(activityEvents.applicationPublished({
+                organizationId: orgId,
+                applicationId: appId,
+                applicationName: name,
+            }), walletId.value);
+            toast.add({
+                severity: 'success',
+                summary: 'Application published',
+                detail: `Application "${name}" published successfully`,
+                life: 3000,
+            });
+        },
         onError: (e) => toast.add({
             severity: 'error', summary: 'Error publishing application', detail: errorDetail(e), life: 5000,
         }),
@@ -90,14 +129,20 @@ export function useOnChainActions() {
     const { mutateAsync: transferTokens, isPending: isTransferringTokens } = useMutation({
         mutationFn: async (params: ops.TransferTokensParams) =>
             ops.transferTokens(await createOnChainContext(), params),
-        onSuccess: ({ createdAccount }, { amount }) => toast.add({
-            severity: 'success',
-            summary: 'Transfer successful',
-            detail: createdAccount
-                ? `Created account and transferred ${amount.toString()} tokens successfully`
-                : `Transferred ${amount.toString()} tokens successfully`,
-            life: 3000,
-        }),
+        onSuccess: ({ createdAccount }, { amount, recipientPublicKey }) => {
+            void recordActivity(activityEvents.tokenTransferred({
+                amount: amount.toString(),
+                recipientPublicKey,
+            }), walletId.value);
+            toast.add({
+                severity: 'success',
+                summary: 'Transfer successful',
+                detail: createdAccount
+                    ? `Created account and transferred ${amount.toString()} tokens successfully`
+                    : `Transferred ${amount.toString()} tokens successfully`,
+                life: 3000,
+            });
+        },
         onError: (e) => toast.add({
             severity: 'error', summary: 'Error transferring tokens', detail: errorDetail(e), life: 5000,
         }),

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import {useActivityRecorder} from "../../../../composables/useWalletActivity.ts";
+import {activityEvents} from "../../../../types/activity.ts";
 import {computed, ref, watch} from 'vue';
 import JsonViewer from '../../JsonViewer.vue';
 import Button from 'primevue/button';
@@ -34,6 +36,7 @@ const emit = defineEmits<{
 }>();
 
 const params = props.params;
+const {recordActivity} = useActivityRecorder();
 const toast = useToast();
 const {wallets} = useAppStore();
 const chosenWallet = ref(wallets.value[0]);
@@ -109,6 +112,7 @@ async function approve() {
             detail: 'You have signed it',
             life: 3000,
         });
+        void recordActivity(activityEvents.jsonSigned({purpose: purpose.value, signature: signature}), chosenWallet.value?.id);
         emit('done', { signature: signature });
     } catch (e) {
         console.error('Error approving authentication request:', e);

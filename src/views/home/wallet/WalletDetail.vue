@@ -14,6 +14,7 @@ import WalletDetailKeysCard from "./WalletDetailKeysCard.vue";
 import WalletDetailOrganizationsCard from "./WalletDetailOrganizationsCard.vue";
 import WalletDetailConnectivity from "./WalletDetailConnectivity.vue";
 import WalletDetailCredentials from "./credentials/WalletDetailCredentials.vue";
+import WalletDetailActivity from "./activity/WalletDetailActivity.vue";
 import PageHeader from "../../../components/ui/PageHeader.vue";
 import NetworkBadge from "../../../components/ui/NetworkBadge.vue";
 import SectionTabs from "../../../components/ui/SectionTabs.vue";
@@ -65,6 +66,7 @@ const tabs = computed<TabItem[]>(() => [
     { value: 'overview', label: 'Overview', icon: 'pi-wallet' },
     { value: 'organizations', label: 'Organizations', icon: 'pi-building', hidden: !shouldDisplayOrganizations.value },
     { value: 'credentials', label: 'Credentials', icon: 'pi-id-card' },
+    { value: 'activity', label: 'Activity', icon: 'pi-history' },
     { value: 'connectivity', label: 'Connectivity', icon: 'pi-server' },
 ]);
 </script>
@@ -95,6 +97,7 @@ const tabs = computed<TabItem[]>(() => [
                 </div>
                 <WalletDetailOrganizationsCard v-else-if="active === 'organizations'"/>
                 <WalletDetailCredentials v-else-if="active === 'credentials'"/>
+                <WalletDetailActivity v-else-if="active === 'activity'"/>
                 <WalletDetailConnectivity v-else-if="active === 'connectivity'"/>
             </template>
         </SectionTabs>

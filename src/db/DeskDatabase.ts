@@ -1,6 +1,7 @@
 import {db} from "./db.ts";
 import {Application, DeskState, Organization, Wallet, Node, Network, VerifiableCredential} from "../types/types.ts";
 import {InsertType} from "dexie";
+import type {Activity} from "../types/activity.ts";
 export class DeskDatabase {
     // set tables
     private static deskStateTable = db.deskState;
@@ -9,6 +10,7 @@ export class DeskDatabase {
     private static applicationTable = db.applications;
     private static nodeTable = db.nodes;
     private static credentialsTable = db.credentials;
+    private static activitiesTable = db.activities;
 
     private static DESK_STATE_ID: 0 = 0;
 
@@ -67,8 +69,38 @@ export class DeskDatabase {
         return this.walletTable.where({id: walletId}).first();
     }
 
-    static deleteWalletById(walletId: number) {
+    static async deleteWalletById(walletId: number) {
+        // the activity of a wallet goes away with it; Desk-scoped activities are kept
+        await this.deleteActivitiesByWalletId(walletId);
         return this.walletTable.where({id: walletId}).delete();
+    }
+
+    static addActivity(activity: InsertType<Activity, 'id'>) {
+        return this.activitiesTable.add(activity);
+    }
+
+    /**
+     * Newest first. `before` is the id of the last activity of the previous page.
+     */
+    static async getActivitiesByWalletId(walletId: number, options: {limit: number, before?: number}) {
+        const {limit, before} = options;
+        const rows = await this.activitiesTable.where({walletId}).toArray();
+        return rows
+            .sort((a, b) => b.date.getTime() - a.date.getTime() || b.id - a.id)
+            .filter((row) => before === undefined || row.id < before)
+            .slice(0, limit);
+    }
+
+    static deleteActivityById(id: number) {
+        return this.activitiesTable.delete(id);
+    }
+
+    static getDeskActivities() {
+        return this.activitiesTable.filter((activity) => activity.walletId === undefined).toArray();
+    }
+
+    static deleteActivitiesByWalletId(walletId: number) {
+        return this.activitiesTable.where({walletId}).delete();
     }
 
 

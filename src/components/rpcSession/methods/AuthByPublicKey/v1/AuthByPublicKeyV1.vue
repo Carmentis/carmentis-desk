@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import {useActivityRecorder} from "../../../../../composables/useWalletActivity.ts";
+import {activityEvents} from "../../../../../types/activity.ts";
 import {computed, ref, watch} from 'vue';
 import Button from 'primevue/button';
 import {useToast} from 'primevue/usetoast';
@@ -26,6 +28,7 @@ import RpcWalletPicker from "../../../RpcWalletPicker.vue";
 import CopyableValue from "../../../../ui/CopyableValue.vue";
 
 const props = defineProps<{ params: AuthByPublicKeyV1Params }>();
+const {recordActivity} = useActivityRecorder();
 
 const emit = defineEmits<{
     done: [result: Record<string, unknown>];
@@ -104,6 +107,7 @@ async function approve() {
             detail: 'You are authenticated',
             life: 3000,
         });
+        void recordActivity(activityEvents.authenticated({requester: props.params.origin}), chosenWallet.value?.id);
         emit('done', response);
     } catch (e) {
         console.error('Error approving authentication request:', e);
