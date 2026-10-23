@@ -31,6 +31,8 @@ import DataApproval from './methods/DataApproval/DataApproval.vue';
 import { DataApprovalParamsSchema } from './methods/DataApproval/DataApprovalRequestType.ts';
 import CredentialPresentation from './methods/CredentialPresentation/CredentialPresentation.vue';
 import { CredentialPresentationSchema } from './methods/CredentialPresentation/CredentialPresentationRequestType.ts';
+import CredentialIssuance from './methods/CredentialIssuance/CredentialIssuance.vue';
+import { CredentialIssuanceSchema } from './methods/CredentialIssuance/CredentialIssuanceRequestType.ts';
 import {SignJsonParamsSchema} from "./methods/SignJson/SignJsonRequestType.ts";
 import SignJson from "./methods/SignJson/SignJson.vue";
 import {AuthByPublicKeyV2ParamsSchema} from "./methods/AuthByPublicKey/v2/AuthByPublicKeyRequestTypeV2.ts";
@@ -60,6 +62,12 @@ export const rpcMethodRegistry: Record<string, RpcMethodDefinition> = {
     '/v1/credential/presentation': {
         schema: CredentialPresentationSchema,
         component: CredentialPresentation,
+    },
+
+    // Import of a credential issued to the user, after approval
+    '/v1/credential/issue': {
+        schema: CredentialIssuanceSchema,
+        component: CredentialIssuance,
     },
 
     // Signature via JSON canonicalization

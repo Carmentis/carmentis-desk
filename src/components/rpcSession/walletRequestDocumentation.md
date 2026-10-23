@@ -229,6 +229,48 @@ Asks the user to present a verifiable credential (SD-JWT) that satisfies a DCQL 
 
 ---
 
+### `/v1/credential/issue`
+
+Hands a verifiable credential over to the user's wallet. Desk shows the credential, who issued it and what it contains, and stores it in the chosen wallet **only if the user accepts**.
+
+**Parameters:**
+
+| Parameter        | Type   | Required | Description                                                                 |
+|------------------|--------|----------|-----------------------------------------------------------------------------|
+| `publicKey`      | string | No       | Public key of the wallet the credential is for. Lets Desk select that wallet automatically; if no wallet owns it, the first wallet is preselected |
+| `credentialType` | string | Yes      | Format of the credential. Only `sdjwt_ietf` (IETF SD-JWT) is accepted      |
+| `credential`     | string | Yes      | The credential in compact SD-JWT serialization (`jwt~disclosure~...~`)     |
+
+A credential that cannot be decoded is shown with an error and cannot be added. If the credential's `sub` differs from the selected wallet's identity (`did:jwk`), Desk warns the user but lets them decide. Adding a credential that is already in the wallet does not create a duplicate.
+
+**Response:**
+
+| Field      | Type    | Description                                  |
+|------------|---------|----------------------------------------------|
+| `accepted` | boolean | Always `true`: the credential is in the wallet |
+
+If the user declines, the session is closed without a result.
+
+**Example:**
+```json
+// Request
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "/v1/credential/issue",
+  "params": {
+    "publicKey": "SIG:...",
+    "credentialType": "sdjwt_ietf",
+    "credential": "eyJhbGci...~WyJzYWx0IiwiZ2l2ZW5fbmFtZSIsIkpvaG4iXQ~"
+  }
+}
+
+// Response
+{ "jsonrpc": "2.0", "id": 3, "result": { "accepted": true } }
+```
+
+---
+
 ### `wr-data-approval` *(WIAP protocol)*
 
 Asks the user to approve the anchoring of a microblock in a virtual blockchain. The wallet communicates with the operator server via the **Wallet Interactive Anchoring Protocol (WIAP)**, displays the microblock contents to the user, and submits the signature upon approval.

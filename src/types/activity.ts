@@ -25,6 +25,7 @@ export const ActivityEventSchema = v.variant('kind', [
     v.object({ ...eventBase, kind: v.literal('node-unstaked'), organizationId: v.number(), nodeId: v.number(), nodeName: v.string(), amount: v.string() }),
     v.object({ ...eventBase, kind: v.literal('token-transferred'), amount: v.string(), recipientPublicKey: v.string() }),
     v.object({ ...eventBase, kind: v.literal('credential-presented'), credentialName: v.string(), verifier: v.optional(v.string()) }),
+    v.object({ ...eventBase, kind: v.literal('credential-received'), credentialName: v.string(), issuer: v.optional(v.string()) }),
     v.object({ ...eventBase, kind: v.literal('json-signed'), requester: v.optional(v.string()), purpose: v.optional(v.string()), signature: v.optional(v.record(v.string(), v.unknown())) }),
     v.object({ ...eventBase, kind: v.literal('authenticated'), requester: v.optional(v.string()) }),
 ]);
@@ -95,6 +96,12 @@ export const activityEvents = {
         kind: 'credential-presented',
         title: `Presented "${p.credentialName}"`,
         description: p.verifier ? `Requested by ${p.verifier}` : undefined,
+        ...p,
+    }),
+    credentialReceived: (p: { credentialName: string; issuer?: string }): ActivityEvent => ({
+        kind: 'credential-received',
+        title: `Received "${p.credentialName}"`,
+        description: p.issuer ? `Issued by ${p.issuer}` : undefined,
         ...p,
     }),
     jsonSigned: (p: { requester?: string; purpose?: string; signature?: Record<string, unknown> }): ActivityEvent => ({

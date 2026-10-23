@@ -80,6 +80,13 @@ export const activityPresenters = {
             e.verifier ? {label: 'Shared with', value: e.verifier} : undefined,
         ],
     },
+    'credential-received': {
+        icon: 'pi-download', tone: 'success', label: 'Credential',
+        details: (e) => [
+            {label: 'Credential', value: e.credentialName},
+            e.issuer ? {label: 'Issued by', value: e.issuer} : undefined,
+        ],
+    },
     'json-signed': {
         icon: 'pi-pencil', tone: 'warning', label: 'Signature',
         details: (e) => [
