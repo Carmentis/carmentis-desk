@@ -1,3 +1,13 @@
+# [1.38.0](https://github.com/Carmentis/carmentis-desk/compare/v1.37.0...v1.38.0) (2026-10-23)
+
+
+### Features
+
+* add reusable sync state management and integrate with on-chain organization sections ([25cb4a5](https://github.com/Carmentis/carmentis-desk/commit/25cb4a57afa825820dca2bb7708ef780cb7c1938))
+* add support for credential issuance and wallet integration ([c5f287c](https://github.com/Carmentis/carmentis-desk/commit/c5f287c33a0bd20efbd8f0c79dc389d709950707))
+* add wallet activity tracking with detailed event types and history management ([8dbf7d5](https://github.com/Carmentis/carmentis-desk/commit/8dbf7d5d434d3e3b1c54ce6ebd4d6df836adfa9e))
+* enhance custom section fetching in OrganizationCustomData ([f9df99d](https://github.com/Carmentis/carmentis-desk/commit/f9df99d6eefc31771d85fc579e8ed23ec77d1ed6))
+
 # [1.37.0](https://github.com/Carmentis/carmentis-desk/compare/v1.36.1...v1.37.0) (2026-10-22)
 
 
