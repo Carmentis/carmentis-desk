@@ -6,6 +6,8 @@ import CopyableValue from '../../../../components/ui/CopyableValue.vue';
 import JsonBlock from '../../../../components/ui/JsonBlock.vue';
 import EmptyState from '../../../../components/ui/EmptyState.vue';
 import SkeletonBlock from '../../../../components/ui/SkeletonBlock.vue';
+import SyncStatus from '../../../../components/ui/SyncStatus.vue';
+import type { SectionsSyncState } from '../../../../composables/useOrganizationSections.ts';
 
 /**
  * Sections published on the organization's blockchain, one card per microblock,
@@ -24,6 +26,8 @@ const props = defineProps<{
     emptyDescription: string;
     /** Header of the details dialog and label of its data block. */
     detailTitle: string;
+    /** Loading state of the underlying query, shown above the list. */
+    sync?: SectionsSyncState;
 }>();
 
 const selected = ref<SectionRow | null>(null);
@@ -36,7 +40,19 @@ function open(row: SectionRow) {
 </script>
 
 <template>
-    <SkeletonBlock v-if="props.isLoading" :lines="3" height-class="h-16" />
+    <SyncStatus
+        v-if="props.sync"
+        :is-fetching="props.sync.isFetching"
+        :is-error="props.sync.isError"
+        :error-message="props.sync.errorMessage"
+        :updated-at="props.sync.updatedAt"
+        :scanned="props.sync.scanned"
+        :total="props.sync.total"
+        class="mb-3"
+        @refresh="props.sync.refresh()"
+    />
+
+    <SkeletonBlock v-if="props.isLoading" :lines="3" height-class="h-16" label="Loading on-chain data…" />
 
     <EmptyState
         v-else-if="!props.rows?.length"

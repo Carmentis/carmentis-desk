@@ -28,8 +28,7 @@ import {
     signData,
     type CertificateInfo,
 } from "../../../../utils/signing.ts";
-import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
-import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
+import {useOrganizationSections} from "../../../../composables/useOrganizationSections.ts";
 import Message from 'primevue/message';
 import OrganizationSectionsList from "./OrganizationSectionsList.vue";
 import ResponsiveDialog from "../../../../components/ui/ResponsiveDialog.vue";
@@ -195,49 +194,16 @@ const anchorCertificate = async () => {
 };
 
 // Load anchored certificates from on-chain
-const {organization} = useCurrentOrganization();
-const {walletProvider, useAccountIdQuery} = useCurrentWallet();
-const {data: accountId} = useAccountIdQuery();
-
-interface CertificateSectionRow {
-    height: number;
-    hash: string;
-    issuer?: string;
-    data: Record<string, unknown>;
-}
-
 const {
-    data: certificateSections,
+    rows: certificateSections,
     isLoading: isLoadingCertificateSections,
+    sync,
     refetch: refetchCertificateSections,
-} = useQuery({
-    queryKey: ['organization-x509-certificate-sections', orgId],
-    enabled: computed(() => isOrganizationFoundOnChain.value === true),
-    queryFn: async (): Promise<CertificateSectionRow[]> => {
-        if (!organization.value?.organizationVbId || !walletProvider.value) {
-            console.error("Some depend", organization.value, walletProvider.value)
-            logger.warning("Some dependencies are not defined: aborting certificate searching")
-            return [];
-        };
-        const provider = walletProvider.value;
-        const orgVB = await provider.loadOrganizationVirtualBlockchain(Hash.from(organization.value.organizationVbId));
-        const vbHeight = orgVB.getHeight();
-        const rows: CertificateSectionRow[] = [];
-        for (let height = 1; height <= vbHeight; height++) {
-            logger.info(`Processing microblock ${height} of ${vbHeight}`)
-            const mb = await orgVB.getMicroblock(height);
-            const customSecs = mb.getSectionsByType(SectionType.CUSTOM);
-            for (const sec of customSecs) {
-                const data = sec as Record<string, unknown>;
-                if (data.__certificate__) {
-                    rows.push({ height, hash: mb.getHash().encode(), data });
-                }
-            }
-        }
-        return rows;
-    },
+} = useOrganizationSections({
+    queryKey: 'organization-x509-certificate-sections',
+    isOrganizationFoundOnChain,
+    accept: (section) => !!section.__certificate__,
 });
-
 
 </script>
 
@@ -264,6 +230,7 @@ const {
         <OrganizationSectionsList
             :rows="certificateSections"
             :is-loading="isLoadingCertificateSections"
+            :sync="sync"
             empty-title="No certificate published yet"
             empty-description="Publish a certificate chain to prove your organization's identity."
             detail-title="Certificate"

@@ -4,10 +4,7 @@ import {computed, ref} from "vue";
 import Textarea from "primevue/textarea";
 import {useRoute} from "vue-router";
 import { useOnChainActions } from "../../../../composables/useOnChainActions.ts";
-import {useQuery} from "@tanstack/vue-query";
-import {Hash, SectionType} from "@cmts-dev/carmentis-sdk-core";
-import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
-import {useCurrentWallet} from "../../../../composables/useCurrentWallet.ts";
+import {useOrganizationSections} from "../../../../composables/useOrganizationSections.ts";
 import OrganizationSectionsList from "./OrganizationSectionsList.vue";
 import ResponsiveDialog from "../../../../components/ui/ResponsiveDialog.vue";
 import EmptyState from "../../../../components/ui/EmptyState.vue";
@@ -18,9 +15,6 @@ const isOrganizationFoundOnChain = defineModel<boolean>('isOrganizationFoundOnCh
 const { isPublishingCustomJson } = onChainStore;
 
 const orgId = computed(() => Number(route.params.orgId));
-
-const {organization} = useCurrentOrganization();
-const {walletProvider} = useCurrentWallet();
 
 
 // Custom JSON publishing dialog
@@ -46,41 +40,15 @@ async function publishCustomJson() {
     await refetchCustomSections();
 }
 // Custom sections list
-interface CustomSectionRow {
-    height: number;
-    hash: string;
-    data: Record<string, unknown>;
-}
-
 const {
-    data: customSections,
+    rows: customSections,
     isLoading: isLoadingCustomSections,
+    sync,
     refetch: refetchCustomSections,
-} = useQuery({
-    refetchInterval: 5000,
-    queryKey: ['organization-custom-sections', orgId],
-    enabled: computed(() => isOrganizationFoundOnChain.value === true),
-    queryFn: async (): Promise<CustomSectionRow[]> => {
-        if (!organization.value || !organization.value.organizationVbId || !walletProvider.value) {
-            console.warn('Organization or wallet provider not found:', organization.value, walletProvider.value);
-            return [];
-        }
-        const provider = walletProvider.value;
-        const orgVB = await provider.loadOrganizationVirtualBlockchain(Hash.from(organization.value.organizationVbId));
-        const rows: CustomSectionRow[] = [];
-        for (let i = 0; i < orgVB.getHeight(); i++) {
-            const height = i + 1;
-            const mb = await orgVB.getMicroblock(height);
-            const customSecs = mb.getSectionsByType(SectionType.CUSTOM);
-            if (customSecs.length > 0) {
-                const { type: _type, ...data } = customSecs[0] as Record<string, unknown>;
-                rows.push({ height, hash: mb.getHash().encode(), data });
-            }
-        }
-        return rows;
-    },
+} = useOrganizationSections({
+    queryKey: 'organization-custom-sections',
+    isOrganizationFoundOnChain,
 });
-
 </script>
 <template>
     <EmptyState
@@ -107,6 +75,7 @@ const {
         <OrganizationSectionsList
             :rows="customSections"
             :is-loading="isLoadingCustomSections"
+            :sync="sync"
             empty-title="No custom data published"
             empty-description="Sections you publish on-chain will be listed here."
             detail-title="Custom section"

@@ -42,7 +42,7 @@ import CopyableValue from "../../../../components/ui/CopyableValue.vue";
 import JsonBlock from "../../../../components/ui/JsonBlock.vue";
 import EmptyState from "../../../../components/ui/EmptyState.vue";
 import SkeletonBlock from "../../../../components/ui/SkeletonBlock.vue";
-import {useCurrentOrganization} from "../../../../composables/useCurrentOrganization.ts";
+import {useOrganizationSections} from "../../../../composables/useOrganizationSections.ts";
 
 // define toast and route
 const logger = DeskLogger.getLogger().getChild("organization")
@@ -52,7 +52,6 @@ const onChainStore = useOnChainActions();
 const { isPublishingCustomJson } = onChainStore;
 const isSigningWithStore = ref(false);
 const {wallet, walletProvider, encodedWalletPublicKey} = useCurrentWallet();
-const {organization} = useCurrentOrganization()
 const walletId =  computed(() => Number(route.params.walletId));
 const orgId = computed(() => Number(route.params.orgId));
 
@@ -403,45 +402,15 @@ const { state: organization } = useAsyncState(
 );
 
  */
-interface CertificateSectionRow {
-    height: number;
-    hash: string;
-    issuer?: string;
-    data: Record<string, unknown>;
-}
-
 const {
-    data: certificateSections,
+    rows: certificateSections,
     isLoading: isLoadingCertificateSections,
+    sync,
     refetch: refetchCertificateSections,
-} = useQuery({
-    queryKey: ['organization-certificate-sections', orgId],
-    enabled: computed(() => isOrganizationFoundOnChain.value === true),
-    queryFn: async (): Promise<CertificateSectionRow[]> => {
-        if (!organization.value?.organizationVbId || !walletProvider.value) {
-            console.log("Some dependencies are not defined: aborting certificate searching")
-            logger.warning("Some dependencies are not defined: aborting certificate searching")
-            return [];
-        };
-        const provider = walletProvider.value;
-        const orgVB = await provider.loadOrganizationVirtualBlockchain(Hash.from(organization.value.organizationVbId));
-        const vbHeight = orgVB.getHeight();
-        const rows: CertificateSectionRow[] = [];
-        for (let height = 1; height <= vbHeight; height++) {
-            logger.info(`Processing microblock ${height} of ${vbHeight}`)
-            const mb = await orgVB.getMicroblock(height);
-            const customSecs = mb.getSectionsByType(SectionType.CUSTOM);
-            for (const sec of customSecs) {
-                console.log(`Checking section of ${mb.getHash().encode()}`)
-                const data = sec as Record<string, unknown>;
-                if (!data.__certificate__) continue;
-                const certificateSection = data.__certificate__ as any;
-                if (!certificateSection.jwt) continue;
-                rows.push({ height, hash: mb.getHash().encode(), data });
-            }
-        }
-        return rows;
-    },
+} = useOrganizationSections({
+    queryKey: 'organization-certificate-sections',
+    isOrganizationFoundOnChain,
+    accept: (section) => !!(section.__certificate__ as { jwt?: unknown } | undefined)?.jwt,
 });
 
 function algForKeyType(keyType: string): string {
@@ -481,15 +450,6 @@ function base64UrlEncodeString(str: string): string {
             </div>
             <div class="flex shrink-0 items-center gap-2">
                 <Button
-                    label="Refetch"
-                    icon="pi pi-refresh"
-                    severity="secondary"
-                    outlined
-                    :loading="isLoadingCertificateSections"
-                    :disabled="isLoadingCertificateSections"
-                    @click="() => refetchCertificateSections()"
-                />
-                <Button
                     label="Attach certificate"
                     icon="pi pi-plus"
                     :disabled="isLoadingCertificateSections"
@@ -501,6 +461,7 @@ function base64UrlEncodeString(str: string): string {
         <OrganizationSectionsList
             :rows="certificateSections"
             :is-loading="isLoadingCertificateSections"
+            :sync="sync"
             empty-title="No attestation published yet"
             empty-description="Attach a certificate to publish your first key attestation."
             detail-title="Key attestation"
