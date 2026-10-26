@@ -95,7 +95,7 @@ async function checkKeys() {
             <div v-if="isOpen" id="wallet-keys-body" class="space-y-6">
                 <div v-if="isJwkWallet" class="flex flex-wrap items-center justify-between gap-2">
                     <p class="text-sm text-fg-muted">Show keys as</p>
-                    <SegmentedControl v-model="format" :options="FORMATS" aria-label="Key format" />
+                    <SegmentedControl v-model="format" :options="FORMATS" ariaLabel="Key format" />
                 </div>
 
                 <!-- Public: safe to share -->

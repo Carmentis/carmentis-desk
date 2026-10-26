@@ -16,6 +16,7 @@ const toast = useToast();
 const isExporting = ref(false);
 
 async function exportProof() {
+    /*
     if (!props.vb) return;
 
     isExporting.value = true;
@@ -45,6 +46,8 @@ async function exportProof() {
     } finally {
         isExporting.value = false;
     }
+
+     */
 }
 </script>
 

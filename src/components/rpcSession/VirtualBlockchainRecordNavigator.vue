@@ -23,6 +23,7 @@ const isAtStart = computed(() => currentHeight.value === 1);
 const isAtEnd = computed(() => currentHeight.value === maxHeight.value);
 
 async function loadRecord(h: number) {
+    /*
     loading.value = true;
     error.value = null;
     try {
@@ -37,6 +38,8 @@ async function loadRecord(h: number) {
     } finally {
         loading.value = false;
     }
+
+     */
 }
 
 function goToStart() {
