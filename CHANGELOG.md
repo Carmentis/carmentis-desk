@@ -1,3 +1,10 @@
+# [1.39.0](https://github.com/Carmentis/carmentis-desk/compare/v1.38.0...v1.39.0) (2026-10-26)
+
+
+### Features
+
+* implement wallet export functionality with password encryption ([dad7624](https://github.com/Carmentis/carmentis-desk/commit/dad7624e893be1b4cb48ea3c00565be6d4cc9090))
+
 # [1.38.0](https://github.com/Carmentis/carmentis-desk/compare/v1.37.0...v1.38.0) (2026-10-23)
 
 
