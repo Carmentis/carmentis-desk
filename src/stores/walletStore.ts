@@ -210,14 +210,14 @@ export const useWalletStore = (walletId: number) => {
             queryKey: computed(() => ['account-id', walletId]),
             queryFn: async () => {
                 logger.info(`Searching account id for wallet id ${walletId}`)
-                console.log(walletProvider.value, walletPublicKey.value)
+                //console.log(walletProvider.value, walletPublicKey.value)
                 if (!walletProvider.value || !walletPublicKey.value) {
                     console.warn(`Wallet provider or public key is undefined for wallet id ${walletId}`)
                     return null;
                 };
                 logger.info(`Searching account id for wallet id ${walletId}`)
                 const accountId = await walletProvider.value.getAccountIdByPublicKey(walletPublicKey.value);
-                console.log(`Found account id: ${Utils.binaryToHexa(accountId)}`)
+                //console.log(`Found account id: ${Utils.binaryToHexa(accountId)}`)
                 return Hash.from(accountId).encode();
             },
             retry: 1,

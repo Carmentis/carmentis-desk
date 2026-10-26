@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { ref } from 'vue';
+import { useToast } from 'primevue/usetoast';
+import { useRouter } from 'vue-router';
+import WalletPasswordDialog from '../../components/wallet/WalletPasswordDialog.vue';
+import { useWalletFileTransfer } from '../../composables/useWalletFileTransfer.ts';
 import { RouterLink } from 'vue-router';
 import Button from 'primevue/button';
 import { useAppStore } from '../../stores/appStore.ts';
@@ -10,6 +15,46 @@ import NetworkBadge from '../../components/ui/NetworkBadge.vue';
 const { wallets } = useAppStore();
 const navigation = useNavigation();
 
+// ---- import (encrypted .ecw file): the file is chosen first, then its password is asked ----
+const toast = useToast();
+const router = useRouter();
+const { pickWalletFile, importWallets } = useWalletFileTransfer();
+const showImportDialog = ref(false);
+const isImporting = ref(false);
+const importError = ref('');
+const pickedFile = ref<Uint8Array>();
+
+async function chooseWalletFile() {
+    try {
+        const bytes = await pickWalletFile();
+        if (!bytes) return;
+        pickedFile.value = bytes;
+        importError.value = '';
+        showImportDialog.value = true;
+    } catch (e) {
+        console.error('Failed to read wallet file:', e);
+        toast.add({ severity: 'error', summary: 'Import failed', detail: 'The file could not be read.', life: 5000 });
+    }
+}
+
+async function importFromFile(password: string) {
+    if (!pickedFile.value) return;
+    isImporting.value = true;
+    importError.value = '';
+    try {
+        const ids = await importWallets(pickedFile.value, password);
+        showImportDialog.value = false;
+        pickedFile.value = undefined;
+        toast.add({ severity: 'success', summary: 'Wallet imported', detail: `${ids.length} wallet(s) imported`, life: 3000 });
+        if (ids.length === 1) await router.push(`/wallet/${ids[0]}`);
+    } catch (e) {
+        console.error('Failed to import wallet:', e);
+        importError.value = 'The wallet could not be imported: the password is wrong or the file is invalid.';
+    } finally {
+        isImporting.value = false;
+    }
+}
+
 // Shown under the wallet name as secondary, technical information.
 const hostOf = (url: string | undefined) => url?.replace(/^https?:\/\//, '') ?? '';
 </script>
@@ -18,6 +63,7 @@ const hostOf = (url: string | undefined) => url?.replace(/^https?:\/\//, '') ?? 
     <div class="space-y-6">
         <PageHeader title="Wallets" subtitle="Choose a wallet to manage your tokens.">
             <template #actions>
+                <Button label="Import" icon="pi pi-upload" severity="secondary" outlined @click="chooseWalletFile" />
                 <Button label="New wallet" icon="pi pi-plus" @click="navigation.goToNewWallet()" />
             </template>
         </PageHeader>
@@ -32,6 +78,7 @@ const hostOf = (url: string | undefined) => url?.replace(/^https?:\/\//, '') ?? 
                 description="Create a wallet to hold tokens and sign on the Carmentis blockchain."
             >
                 <Button label="Create a wallet" icon="pi pi-plus" @click="navigation.goToNewWallet()" />
+                <Button label="Import a wallet" icon="pi pi-upload" severity="secondary" outlined @click="chooseWalletFile" />
             </EmptyState>
         </div>
 
@@ -56,5 +103,13 @@ const hostOf = (url: string | undefined) => url?.replace(/^https?:\/\//, '') ?? 
                 </RouterLink>
             </li>
         </ul>
+
+        <WalletPasswordDialog
+            v-model:visible="showImportDialog"
+            mode="import"
+            :loading="isImporting"
+            :error="importError"
+            @submit="importFromFile"
+        />
     </div>
 </template>

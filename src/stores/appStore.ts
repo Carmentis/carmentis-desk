@@ -147,7 +147,8 @@ export const useAppStore = () => {
     async function createWallet(
         walletName: string,
         walletKey: WalletKey,
-        walletNetwork: Network
+        walletNetwork: Network,
+        actorKeysMnemonic?: string,
     ): Promise<number> {
         if (!strongholdStore.isUnlocked) throw new Error('Stronghold Client not initialized');
 
@@ -155,7 +156,7 @@ export const useAppStore = () => {
         const privateKeyStrongholdId = crypto.randomUUID();
 
         // generate a random actor keys seed
-        const mnemonic = Bip39Utils.generateMnemonic();
+        const mnemonic = actorKeysMnemonic ?? Bip39Utils.generateMnemonic();
         const mnemonicStronholdId = crypto.randomUUID();
         const walletId = db.wallets.add({
             name: walletName,

@@ -21,6 +21,8 @@ import SectionTabs from "../../../components/ui/SectionTabs.vue";
 import EmptyState from "../../../components/ui/EmptyState.vue";
 import SkeletonBlock from "../../../components/ui/SkeletonBlock.vue";
 import ConfirmActionDialog from "../../../components/ui/ConfirmActionDialog.vue";
+import WalletPasswordDialog from "../../../components/wallet/WalletPasswordDialog.vue";
+import {useWalletFileTransfer} from "../../../composables/useWalletFileTransfer.ts";
 import type {TabItem} from "../../../components/ui/types.ts";
 
 const toast = useToast();
@@ -40,7 +42,30 @@ useTimeoutFn(() => hasWaited.value = true, 1000);
 const showDeleteDialog = ref(false);
 const isDeleting = ref(false);
 
+// ---- export (encrypted .ecw file) ----
+const {exportWallet} = useWalletFileTransfer();
+const showExportDialog = ref(false);
+const isExporting = ref(false);
+const exportError = ref('');
+
+async function exportToFile(password: string) {
+    isExporting.value = true;
+    exportError.value = '';
+    try {
+        const path = await exportWallet(walletId.value, password);
+        if (!path) return; // the user cancelled the file dialog
+        showExportDialog.value = false;
+        toast.add({severity: 'success', summary: 'Wallet exported', detail: path, life: 5000});
+    } catch (e) {
+        console.error('Failed to export wallet:', e);
+        exportError.value = 'The wallet could not be exported.';
+    } finally {
+        isExporting.value = false;
+    }
+}
+
 const menuItems: MenuItem[] = [
+    { label: 'Export wallet', icon: 'pi pi-download', command: () => { exportError.value = ''; showExportDialog.value = true; } },
     { label: 'Delete wallet', icon: 'pi pi-trash', class: 'text-danger', command: () => showDeleteDialog.value = true },
 ];
 
@@ -101,6 +126,14 @@ const tabs = computed<TabItem[]>(() => [
                 <WalletDetailConnectivity v-else-if="active === 'connectivity'"/>
             </template>
         </SectionTabs>
+
+        <WalletPasswordDialog
+            v-model:visible="showExportDialog"
+            mode="export"
+            :loading="isExporting"
+            :error="exportError"
+            @submit="exportToFile"
+        />
 
         <ConfirmActionDialog
             v-model:visible="showDeleteDialog"
