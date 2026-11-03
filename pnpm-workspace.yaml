@@ -1,7 +1,10 @@
 packages:
   - packages/*
 
-onlyBuiltDependencies:
-  - cbor-extract
-  - esbuild
-  - vue-demi
+allowBuilds:
+  cbor-extract: true
+  esbuild: true
+  vue-demi: true
+
+minimumReleaseAgeExclude:
+  - '@cmts-dev/carmentis-sdk-core@1.15.1'
