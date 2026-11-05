@@ -1,3 +1,15 @@
+# [1.41.0](https://github.com/Carmentis/carmentis-desk/compare/v1.40.0...v1.41.0) (2026-11-05)
+
+
+### Bug Fixes
+
+* improve node cards layout responsiveness ([59b0c93](https://github.com/Carmentis/carmentis-desk/commit/59b0c936f2b75e85cd18870049995b77866aeb91))
+
+
+### Features
+
+* add local node deletion action ([688f8bf](https://github.com/Carmentis/carmentis-desk/commit/688f8bf9b3ed872499f1000ddf46996a8cdbee6d))
+
 # [1.40.0](https://github.com/Carmentis/carmentis-desk/compare/v1.39.0...v1.40.0) (2026-11-05)
 
 
