@@ -90,6 +90,16 @@ export const useWalletStore = (walletId: number) => {
     })
 
 
+    // seed and passphrase used to derive the private key (only defined for seed-based wallets)
+    const walletKeySeed = computed(() => {
+        const key = walletKeyObject.value;
+        return key?.keyType === KeyType.SEED ? key.seed : undefined;
+    })
+    const walletKeyPassphrase = computed(() => {
+        const key = walletKeyObject.value;
+        return key?.keyType === KeyType.SEED ? key.passphrase : undefined;
+    })
+
     // private key of the wallet
     const walletPrivateKey = computedAsync(async () => {
         if (!walletKeyObject.value) return undefined;
@@ -448,6 +458,8 @@ export const useWalletStore = (walletId: number) => {
         walletPublicJwk,
         walletKeyPair,
         walletKeyActorKeysPassphrase,
+        walletKeySeed,
+        walletKeyPassphrase,
         encodedWalletPrivateKey,
         encodedWalletPublicKey,
         walletOrganizations,

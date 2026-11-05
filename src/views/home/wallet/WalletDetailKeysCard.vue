@@ -19,6 +19,8 @@ const {
     encodedWalletPublicKey,
     encodedWalletPrivateKey,
     walletKeyActorKeysPassphrase,
+    walletKeySeed,
+    walletKeyPassphrase,
     walletPublicJwk,
     walletPrivateJwk,
 } = walletStore;
@@ -153,6 +155,21 @@ async function checkKeys() {
                         description="Gives full control of this wallet."
                         :multiline="showJwk"
                         :value="privateKeyText"
+                    />
+
+                    <SecretField
+                        v-if="walletKeySeed"
+                        label="Seed"
+                        description="The private key is derived from this seed."
+                        :value="walletKeySeed"
+                    />
+
+                    <SecretField
+                        v-if="walletKeyPassphrase"
+                        label="Passphrase"
+                        description="The seed is derived from this passphrase."
+                        multiline
+                        :value="walletKeyPassphrase"
                     />
 
                     <SecretField
