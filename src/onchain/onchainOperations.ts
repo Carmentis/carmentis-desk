@@ -101,9 +101,8 @@ async function getPublishedOrganization(orgId: number, errorIfNotPublished: stri
 async function getNodeWithEndpoints(nodeId: number) {
     const node = await DeskDatabase.getNodeById(nodeId);
     if (!node) throw new Error(`Node with id ${nodeId} not found`);
-    if (!node.nodeEndpoint) throw new Error(`Node with id ${nodeId} does not have an endpoint`);
     if (!node.rpcEndpoint) throw new Error(`Node with id ${nodeId} does not have an RPC endpoint`);
-    return { node, nodeEndpoint: node.nodeEndpoint, rpcEndpoint: node.rpcEndpoint };
+    return { node, rpcEndpoint: node.rpcEndpoint };
 }
 
 /**
@@ -152,9 +151,9 @@ export async function claimNode(ctx: OnChainContext, params: ClaimNodeParams) {
         orgId,
         'Organization must be published before claiming nodes',
     );
-    const { node, nodeEndpoint, rpcEndpoint } = await getNodeWithEndpoints(nodeId);
+    const { node, rpcEndpoint } = await getNodeWithEndpoints(nodeId);
 
-    const nodeStatus = await ctx.provider.getNodeStatus(nodeEndpoint);
+    const nodeStatus = await ctx.provider.getNodeStatus(rpcEndpoint);
     const { type: cometPublicKeyType, value: cometPublicKey } = nodeStatus.result.validator_info.pub_key;
 
     const vnCreationSection: ValidatorNodeCreationSection = {

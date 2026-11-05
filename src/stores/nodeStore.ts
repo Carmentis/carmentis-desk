@@ -68,21 +68,14 @@ export const useNodeStore = (nodeId: number) => {
         }
     });
 
-    const { data: nodeVbId } = useQuery({
-        queryKey: ['node-vbid', nodeId],
-        queryFn: () => {
-            if (!node.value) return null;
-            return node.value.nodeVbId;
-        },
-    })
+    // The VB ID lives in the local database: read it reactively instead of caching a one-shot query result.
+    const nodeVbId = computed(() => node.value?.nodeVbId || undefined);
 
-    const isNodePublished = computed(() => {
-        return nodeVbId.value !== undefined;
-    });
+    const isNodePublished = computed(() => nodeVbId.value !== undefined);
 
     const {data: validatorNode, isLoading: isLoadingValidatorNode} = useQuery({
-        enabled: computed(() => !!nodeVbId.value),
-        queryKey: ['node', nodeVbId],
+        enabled: computed(() => !!nodeVbId.value && !!walletIndexer.value),
+        queryKey: ['node', nodeVbId, computed(() => walletIndexer.value ? 'ready' : 'pending')],
         queryFn: async () => {
             if (!nodeVbId.value || !walletIndexer.value) {
                 console.warn("Cannot fetch validator node: node vb id or indexer undefined")
@@ -96,8 +89,8 @@ export const useNodeStore = (nodeId: number) => {
     })
 
     const {data: nodeOwnerOrganizationId} = useQuery({
-        enabled: computed(() => !!node.value),
-        queryKey: ['node-owner-organization-id', nodeVbId],
+        enabled: computed(() => !!nodeVbId.value && !!walletIndexer.value),
+        queryKey: ['node-owner-organization-id', nodeVbId, computed(() => walletIndexer.value ? 'ready' : 'pending')],
         queryFn: async () => {
 
             if (!node.value || !node.value.nodeVbId || !walletIndexer.value) {
@@ -117,7 +110,8 @@ export const useNodeStore = (nodeId: number) => {
     })
 
     const {data: nodeOwnerOrganization, isLoading: isLoadingNodeOwnerOrganization} = useQuery({
-        queryKey: ['node-owner-organization', nodeVbId],
+        enabled: computed(() => !!nodeOwnerOrganizationId.value && !!walletIndexer.value),
+        queryKey: ['node-owner-organization', nodeOwnerOrganizationId],
         queryFn: async () => {
             if (!nodeOwnerOrganizationId.value || !walletIndexer.value) return null;
             const organizationId = nodeOwnerOrganizationId.value;
@@ -135,6 +129,7 @@ export const useNodeStore = (nodeId: number) => {
 
 
     const { data: nodeOwnerAccount, isLoading: isLoadingNodeOwnerAccount } = useQuery({
+        enabled: computed(() => !!nodeOwnerAccountId.value && !!walletIndexer.value),
         queryKey: ['nodeOwnerAccount', nodeOwnerAccountId],
         queryFn: async () => {
             if (!nodeOwnerAccountId.value || !walletIndexer.value) {

@@ -10,6 +10,8 @@ import {capitalize, computed, ref} from "vue";
 import PageHeader from "../../../../../components/ui/PageHeader.vue";
 import EmptyState from "../../../../../components/ui/EmptyState.vue";
 import SkeletonBlock from "../../../../../components/ui/SkeletonBlock.vue";
+import ConfirmActionDialog from "../../../../../components/ui/ConfirmActionDialog.vue";
+import {useToast} from "primevue/usetoast";
 
 const route = useRoute();
 const router = useRouter();
@@ -35,7 +37,30 @@ const {
     hasUnstakingOperationInProgress,
     unstakingAtTimestamp,
     useHasAccountOnChainQuery,
+    deleteNode,
 } = useCurrentNode();
+
+const toast = useToast();
+
+// ---- delete: only removes the local record, the on-chain node (if any) is untouched ----
+const showDeletionDialog = ref(false);
+const isDeleting = ref(false);
+const menuItems = [
+    {label: 'Delete node', icon: 'pi pi-trash', class: 'text-danger', command: () => showDeletionDialog.value = true},
+];
+
+async function confirmDeleteNode() {
+    isDeleting.value = true;
+    try {
+        // Leave the page first: once the record is gone this page would flash "Node not found".
+        await router.push(`/wallet/${walletId.value}/organization/${orgId.value}`);
+        showDeletionDialog.value = false;
+        await deleteNode();
+        toast.add({severity: 'success', summary: 'Node deleted', detail: 'Node deleted successfully', life: 3000});
+    } finally {
+        isDeleting.value = false;
+    }
+}
 
 const hasAccountOnChain = useHasAccountOnChainQuery();
 
@@ -47,7 +72,7 @@ useTimeoutFn(() => hasWaited.value = true, 1000);
 
 <template>
     <div v-if="node && wallet && organization" class="space-y-6">
-        <PageHeader :title="capitalize(node.name)" :back-to="`/wallet/${walletId}/organization/${orgId}`" />
+        <PageHeader :title="capitalize(node.name)" :back-to="`/wallet/${walletId}/organization/${orgId}`" :menu-items="menuItems" />
 
         <!-- Node information, publication status and staking -->
         <div class="grid gap-4 lg:grid-cols-2 lg:items-start">
@@ -80,6 +105,15 @@ useTimeoutFn(() => hasWaited.value = true, 1000);
                 :is-owned-by-wallet="isOwnedByWallet"
             />
         </div>
+
+        <ConfirmActionDialog
+            v-model:visible="showDeletionDialog"
+            title="Delete node"
+            :item-name="node.name"
+            message="This removes the node from Desk only. If it was claimed on the blockchain, it stays there. This cannot be undone."
+            :loading="isDeleting"
+            @confirm="confirmDeleteNode"
+        />
     </div>
 
     <SkeletonBlock v-else-if="!hasWaited" :lines="4" />
