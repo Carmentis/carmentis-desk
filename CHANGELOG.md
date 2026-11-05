@@ -1,3 +1,15 @@
+# [1.40.0](https://github.com/Carmentis/carmentis-desk/compare/v1.39.0...v1.40.0) (2026-11-05)
+
+
+### Bug Fixes
+
+* bump SDK 1.15 ([1aac908](https://github.com/Carmentis/carmentis-desk/commit/1aac9087d1e500f783ec75c0d5da4b1311557b6a))
+
+
+### Features
+
+* display wallet seed and passphrase in keys card ([47b8b64](https://github.com/Carmentis/carmentis-desk/commit/47b8b64bc814bd0ea3c3e33318f1020f4194e1f6))
+
 # [1.39.0](https://github.com/Carmentis/carmentis-desk/compare/v1.38.0...v1.39.0) (2026-10-26)
 
 
