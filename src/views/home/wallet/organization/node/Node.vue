@@ -74,36 +74,42 @@ useTimeoutFn(() => hasWaited.value = true, 1000);
     <div v-if="node && wallet && organization" class="space-y-6">
         <PageHeader :title="capitalize(node.name)" :back-to="`/wallet/${walletId}/organization/${orgId}`" :menu-items="menuItems" />
 
-        <!-- Node information, publication status and staking -->
-        <div class="grid gap-4 lg:grid-cols-2 lg:items-start">
-            <NodeInformationCard
-                :node="node"
-                :chain-name="chainNameOnWhichNodeIsConnected"
-                :node-public-key="nodePublicKey"
-                :is-node-published="isNodePublished"
-                :is-node-claimed="isNodeClaimed"
-                :has-account-on-chain="hasAccountOnChain"
-            />
+        <!-- One column on phones; from lg, information and status share a row at the same height, staking spans the full width. -->
+        <div class="grid gap-4 lg:grid-cols-2">
+            <!-- `grid` makes the card stretch to the height of the row. -->
+            <div class="grid min-w-0">
+                <NodeInformationCard
+                    :node="node"
+                    :chain-name="chainNameOnWhichNodeIsConnected"
+                    :node-public-key="nodePublicKey"
+                    :is-node-published="isNodePublished"
+                    :is-node-claimed="isNodeClaimed"
+                    :has-account-on-chain="hasAccountOnChain"
+                />
+            </div>
 
-            <NodePublicationStatusCard
-                :node="node"
-                :is-node-published="isNodePublished"
-                :is-node-validator="isNodeValidator"
-                :is-node-claimed="isNodeClaimed"
-                :node-owner-name="nodeOwnerName"
-                :node-owner-account-id="nodeOwnerAccountId"
-                :is-owned-by-wallet="isOwnedByWallet"
-            />
+            <div class="grid min-w-0">
+                <NodePublicationStatusCard
+                    :node="node"
+                    :is-node-published="isNodePublished"
+                    :is-node-validator="isNodeValidator"
+                    :is-node-claimed="isNodeClaimed"
+                    :node-owner-name="nodeOwnerName"
+                    :node-owner-account-id="nodeOwnerAccountId"
+                    :is-owned-by-wallet="isOwnedByWallet"
+                />
+            </div>
 
-            <NodeStakingCard
-                v-if="node.nodeVbId"
-                :node-stake-information="nodeStakeInformation"
-                :current-staked-amount="currentStakedAmount"
-                :has-unstaking-operation-in-progress="hasUnstakingOperationInProgress"
-                :unstaking-amount-in-progress="unstakingAmountInProgress"
-                :unstaking-at-timestamp="unstakingAtTimestamp"
-                :is-owned-by-wallet="isOwnedByWallet"
-            />
+            <div v-if="node.nodeVbId" class="min-w-0 lg:col-span-2">
+                <NodeStakingCard
+                    :node-stake-information="nodeStakeInformation"
+                    :current-staked-amount="currentStakedAmount"
+                    :has-unstaking-operation-in-progress="hasUnstakingOperationInProgress"
+                    :unstaking-amount-in-progress="unstakingAmountInProgress"
+                    :unstaking-at-timestamp="unstakingAtTimestamp"
+                    :is-owned-by-wallet="isOwnedByWallet"
+                />
+            </div>
         </div>
 
         <ConfirmActionDialog

@@ -71,7 +71,7 @@ watch(nodeStakeInformation, (newInfo) => {
             </p>
 
             <!-- Actions -->
-            <div v-if="isOwnedByWallet" class="grid gap-2 sm:grid-cols-2">
+            <div v-if="isOwnedByWallet" class="grid gap-2 sm:max-w-md sm:grid-cols-2">
                 <Button @click="() => showStakeDialog = true" label="Stake more" icon="pi pi-plus" />
                 <Button
                     v-if="!hasUnstakingOperationInProgress"
