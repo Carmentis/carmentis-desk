@@ -8,6 +8,3 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - '@cmts-dev/carmentis-sdk-core@1.15.1'
-
-overrides:
-  '@cmts-dev/carmentis-sdk-core': link:../carmentis-sdk-core
