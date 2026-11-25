@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Button from 'primevue/button';
 import Logs from './Logs.vue';
+import KmsServersSettings from './KmsServersSettings.vue';
 import { useTheme } from '../../../composables/useTheme.ts';
 import { ref, computed, shallowRef } from 'vue';
 import { check, type Update } from '@tauri-apps/plugin-updater';
@@ -94,6 +95,7 @@ async function installUpdate() {
 const tab = ref('general');
 const tabs = computed<TabItem[]>(() => [
     { value: 'general', label: 'General', icon: 'pi-sliders-h' },
+    { value: 'kms', label: 'KMS servers', icon: 'pi-server' },
     { value: 'logs', label: 'Logs', icon: 'pi-list', hidden: !hasDeveloperRole.value },
     { value: 'developer', label: 'Developer', icon: 'pi-code', hidden: !hasDeveloperRole.value },
 ]);
@@ -168,6 +170,9 @@ const tabs = computed<TabItem[]>(() => [
                         </div>
                     </UiCard>
                 </div>
+
+                <!-- KMS servers -->
+                <KmsServersSettings v-else-if="active === 'kms'" />
 
                 <!-- Logs -->
                 <Logs v-else-if="active === 'logs'" />

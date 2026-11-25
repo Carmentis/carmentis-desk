@@ -23,6 +23,8 @@ const {
     walletKeyPassphrase,
     walletPublicJwk,
     walletPrivateJwk,
+    isKmsWallet,
+    walletKmsInfo,
 } = walletStore;
 
 // The section is closed on every visit: no secret is rendered until the user opens it and reveals a field.
@@ -35,12 +37,14 @@ const FORMATS: SegmentedOption<KeyFormat>[] = [
     {value: 'jwk', label: 'JWK'},
 ];
 const format = ref<KeyFormat>('encoded');
-const isJwkWallet = computed(() => walletKeyType.value === KeyType.JWK);
+// KMS keys are JWK keys too: their public part can be shown as JWK
+const isJwkWallet = computed(() => walletKeyType.value === KeyType.JWK || walletKeyType.value === KeyType.KMS);
 const showJwk = computed(() => isJwkWallet.value && format.value === 'jwk');
 
-const keyTypeLabel = computed(() =>
-    isJwkWallet.value ? 'Imported JWK key' : 'Standard wallet key',
-);
+const keyTypeLabel = computed(() => {
+    if (isKmsWallet.value) return 'Key managed by a Carmentis KMS';
+    return walletKeyType.value === KeyType.JWK ? 'Imported JWK key' : 'Standard wallet key';
+});
 
 const asJson = (jwk: unknown) => (jwk ? JSON.stringify(jwk, null, 2) : '');
 const publicJwkText = computed(() => asJson(walletPublicJwk.value));
@@ -150,7 +154,27 @@ async function checkKeys() {
                         <p class="text-xs text-fg-muted">Never share these. Hidden until you reveal them.</p>
                     </div>
 
+                    <!-- KMS: the private key never leaves the server -->
+                    <div v-if="isKmsWallet" class="rounded-control border border-line bg-surface-muted p-4">
+                        <p class="flex items-center gap-2 text-sm font-medium text-fg">
+                            <i class="pi pi-server text-xs" aria-hidden="true" />
+                            Private key managed by a Carmentis KMS
+                        </p>
+                        <p class="mt-1 text-xs text-fg-muted">
+                            It never leaves the server: the KMS signs on behalf of this wallet. It can't be shown or exported.
+                        </p>
+                        <dl class="mt-3 grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
+                            <dt class="text-fg-muted">Server</dt>
+                            <dd class="break-all text-fg">{{ walletKmsInfo?.serverUrl }}</dd>
+                            <dt class="text-fg-muted">Plugin</dt>
+                            <dd class="break-all text-fg">{{ walletKmsInfo?.pluginId }}</dd>
+                            <dt class="text-fg-muted">KMS wallet</dt>
+                            <dd class="break-all font-mono text-xs text-fg">{{ walletKmsInfo?.kmsWalletId }}</dd>
+                        </dl>
+                    </div>
+
                     <SecretField
+                        v-else
                         :label="showJwk ? 'Private key (JWK)' : 'Private key'"
                         description="Gives full control of this wallet."
                         :multiline="showJwk"

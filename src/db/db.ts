@@ -7,7 +7,8 @@ import {
     ApplicationLedger,
     SubmittedMicroblock,
     DeskState,
-    VerifiableCredential
+    VerifiableCredential,
+    KmsServer
 } from "../types/types.ts";
 import type { Activity } from "../types/activity.ts";
 
@@ -22,6 +23,7 @@ const db = new Dexie('CarmentisDesk') as Dexie & {
     submittedMicroblocks: EntityTable<SubmittedMicroblock, 'id'>,
     deskState: EntityTable<DeskState, 'id'>,
     activities: EntityTable<Activity, 'id'>,
+    kmsServers: EntityTable<KmsServer, 'id'>,
 };
 
 db
@@ -43,5 +45,12 @@ db
     .version(2)
     .stores({
         activities: '++id, walletId, date',
+    });
+
+// version 3: Carmentis KMS servers configured in the settings (one entry per URL)
+db
+    .version(3)
+    .stores({
+        kmsServers: '++id, &url',
     });
 export { db };

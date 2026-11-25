@@ -156,21 +156,22 @@ export const useAppStore = () => {
         const privateKeyStrongholdId = crypto.randomUUID();
 
         // generate a random actor keys seed
+        // TODO(kms-actor-seed): KMS wallets also hold an actor seed on the server. It is not usable yet,
+        //  so every wallet (KMS ones included) gets a locally generated actor keys mnemonic.
         const mnemonic = actorKeysMnemonic ?? Bip39Utils.generateMnemonic();
         const mnemonicStronholdId = crypto.randomUUID();
-        const walletId = db.wallets.add({
+
+        // the secrets are stored first: a failure must not leave a wallet without its keys
+        await storeMnemonicToStronghold(mnemonicStronholdId, mnemonic);
+        await strongholdStore.storeWalletPrivateKeyToStronghold(privateKeyStrongholdId, walletKey);
+
+        return db.wallets.add({
             name: walletName,
             network: walletNetwork,
             privateKeyStrongholdId: privateKeyStrongholdId,
             actorKeysMnemonicStrongholdId: mnemonicStronholdId,
             createdAt: new Date(),
-        })
-
-        // store the private key and the mnemonic in stronghold
-        await storeMnemonicToStronghold(mnemonicStronholdId, mnemonic);
-        await strongholdStore.storeWalletPrivateKeyToStronghold(privateKeyStrongholdId, walletKey);
-
-        return walletId;
+        });
     }
 
     async function getWalletById(walletId: number) {

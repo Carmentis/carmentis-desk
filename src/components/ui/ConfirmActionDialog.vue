@@ -37,6 +37,10 @@ const open = useVModel(props, 'visible', emit);
             <strong class="break-all font-semibold">“{{ props.itemName }}”</strong>.
         </p>
         <p class="mt-2 text-sm text-fg-muted">{{ props.message }}</p>
+        <!-- Optional extra options of the action (e.g. a checkbox). -->
+        <div v-if="$slots.default" class="mt-4">
+            <slot />
+        </div>
 
         <template #footer>
             <Button
