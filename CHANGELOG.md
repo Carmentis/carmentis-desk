@@ -1,3 +1,10 @@
+## [1.42.1](https://github.com/Carmentis/carmentis-desk/compare/v1.42.0...v1.42.1) (2026-11-25)
+
+
+### Bug Fixes
+
+* bump tauri plugins ([c768c1b](https://github.com/Carmentis/carmentis-desk/commit/c768c1b070e0d312d1e11b7b273aaf9e789981e2))
+
 # [1.42.0](https://github.com/Carmentis/carmentis-desk/compare/v1.41.0...v1.42.0) (2026-11-25)
 
 
