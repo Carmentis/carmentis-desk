@@ -1,3 +1,17 @@
+# [1.42.0](https://github.com/Carmentis/carmentis-desk/compare/v1.41.0...v1.42.0) (2026-11-25)
+
+
+### Bug Fixes
+
+* bump dependencies ([97bed46](https://github.com/Carmentis/carmentis-desk/commit/97bed46931bc1b9737c128ee14d5df5e70c88e9e))
+* bump SDK core 1.16 ([c906d8f](https://github.com/Carmentis/carmentis-desk/commit/c906d8fe3944ca0bc84bfe244aec7e660a0c7c62))
+* bump SDK core 1.17 ([6bcf3e1](https://github.com/Carmentis/carmentis-desk/commit/6bcf3e1887516501a314d266337eeabca9e20dd6))
+
+
+### Features
+
+* add KMS wallet creation flow and settings UI ([c2387ce](https://github.com/Carmentis/carmentis-desk/commit/c2387ced7400c451f3578745d5e806db8a685aa6))
+
 # [1.41.0](https://github.com/Carmentis/carmentis-desk/compare/v1.40.0...v1.41.0) (2026-11-05)
 
 
