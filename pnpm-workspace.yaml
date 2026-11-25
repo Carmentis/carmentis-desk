@@ -7,4 +7,4 @@ allowBuilds:
   vue-demi: true
 
 minimumReleaseAgeExclude:
-  - '@cmts-dev/carmentis-sdk-core@1.15.1'
+  - '@cmts-dev/carmentis-sdk-core@1.15.1 || 1.17.0'
