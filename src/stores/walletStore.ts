@@ -1,6 +1,6 @@
 import {
     BalanceAvailability,
-    CryptoEncoderFactory, Hash, JwkPrivateSignatureKey, Lock, LockType,
+    CryptoEncoderFactory, Hash, JwkPrivateSignatureKey, KmsPrivateSignatureKey, Lock, LockType,
     PrivateSignatureKey, ProviderFactory,
     PublicSignatureKey,
     SeedEncoder, SignatureJwk,
@@ -18,6 +18,7 @@ import {from, useObservable} from "@vueuse/rxjs";
 import {InsertType, liveQuery} from "dexie";
 import {DeskDatabase} from "../db/DeskDatabase.ts";
 import {useStrongholdStore} from "./strongholdStore.ts";
+import {useKmsStore} from "./useKmsStore.ts";
 import {computedAsync} from "@vueuse/core";
 import {CredentialType, KeyType, Network, Organization, VerifiableCredential} from "../types/types.ts";
 import {db} from "../db/db.ts";
@@ -30,6 +31,7 @@ import type {OnChainContext} from "../onchain/onchainOperations.ts";
 
 export const useWalletStore = (walletId: number) => {
     const strongholdStore = useStrongholdStore();
+    const kmsStore = useKmsStore();
 
     const walletIdRef = computed(() => walletId);
 
@@ -77,6 +79,8 @@ export const useWalletStore = (walletId: number) => {
     })
 
     // the actor keys passphrase
+    // TODO(kms-actor-seed): single access point to the actor seed. KMS wallets will eventually use the
+    //  actor seed held by the KMS; for now, every wallet uses the locally generated mnemonic.
     const walletKeyActorKeysPassphrase = computedAsync(async () => {
         if (!wallet.value) return undefined;
         const strongholdId = wallet.value.actorKeysMnemonicStrongholdId;
@@ -87,6 +91,14 @@ export const useWalletStore = (walletId: number) => {
     const walletKeyType = computed(() => {
         if (!walletKeyObject.value) return undefined;
         return walletKeyObject.value.keyType;
+    })
+
+    // KMS wallets: the private key never leaves the KMS
+    const isKmsWallet = computed(() => walletKeyType.value === KeyType.KMS);
+    const walletKmsInfo = computed(() => {
+        const key = walletKeyObject.value;
+        if (key?.keyType !== KeyType.KMS) return undefined;
+        return {serverUrl: key.serverUrl, kmsWalletId: key.kmsWalletId, pluginId: key.pluginId, label: key.label};
     })
 
 
@@ -109,6 +121,8 @@ export const useWalletStore = (walletId: number) => {
                 key.seed,
                 key.schemeId
             );
+        } else if (key.keyType === KeyType.KMS) {
+            return kmsStore.toPrivateKey(key);
         } else {
             return JwkPrivateSignatureKey.fromJwk(key.jwk as SignatureJwk);
         }
@@ -120,9 +134,10 @@ export const useWalletStore = (walletId: number) => {
         return await walletPrivateKey.value.getPublicKey();
     })
 
-    // private and public JWK (only defined for wallets backed by a JWK key)
+    // private and public JWK (only defined for wallets backed by a JWK key; a KMS key has no exportable private JWK)
     const walletPrivateJwk = computed(() => {
         const sk = walletPrivateKey.value;
+        if (sk instanceof KmsPrivateSignatureKey) return undefined;
         return sk instanceof JwkPrivateSignatureKey ? sk.getPrivateJwk() : undefined;
     })
     const walletPublicJwk = computed(() => {
@@ -141,6 +156,8 @@ export const useWalletStore = (walletId: number) => {
     const encoder = CryptoEncoderFactory.defaultStringSignatureEncoder();
     const encodedWalletPrivateKey = computedAsync(async () => {
         if (!walletPrivateKey.value) return undefined;
+        // the private key of a KMS wallet can't be exported
+        if (walletPrivateKey.value instanceof KmsPrivateSignatureKey) return undefined;
         return encoder.encodePrivateKey(walletPrivateKey.value);
     })
     const encodedWalletPublicKey = computedAsync(() => {
@@ -454,6 +471,8 @@ export const useWalletStore = (walletId: number) => {
         walletPrivateKey,
         walletPublicKey,
         walletKeyType,
+        isKmsWallet,
+        walletKmsInfo,
         walletPrivateJwk,
         walletPublicJwk,
         walletKeyPair,

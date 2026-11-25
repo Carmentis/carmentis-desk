@@ -11,15 +11,27 @@ import {readFile, writeFile} from '@tauri-apps/plugin-fs';
 import {useAppStore} from '../stores/appStore.ts';
 import {useStrongholdStore} from '../stores/strongholdStore.ts';
 import {KeyType, type WalletKey} from '../types/types.ts';
-import {EncoderFactory, Utils} from "@cmts-dev/carmentis-sdk/client";
 
 const WALLET_FILE_EXTENSION = 'ecw';
 const WALLET_FILE_FILTERS = [{name: 'Encrypted Carmentis wallet', extensions: [WALLET_FILE_EXTENSION]}];
 
+/** Raised when exporting a wallet whose private key lives in a KMS: there is nothing to put in the file. */
+export class KmsWalletNotExportableError extends Error {
+    constructor() {
+        super('The private key of this wallet is managed by a Carmentis KMS: it cannot be exported to a file.');
+        this.name = 'KmsWalletNotExportableError';
+    }
+}
+
 function toExportedKey(key: WalletKey): ExportedKey {
-    return key.keyType === KeyType.SEED
-        ? {keyType: SdkKeyType.SEED, schemeId: key.schemeId, seed: key.seed, passphrase: key.passphrase}
-        : {keyType: SdkKeyType.JWK, jwk: key.jwk as {kty: string}};
+    switch (key.keyType) {
+        case KeyType.SEED:
+            return {keyType: SdkKeyType.SEED, schemeId: key.schemeId, seed: key.seed, passphrase: key.passphrase};
+        case KeyType.JWK:
+            return {keyType: SdkKeyType.JWK, jwk: key.jwk as {kty: string}};
+        case KeyType.KMS:
+            throw new KmsWalletNotExportableError();
+    }
 }
 
 function fromExportedKey(key: ExportedKey): WalletKey {
@@ -51,19 +63,22 @@ export function useWalletFileTransfer() {
     /** Asks where to save the file, then writes the encrypted wallet. Returns the path, or undefined if cancelled. */
     async function exportWallet(walletId: number, password: string): Promise<string | undefined> {
         const wallet = await appStore.getWalletById(walletId);
+        // fails before asking for a path when the key can't be exported (KMS wallets)
+        const key = await strongholdStore.getWalletPrivateKeyFromStronghold(wallet.privateKeyStrongholdId);
+        const privateKey = toExportedKey(key);
+
         const path = await save({
             defaultPath: `wallet-${sanitizeFileName(wallet.name)}.${WALLET_FILE_EXTENSION}`,
             filters: WALLET_FILE_FILTERS,
         });
         if (!path) return undefined;
 
-        const key = await strongholdStore.getWalletPrivateKeyFromStronghold(wallet.privateKeyStrongholdId);
         const actorPassphrase = await strongholdStore.getMnemonicFromStronghold(wallet.actorKeysMnemonicStrongholdId);
         const payload = new WalletKeyFileBuilder()
             .addWallet({
                 name: wallet.name,
                 createdAt: wallet.createdAt?.toISOString(),
-                privateKey: toExportedKey(key),
+                privateKey,
                 actorPassphrase,
                 connectivity: {
                     networkName: wallet.network.networkName,
@@ -72,11 +87,8 @@ export function useWalletFileTransfer() {
                 },
             })
             .build();
-        console.log("Used password to encrypt the wallet:", password)
         const encrypted = await service.export(payload, password);
         await assertRecoverable(encrypted, payload, password);
-        const base64 = EncoderFactory.bytesToBase64Encoder();
-        console.log("encrypted wallet:", base64.encode(encrypted));
         await writeFile(path, encrypted);
         return path;
     }

@@ -14,7 +14,7 @@ import {
     ValidatorNodeCometbftPublicKeyDeclarationSection,
     ValidatorNodeCreationSection,
     ValidatorNodeRpcEndpointSection,
-    VirtualBlockchainType,
+    VirtualBlockchainType, Utils,
 } from '@cmts-dev/carmentis-sdk-core';
 import {DeskDatabase} from "../db/DeskDatabase.ts";
 import {createIndexerClient} from "../api/indexer/client.ts";
@@ -88,6 +88,8 @@ async function updateGasInMicroblock(provider: Provider, mb: Microblock, usedSig
 async function sealAndPublish(ctx: OnChainContext, mb: Microblock) {
     await updateGasInMicroblock(ctx.provider, mb, ctx.sk.getSignatureSchemeId());
     await mb.seal(ctx.sk, { feesPayerAccount: ctx.accountId });
+    const { microblockData } = mb.serialize();
+    console.log(`Sending microblock ${Utils.binaryToHexa(microblockData)}`);
     return ctx.provider.publishMicroblock(mb);
 }
 

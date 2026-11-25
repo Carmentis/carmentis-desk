@@ -23,6 +23,9 @@ import SkeletonBlock from "../../../components/ui/SkeletonBlock.vue";
 import ConfirmActionDialog from "../../../components/ui/ConfirmActionDialog.vue";
 import WalletPasswordDialog from "../../../components/wallet/WalletPasswordDialog.vue";
 import {useWalletFileTransfer} from "../../../composables/useWalletFileTransfer.ts";
+import {useKmsWalletDeletion} from "../../../composables/useKmsWalletDeletion.ts";
+import {describeKmsError} from "../../../stores/useKmsStore.ts";
+import Checkbox from 'primevue/checkbox';
 import type {TabItem} from "../../../components/ui/types.ts";
 
 const toast = useToast();
@@ -31,7 +34,8 @@ const router = useRouter();
 const {deleteWalletById, shouldDisplayOrganizations} = useAppStore();
 
 const walletId = computed(() => Number(route.params.walletId));
-const {wallet} = useWalletStore(walletId.value);
+const {wallet, isKmsWallet, walletKmsInfo} = useWalletStore(walletId.value);
+const {deleteWalletWithKms} = useKmsWalletDeletion();
 
 // The wallet arrives asynchronously and a missing wallet looks the same as a loading one:
 // show a skeleton for a moment before concluding that it does not exist.
@@ -64,15 +68,28 @@ async function exportToFile(password: string) {
     }
 }
 
-const menuItems: MenuItem[] = [
-    { label: 'Export wallet', icon: 'pi pi-download', command: () => { exportError.value = ''; showExportDialog.value = true; } },
+// the private key of a KMS wallet can't be put in a file
+const menuItems = computed<MenuItem[]>(() => [
+    {
+        label: 'Export wallet',
+        icon: 'pi pi-download',
+        visible: !isKmsWallet.value,
+        command: () => { exportError.value = ''; showExportDialog.value = true; },
+    },
     { label: 'Delete wallet', icon: 'pi pi-trash', class: 'text-danger', command: () => showDeleteDialog.value = true },
-];
+]);
+
+// a KMS wallet is also destroyed on the KMS, unless the user wants to keep it there
+const alsoDeleteOnKms = ref(true);
 
 async function deleteWallet() {
     isDeleting.value = true;
     try {
-        await deleteWalletById(walletId.value);
+        if (isKmsWallet.value && alsoDeleteOnKms.value) {
+            await deleteWalletWithKms(walletId.value);
+        } else {
+            await deleteWalletById(walletId.value);
+        }
         toast.add({
             severity: 'success',
             summary: 'Wallet deleted',
@@ -80,6 +97,9 @@ async function deleteWallet() {
             life: 3000,
         });
         await router.push('/');
+    } catch (e) {
+        console.error('Failed to delete wallet:', e);
+        toast.add({ severity: 'error', summary: 'Wallet not deleted', detail: describeKmsError(e), life: 6000 });
     } finally {
         isDeleting.value = false;
     }
@@ -142,7 +162,18 @@ const tabs = computed<TabItem[]>(() => [
             message="This will also delete all its organizations, nodes and applications from this device. This action cannot be undone."
             :loading="isDeleting"
             @confirm="deleteWallet"
-        />
+        >
+            <div v-if="isKmsWallet" class="flex items-start gap-3">
+                <Checkbox v-model="alsoDeleteOnKms" input-id="delete-on-kms" binary :disabled="isDeleting" />
+                <label for="delete-on-kms" class="text-sm">
+                    <span class="block font-medium text-fg">Also destroy the wallet on the KMS</span>
+                    <span class="block text-fg-muted">
+                        Its private key is destroyed on {{ walletKmsInfo?.serverUrl }}. Without this, the KMS keeps
+                        the wallet, but this device loses its access to it.
+                    </span>
+                </label>
+            </div>
+        </ConfirmActionDialog>
     </div>
 
     <SkeletonBlock v-else-if="!hasWaited" :lines="4" />

@@ -4,6 +4,8 @@ import {BinaryEncoding, VirtualBlockchainType} from "@cmts-dev/carmentis-sdk-cor
 export enum KeyType {
     SEED = "SEED",
     JWK = "JWK",
+    /** The private key lives in a Carmentis KMS wallet and never leaves the server. */
+    KMS = "KMS",
     // any other key types should be represented here
 }
 
@@ -36,13 +38,61 @@ export const JwkKeySchema = v.object({
     jwk: v.unknown(),
 })
 
+/**
+ * A key held by a Carmentis KMS wallet.
+ *
+ * The whole object is stored in Stronghold: it holds the wallet API key and the admin key seed.
+ */
+export const KmsKeySchema = v.object({
+    keyType: v.literal(KeyType.KMS),
+
+    /** URL of the KMS. Copied here so the wallet keeps working if the server is removed from the settings. */
+    serverUrl: v.string(),
+
+    /** Identifier of the wallet on the KMS. */
+    kmsWalletId: v.string(),
+
+    /** Wallet API key (`wlt_…`), used to sign. The KMS returns it only once. */
+    apiKey: v.string(),
+
+    /** Plugin that generated the private key. */
+    pluginId: v.string(),
+
+    /** Label of the wallet on the KMS. */
+    label: v.optional(v.string()),
+
+    /** Public JWK of the wallet key, cached to avoid a request at each load. */
+    publicJwk: v.unknown(),
+
+    /** Admin key of the KMS wallet (one per wallet), used to sign administration requests. */
+    adminKey: v.object({
+        schemeId: v.number(),
+        seed: v.string(),
+    }),
+})
+
+export type KmsKey = v.InferOutput<typeof KmsKeySchema>
+
 
 export const WalletKeySchema = v.variant("keyType", [
     SeedableKeySchema,
     JwkKeySchema,
+    KmsKeySchema,
 ])
 
 export type WalletKey = v.InferOutput<typeof WalletKeySchema>
+
+/** A Carmentis KMS server configured in the settings. */
+export const KmsServerSchema = v.object({
+    id: v.number(),
+    /** Name shown to the user. */
+    name: v.string(),
+    /** Base URL, without trailing slash. */
+    url: v.string(),
+    createdAt: v.date(),
+})
+
+export type KmsServer = v.InferOutput<typeof KmsServerSchema>
 
 
 export const NetworkSchema = v.object({
