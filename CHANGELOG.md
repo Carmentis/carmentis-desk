@@ -1,3 +1,10 @@
+## [1.42.2](https://github.com/Carmentis/carmentis-desk/compare/v1.42.1...v1.42.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* pin Rust toolchain for Windows builds ([edb18f6](https://github.com/Carmentis/carmentis-desk/commit/edb18f6ad2e575a9c97d4fe53b1eb6ebace362c9))
+
 ## [1.42.1](https://github.com/Carmentis/carmentis-desk/compare/v1.42.0...v1.42.1) (2026-11-25)
 
 
