@@ -31,9 +31,11 @@ jobs:
         with:
           node-version: lts/*
 
-      - name: install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      # Toolchain is pinned in rust-toolchain.toml (see rust-lang/rust#165915).
+      - name: install Rust (pinned)
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: 1.99.1
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: install dependencies (ubuntu only)
@@ -73,3 +75,18 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      # Guard against rust-lang/rust#165915: the Windows binary must never import from vertdll.dll.
+      - name: check Windows imports (no vertdll.dll)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          $dumpbin = Get-ChildItem "$vs\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" | Select-Object -First 1
+          $exe = "src-tauri\target\release\carmentis-desk.exe"
+          $imports = & $dumpbin.FullName /imports $exe | Out-String
+          if ($imports -match 'vertdll\.dll') {
+            Write-Error "$exe imports from vertdll.dll: this build will crash on startup (rust-lang/rust#165915)."
+            exit 1
+          }
+          Write-Host "OK: no vertdll.dll import in $exe"

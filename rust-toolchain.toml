@@ -1,0 +1,16 @@
+# Pinned on purpose — do NOT bump to 1.100+ without checking the Windows build.
+#
+# Rust 1.100 stopped linking std's WaitOnAddress/WakeByAddress* via raw-dylib
+# (rust-lang/rust#165915, closed as "intended behaviour"). The linker now picks
+# whichever import library it sees first. In our tree that is the bundled
+# `windows.lib` of `windows_x86_64_msvc 0.36.1`, which comes in through
+# tauri-plugin-stronghold -> iota_stronghold -> stronghold-runtime 2.0.1 -> windows 0.36.1.
+# That lib resolves those symbols to vertdll.dll (the VBS enclave runtime), so
+# the app crashes with 0xC0000005 in vertdll.dll the first time a thread parks.
+#
+# You can unpin once `cargo tree -i windows_x86_64_msvc@0.36.1 --target x86_64-pc-windows-msvc`
+# prints nothing (i.e. no dependency uses windows/windows-sys < 0.42 anymore).
+[toolchain]
+channel = "1.99.1"
+profile = "minimal"
+components = ["rustfmt", "clippy"]
